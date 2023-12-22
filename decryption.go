@@ -41,7 +41,7 @@ func (privateKey *PrivateKey) keySymmetricDecrypt(ciphertext []byte, compression
 	if err != nil {
 		return nil, err
 	}
-	return decrypter.Decrypt(ciphertext[kdfSpecLength:], compression)
+	return decrypter.Decrypt(ciphertext, compression)
 }
 
 func (privateKey *PrivateKey) pwdAsymmetricDecrypt(ciphertext []byte, compression bool) (data []byte, err error) {
@@ -71,7 +71,7 @@ func (privateKey *PrivateKey) keyAsymmetricDecrypt(ciphertext []byte, compressio
 	if err != nil {
 		return nil, err
 	}
-	return eccPrivKey.Decrypt(ciphertext[kdfSpecLength:], compression)
+	return eccPrivKey.Decrypt(ciphertext, compression)
 }
 
 func (privateKey *PrivateKey) Decrypt(ciphertext []byte, compression bool) (data []byte, err error) {

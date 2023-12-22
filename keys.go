@@ -129,7 +129,7 @@ type PublicKey struct {
 }
 
 func GetPublicKey(key []byte) (*PublicKey, error) {
-	if publicKeyMinLength <= len(key) && publicKeyMaxLength != len(key) {
+	if publicKeyMinLength != len(key) && publicKeyMaxLength != len(key) {
 		return nil, errIncorrectKeyLength
 	}
 	eccPubKey, err := ecc.GetPublicKey(key[:keyLength])
@@ -147,7 +147,7 @@ func GetPublicKey(key []byte) (*PublicKey, error) {
 
 func (publicKey *PublicKey) Bytes() []byte {
 	if publicKey.kdfSpec != nil {
-		return append(*publicKey.kdfSpec, publicKey.publicKey.Bytes()...)
+		return append(publicKey.publicKey.Bytes(), *publicKey.kdfSpec...)
 	}
 	return publicKey.publicKey.Bytes()
 }
