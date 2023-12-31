@@ -2,6 +2,12 @@
 
 A curated collection of cryptographic primitives written in Go to encrypt and decrypt data with optional compression.
 
+### Features
+- Password based public key generation
+- Encrypt data with public key generated from a password
+- Encrypt data with password or a generated private key
+- Decrypt data with password or a a given private key (works on all combinations of encryption)
+
 ### Install or Update
 ```bash
 go get -u gopkg.shib.me/xipher
