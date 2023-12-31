@@ -7,13 +7,14 @@ import (
 )
 
 const (
-	ciphertextMinLength = symmcipher.CipherTextMinLength
-	cipherKeyLength     = 32
+	cipherKeyLength = 32
 
 	// PrivateKeyLength is the length of a private key.
 	PrivateKeyLength = cipherKeyLength
 	// PublicKeyLength is the length of a public key.
 	PublicKeyLength = cipherKeyLength + kdfSpecLength
+	// CipherTextMinLength is the minimum length of a ciphertext.
+	CipherTextMinLength = symmcipher.CipherTextMinLength
 
 	// Ciphertext Types
 	ctKeySymmetric  byte = 1

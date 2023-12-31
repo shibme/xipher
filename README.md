@@ -1,6 +1,6 @@
 # Xipher
 
-A curated collection of cryptographic primitives written purely in Go to encrypt and decrypt data locally with optional compression.
+A curated collection of cryptographic primitives written in Go to encrypt and decrypt data with optional compression.
 
 ### Install or Update
 ```bash
