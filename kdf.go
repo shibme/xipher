@@ -6,12 +6,6 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-const (
-	specParamsLenth = 3
-	saltLength      = 16
-	specLength      = specParamsLenth + saltLength
-)
-
 type kdfSpec struct {
 	iterations uint8
 	memory     uint8
@@ -20,18 +14,16 @@ type kdfSpec struct {
 }
 
 func newSpec() (*kdfSpec, error) {
-	return new(kdfSpec).new()
-}
-
-func (s *kdfSpec) new() (*kdfSpec, error) {
-	s.iterations = argon2Iterations
-	s.memory = argon2Memory
-	s.threads = argon2Threads
-	s.salt = make([]byte, saltLength)
-	if _, err := rand.Read(s.salt); err != nil {
+	salt := make([]byte, kdfSaltLength)
+	if _, err := rand.Read(salt); err != nil {
 		return nil, errGeneratingSalt
 	}
-	return s, nil
+	return &kdfSpec{
+		iterations: argon2Iterations,
+		memory:     argon2Memory,
+		threads:    argon2Threads,
+		salt:       salt,
+	}, nil
 }
 
 func (s *kdfSpec) setIterations(iterations uint8) *kdfSpec {
@@ -76,21 +68,21 @@ func (s *kdfSpec) getCipherKey(pwd []byte) []byte {
 	return argon2.IDKey(pwd, s.getSalt(), s.getIterations(), s.getMemory(), uint8(s.getThreads()), cipherKeyLength)
 }
 
-func (s *kdfSpec) Bytes() []byte {
+func (s *kdfSpec) bytes() []byte {
 	return append([]byte{s.iterations, s.memory, s.threads}, s.salt...)
 }
 
 func parseKdfSpec(bytes []byte) (*kdfSpec, error) {
-	if bytes == nil || len(bytes) != specLength {
+	if bytes == nil || len(bytes) != kdfSpecLength {
 		return nil, errInvalidKDFSpec
 	}
-	if [specLength]byte(bytes) == [specLength]byte{} {
+	if [kdfSpecLength]byte(bytes) == [kdfSpecLength]byte{} {
 		return nil, nil
 	}
 	iterations := bytes[0]
 	memory := bytes[1]
 	threads := bytes[2]
-	salt := bytes[specParamsLenth:]
+	salt := bytes[kdfParamsLenth:]
 	if iterations == 0 || memory == 0 || threads == 0 || salt == nil {
 		return nil, errInvalidKDFSpec
 	}
