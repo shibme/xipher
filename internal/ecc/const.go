@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	errInvalidKeyLength = errors.New("invalid key length [please use " + strconv.Itoa(curve25519.ScalarSize) + " bytes]")
+	errInvalidKeyLength = errors.New("invalid key length [please use " + strconv.Itoa(KeyLength) + " bytes]")
 
 	privateKeyMap map[string]*PrivateKey = make(map[string]*PrivateKey)
 	publicKeyMap  map[string]*PublicKey  = make(map[string]*PublicKey)

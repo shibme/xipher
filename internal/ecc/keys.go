@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 
 	"golang.org/x/crypto/curve25519"
-	"gopkg.shib.me/xipher/chacha20poly1305"
+	"gopkg.shib.me/xipher/internal/symmcipher"
 )
 
 // PrivateKey represents a private key.
@@ -21,7 +21,7 @@ type PublicKey struct {
 
 type encrypter struct {
 	ephPubKey []byte
-	cipher    *chacha20poly1305.Cipher
+	cipher    *symmcipher.Cipher
 }
 
 // Bytes returns the bytes of the private key.
@@ -106,7 +106,7 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 		if err != nil {
 			return nil, err
 		}
-		cipher, err := chacha20poly1305.Get(sharedKey)
+		cipher, err := symmcipher.New(sharedKey)
 		if err != nil {
 			return nil, err
 		}

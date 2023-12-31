@@ -4,45 +4,47 @@ import (
 	"errors"
 	"strconv"
 
-	"gopkg.shib.me/xipher/chacha20poly1305"
-	"gopkg.shib.me/xipher/ecc"
+	"gopkg.shib.me/xipher/internal/ecc"
+	"gopkg.shib.me/xipher/internal/symmcipher"
 )
 
 const (
-	keyLength           = 32
-	ciphertextMinLength = chacha20poly1305.CipherTextMinLength
-	argon2ParamsLength  = 3
-	argon2SaltLength    = 16
-	kdfSpecLength       = argon2ParamsLength + argon2SaltLength
+	ciphertextMinLength = symmcipher.CipherTextMinLength
+	cipherKeyLength     = 32
+	PublicKeyLength     = cipherKeyLength + specLength
 
-	publicKeyMinLength = ecc.KeyLength
-	publicKeyMaxLength = publicKeyMinLength + kdfSpecLength
+	// Xipher Types
+	// typeKey byte = 0
+	// typePwd byte = 1
+
+	// Ciphertext Types
+	ctKeySymmetric  byte = 1
+	ctKeyAsymmetric byte = 2
+	ctPwdSymmetric  byte = 3
+	ctPwdAsymmetric byte = 4
 
 	// Argon2 Default Spec
-	argon2Iterations uint8 = 12
-	argon2Memory     uint8 = 16
+	argon2Iterations uint8 = 32
+	argon2Memory     uint8 = 32
 	argon2Threads    uint8 = 1
 
-	pwdSymmetric  byte = 1
-	keySymmetric  byte = 2
-	pwdAsymmetric byte = 3
-	keyAsymmetric byte = 4
-
 	ctMinLenKeySymmetric  = ciphertextMinLength
-	ctMinLenPwdSymmetric  = ctMinLenKeySymmetric + kdfSpecLength
+	ctMinLenPwdSymmetric  = ctMinLenKeySymmetric + specLength
 	ctMinLenKeyAsymmetric = ctMinLenKeySymmetric + ecc.KeyLength
 	ctMinLenPwdAsymmetric = ctMinLenPwdSymmetric + ecc.KeyLength
 )
 
 var (
-	passwordXipherMap = make(map[string]*PrivateKey)
-	keyXipherMap      = make(map[string]*PrivateKey)
+	pwdXipherMap = make(map[string]*PrivateKey)
+	keyXipherMap = make(map[string]*PrivateKey)
 
 	errGeneratingSalt              = errors.New("error generating salt")
 	errInvalidPassword             = errors.New("invalid password")
-	errIncorrectKeyLength          = errors.New("incorrect key length. requires a key length of " + strconv.Itoa(keyLength) + " bytes")
-	errIncorrectCiphertext         = errors.New("incorrect ciphertext")
+	errIncorrectKeyLength          = errors.New("incorrect key length. requires a key length of " + strconv.Itoa(cipherKeyLength) + " bytes")
+	errInvalidCiphertext           = errors.New("invalid ciphertext")
 	errPrivKeyUnavailableForPwd    = errors.New("private is unavailable for passwords")
-	errIncorrectKDFSpecLength      = errors.New("incorrect keygen spec length")
+	errInvalidKDFSpec              = errors.New("invalid kdf spec")
+	errUnsupportedDecryption       = errors.New("unsupported decryption")
 	errDecryptionFailedPwdNotFound = errors.New("decryption failed. password not found.")
+	errInvalidPublicKey            = errors.New("invalid public key")
 )
