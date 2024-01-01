@@ -1,8 +1,7 @@
 package ecc
 
 import (
-	"errors"
-	"strconv"
+	"fmt"
 
 	"golang.org/x/crypto/curve25519"
 )
@@ -13,7 +12,7 @@ const (
 )
 
 var (
-	errInvalidKeyLength = errors.New("invalid key length [please use " + strconv.Itoa(KeyLength) + " bytes]")
+	errInvalidKeyLength = fmt.Errorf("xipher: invalid key lengths [please use %d bytes]", KeyLength)
 
 	privateKeyMap map[string]*PrivateKey = make(map[string]*PrivateKey)
 	publicKeyMap  map[string]*PublicKey  = make(map[string]*PublicKey)
