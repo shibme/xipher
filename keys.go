@@ -1,7 +1,9 @@
 package xipher
 
 import (
+	"bytes"
 	"crypto/rand"
+	"crypto/sha1"
 	"fmt"
 
 	"gopkg.shib.me/xipher/internal/ecc"
@@ -123,7 +125,8 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 	if len(pubKeyBytes) != PublicKeyLength {
 		return nil, fmt.Errorf("invalid public key length: expected %d, got %d", PublicKeyLength, len(pubKeyBytes))
 	}
-	eccPubKey, err := ecc.GetPublicKey(pubKeyBytes[:cipherKeyLength])
+	keyBytes := pubKeyBytes[:cipherKeyLength]
+	eccPubKey, err := ecc.GetPublicKey(keyBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +134,12 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 		publicKey: eccPubKey,
 	}
 	specBytes := pubKeyBytes[cipherKeyLength:]
-	if [kdfSpecLength]byte(specBytes) != [kdfSpecLength]byte{} {
+	if specBytes[0] == zero {
+		sum := sha1.Sum(keyBytes)
+		if !bytes.Equal(sum[:kdfSpecLength-1], specBytes[1:]) {
+			return nil, errInvalidPublicKey
+		}
+	} else {
 		publicKey.spec, err = parseKdfSpec(specBytes)
 		if err != nil {
 			return nil, err
@@ -146,9 +154,11 @@ func (publicKey *PublicKey) isPwdBased() bool {
 
 // Bytes returns the public key as bytes.
 func (publicKey *PublicKey) Bytes() []byte {
+	pubKeyBytes := publicKey.publicKey.Bytes()
 	if publicKey.spec != nil {
-		return append(publicKey.publicKey.Bytes(), publicKey.spec.bytes()...)
+		return append(pubKeyBytes, publicKey.spec.bytes()...)
 	} else {
-		return append(publicKey.publicKey.Bytes(), make([]byte, kdfSpecLength)...)
+		sum := sha1.Sum(pubKeyBytes)
+		return append(pubKeyBytes, append([]byte{zero}, sum[:kdfSpecLength-1]...)...)
 	}
 }

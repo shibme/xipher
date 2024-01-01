@@ -30,6 +30,8 @@ const (
 	kdfParamsLenth = 3
 	kdfSaltLength  = 16
 	kdfSpecLength  = kdfParamsLenth + kdfSaltLength
+
+	zero byte = 0
 )
 
 var (
@@ -40,5 +42,6 @@ var (
 	errInvalidPassword          = errors.New("invalid password")
 	errInvalidCiphertext        = errors.New("invalid ciphertext")
 	errPrivKeyUnavailableForPwd = errors.New("private is unavailable for passwords")
+	errInvalidPublicKey         = errors.New("invalid public key")
 	errInvalidKDFSpec           = errors.New("invalid kdf spec")
 )
