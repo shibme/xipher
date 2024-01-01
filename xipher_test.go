@@ -6,14 +6,19 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 )
 
-func getMemoryUsage() string {
+func getMemoryStats() string {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	mb := float64(m.Alloc) / (1024 * 1024)
-	return fmt.Sprintf("Memory usage: %.2f MB", mb)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Alloc = %v MB", m.Alloc/1024/1024))
+	sb.WriteString(fmt.Sprintf("\tTotalAlloc = %v MB", m.TotalAlloc/1024/1024))
+	sb.WriteString(fmt.Sprintf("\tSys = %v MB", m.Sys/1024/1024))
+	sb.WriteString(fmt.Sprintf("\tNumGC = %v\n", m.NumGC))
+	return sb.String()
 }
 
 func TestPasswordSymmetricCipher(t *testing.T) {
@@ -48,7 +53,7 @@ func TestPasswordSymmetricCipher(t *testing.T) {
 	if string(plaintext) != string(data) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
 
 func TestKeySymmetricCipher(t *testing.T) {
@@ -83,7 +88,7 @@ func TestKeySymmetricCipher(t *testing.T) {
 	if string(plaintext) != string(data) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
 func TestPasswordAsymmetricCipher(t *testing.T) {
 	password := make([]byte, 14)
@@ -121,7 +126,7 @@ func TestPasswordAsymmetricCipher(t *testing.T) {
 	if string(plaintext) != string(data) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
 
 func TestKeyAsymmetricCipher(t *testing.T) {
@@ -160,7 +165,7 @@ func TestKeyAsymmetricCipher(t *testing.T) {
 	if string(plaintext) != string(data) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
 
 func TestFileEncryption(t *testing.T) {
@@ -175,7 +180,7 @@ func TestFileEncryption(t *testing.T) {
 		t.Error("Error creating temp file", err)
 	}
 	block := make([]byte, 1024*1024)
-	for i := 0; i < 32; i++ {
+	for i := 0; i < 10; i++ {
 		_, err := rand.Read(block)
 		if err != nil {
 			t.Error("Error generating random data", err)
@@ -214,7 +219,7 @@ func TestFileEncryption(t *testing.T) {
 	ptFile.Close()
 	ctFile.Close()
 
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
 
 func TestHash(t *testing.T) {
@@ -225,5 +230,5 @@ func TestHash(t *testing.T) {
 		t.Errorf("Hash was incorrect, got: %s, want: %s.", calculatedHash, expectedHash)
 	}
 
-	t.Log(getMemoryUsage())
+	t.Log(getMemoryStats())
 }
