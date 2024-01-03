@@ -35,6 +35,8 @@ const (
 )
 
 var (
+	Version = "dev"
+
 	xipherPwdMap = make(map[string]*PrivateKey)
 	xipherKeyMap = make(map[string]*PrivateKey)
 

@@ -1,0 +1,45 @@
+builds:
+  - main: ./cli/main
+    env:
+      - CGO_ENABLED=0
+    ldflags: "-X dev.shib.me/xipher.Version={{.Version}}"
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - darwin
+      - linux
+      - windows
+archives:
+  - format: zip
+snapshot:
+  name_template: "{{ incpatch .Version }}-dev"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+nfpms:
+  - vendor: Shibly Meeran
+    homepage: https://shib.me
+    maintainer: Shibly Meeran <shibme@shib.me>
+    formats:
+      - apk
+      - deb
+      - rpm
+brews:
+  - name: xipher
+    homepage: "https://dev.shib.me/xipher"
+    description: "Xipher is a curated collection of cryptographic primitives written in Go to encrypt and decrypt data with optional compression."
+    license: "MIT"
+    commit_author:
+      name: Shibly Meeran
+      email: shibme@shib.me
+    repository:
+      owner: shibme
+      name: homebrew-beta
+      branch: main
+      git:
+        url: 'git@github.com:shibme/homebrew-beta.git'
+        private_key: '{{ .Env.HOMEBREW_SSH_KEY }}'

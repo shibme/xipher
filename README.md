@@ -1,7 +1,8 @@
 # Xipher
 [![Go Reference](https://pkg.go.dev/badge/dev.shib.me/xipher.svg)](https://pkg.go.dev/dev.shib.me/xipher)
 [![Go Report Card](https://goreportcard.com/badge/dev.shib.me/xipher)](https://goreportcard.com/report/dev.shib.me/xipher)
-[![Build Status](https://github.com/shibme/xipher/actions/workflows/go.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/go.yml)
+[![Test Status](https://github.com/shibme/xipher/actions/workflows/test.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/test.yml)
+[![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
 
 Xipher is a curated collection of cryptographic primitives written in Go to encrypt and decrypt data with optional compression.
@@ -50,7 +51,7 @@ func main() {
 	}
 	fmt.Println("PublicKey:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(pubKey.Bytes()))
 
-	platinText := []byte("It's a subtle world!")
+	platinText := []byte("Hello World!")
 
 	// Encrypting plain text with public key
 	cipherText, err := pubKey.Encrypt(platinText, true)
@@ -71,5 +72,5 @@ The output of the above code looks something like this:
 ```sh
 PublicKey: MS5JUG7ZVJLETJA7WE2XKFHRE4PP6LKYCTEF2FTNUJ5QEZJIGZPCAIABX7UMDM7DPZX6WNOXICBUBBPPKE
 Encrypted: AQQCAAN75DA3HY36N7VTLV2AQNAIL32RBWA2GJY7JNFA7QNOBT4CFXFBZMKY36DGE6FBKPATB7EJTD5SCNXI6URGO4WERYXYHYTL4RCXLRMYBG4K4UDZ5HGE7APXUVZ4RNESUV3EWVDJBHUAT5F7U5BFNUMTXB72Q3AZBGZDN3KXBWLUX23Q
-Decrypted: It's a subtle world!
+Decrypted: Hello World!
 ```

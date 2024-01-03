@@ -29,7 +29,7 @@ func TestPasswordSymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating private key for password", err)
 	}
-	data := []byte("It's a subtle world!")
+	data := []byte("Hello World!")
 	uncompressedCiphertext, err := privKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -64,7 +64,7 @@ func TestKeySymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error parsing private key", err)
 	}
-	data := []byte("It's a subtle world!")
+	data := []byte("Hello World!")
 	uncompressedCiphertext, err := privKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -102,7 +102,7 @@ func TestPasswordAsymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	data := []byte("It's a subtle world!")
+	data := []byte("Hello World!")
 	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -141,7 +141,7 @@ func TestKeyAsymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	data := []byte("It's a subtle world!")
+	data := []byte("Hello World!")
 	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
