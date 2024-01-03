@@ -6,8 +6,8 @@ import (
 	"crypto/sha1"
 	"fmt"
 
-	"gopkg.shib.me/xipher/internal/ecc"
-	"gopkg.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/symmcipher"
 )
 
 type PrivateKey struct {
@@ -42,14 +42,14 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, er
 	if len(password) == 0 {
 		return nil, errInvalidPassword
 	}
-	privateKey := pwdXipherMap[string(password)]
+	privateKey := xipherPwdMap[string(password)]
 	if privateKey == nil {
 		privateKey = &PrivateKey{
 			password: &password,
 			spec:     spec,
 		}
 		privateKey.key = spec.getCipherKey(*privateKey.password)
-		pwdXipherMap[string(*privateKey.password)] = privateKey
+		xipherPwdMap[string(*privateKey.password)] = privateKey
 		privateKey.specKeyMap = make(map[string][]byte)
 		privateKey.specKeyMap[string(privateKey.spec.bytes())] = privateKey.key
 	}
@@ -65,21 +65,21 @@ func NewPrivateKey() (*PrivateKey, error) {
 	privateKey := &PrivateKey{
 		key: key,
 	}
-	keyXipherMap[string(key)] = privateKey
+	xipherKeyMap[string(key)] = privateKey
 	return privateKey, nil
 }
 
 // ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 32 bytes long.
 func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 	if len(key) != PrivateKeyLength {
-		return nil, fmt.Errorf("invalid private key length: expected %d, got %d", PrivateKeyLength, len(key))
+		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", PrivateKeyLength, len(key))
 	}
-	privateKey := keyXipherMap[string(key)]
+	privateKey := xipherKeyMap[string(key)]
 	if privateKey == nil {
 		privateKey = &PrivateKey{
 			key: key,
 		}
-		keyXipherMap[string(key)] = privateKey
+		xipherKeyMap[string(key)] = privateKey
 	}
 	return privateKey, nil
 }
@@ -123,7 +123,7 @@ type PublicKey struct {
 // ParsePublicKey parses the given bytes and returns a corresponding public key. the given bytes must be 51 bytes long.
 func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 	if len(pubKeyBytes) != PublicKeyLength {
-		return nil, fmt.Errorf("invalid public key length: expected %d, got %d", PublicKeyLength, len(pubKeyBytes))
+		return nil, fmt.Errorf("%s: invalid public key length: expected %d, got %d", "xipher", PublicKeyLength, len(pubKeyBytes))
 	}
 	keyBytes := pubKeyBytes[:cipherKeyLength]
 	eccPubKey, err := ecc.GetPublicKey(keyBytes)

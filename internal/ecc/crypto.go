@@ -3,8 +3,8 @@ package ecc
 import (
 	"io"
 
+	"dev.shib.me/xipher/internal/symmcipher"
 	"golang.org/x/crypto/curve25519"
-	"gopkg.shib.me/xipher/internal/symmcipher"
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.

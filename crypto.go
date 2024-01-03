@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"io"
 
-	"golang.org/x/crypto/argon2"
-	"gopkg.shib.me/xipher/internal/ecc"
-	"gopkg.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/symmcipher"
 )
 
 func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
@@ -143,9 +142,4 @@ func (privateKey *PrivateKey) Decrypt(ciphertext []byte) (data []byte, err error
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-// Hash returns the argon2 hash of the given data.
-func Hash(data []byte, length uint32) []byte {
-	return argon2.IDKey(data, nil, uint32(argon2Iterations), uint32(argon2Memory)*1024, argon2Threads, length)
 }

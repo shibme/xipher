@@ -1,9 +1,9 @@
 package xipher
 
 import (
-	"errors"
+	"fmt"
 
-	"gopkg.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symmcipher"
 )
 
 const (
@@ -23,8 +23,8 @@ const (
 	ctPwdAsymmetric byte = 4
 
 	// Argon2 Default Spec
-	argon2Iterations uint8 = 32
-	argon2Memory     uint8 = 32
+	argon2Iterations uint8 = 16
+	argon2Memory     uint8 = 64
 	argon2Threads    uint8 = 1
 
 	kdfParamsLenth = 3
@@ -35,13 +35,13 @@ const (
 )
 
 var (
-	pwdXipherMap = make(map[string]*PrivateKey)
-	keyXipherMap = make(map[string]*PrivateKey)
+	xipherPwdMap = make(map[string]*PrivateKey)
+	xipherKeyMap = make(map[string]*PrivateKey)
 
-	errGeneratingSalt           = errors.New("xipher: error generating salt")
-	errInvalidPassword          = errors.New("xipher: invalid password")
-	errInvalidCiphertext        = errors.New("xipher: invalid ciphertext")
-	errPrivKeyUnavailableForPwd = errors.New("xipher: private is unavailable for passwords")
-	errInvalidPublicKey         = errors.New("xipher: invalid public key")
-	errInvalidKDFSpec           = errors.New("xipher: invalid kdf spec")
+	errGeneratingSalt           = fmt.Errorf("%s: error generating salt", "xipher")
+	errInvalidPassword          = fmt.Errorf("%s: invalid password", "xipher")
+	errInvalidCiphertext        = fmt.Errorf("%s: invalid ciphertext", "xipher")
+	errPrivKeyUnavailableForPwd = fmt.Errorf("%s: private is unavailable for passwords", "xipher")
+	errInvalidPublicKey         = fmt.Errorf("%s: invalid public key", "xipher")
+	errInvalidKDFSpec           = fmt.Errorf("%s: invalid kdf spec", "xipher")
 )

@@ -1,4 +1,4 @@
-module gopkg.shib.me/xipher
+module dev.shib.me/xipher
 
 go 1.20
 

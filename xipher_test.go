@@ -2,7 +2,6 @@ package xipher
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"runtime"
@@ -30,7 +29,7 @@ func TestPasswordSymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating private key for password", err)
 	}
-	data := []byte("Hello Xipher!")
+	data := []byte("It's a subtle world!")
 	uncompressedCiphertext, err := privKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -65,7 +64,7 @@ func TestKeySymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error parsing private key", err)
 	}
-	data := []byte("Hello Xipher!")
+	data := []byte("It's a subtle world!")
 	uncompressedCiphertext, err := privKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -103,7 +102,7 @@ func TestPasswordAsymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	data := []byte("Hello Xipher!")
+	data := []byte("It's a subtle world!")
 	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -142,7 +141,7 @@ func TestKeyAsymmetricCipher(t *testing.T) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	data := []byte("Hello Xipher!")
+	data := []byte("It's a subtle world!")
 	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
 	if err != nil {
 		t.Error("Error encrypting data", err)
@@ -218,17 +217,6 @@ func TestFileEncryption(t *testing.T) {
 	}
 	ptFile.Close()
 	ctFile.Close()
-
-	t.Log(getMemoryStats())
-}
-
-func TestHash(t *testing.T) {
-	data := []byte("Hello Xipher!")
-	expectedHash := "gde/6Nz8bC+jvIBJlypUcA=="
-	calculatedHash := base64.StdEncoding.EncodeToString(Hash(data, 16))
-	if calculatedHash != expectedHash {
-		t.Errorf("Hash was incorrect, got: %s, want: %s.", calculatedHash, expectedHash)
-	}
 
 	t.Log(getMemoryStats())
 }
