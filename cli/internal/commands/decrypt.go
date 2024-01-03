@@ -43,7 +43,7 @@ func decryptCommand() *cobra.Command {
 				}
 				err = privKey.DecryptStream(dst, src)
 				if err != nil {
-					exitOnError(err)
+					exitOnErrorWithMessage("Error decrypting file.")
 				}
 			} else {
 				// Get password from user
@@ -60,7 +60,7 @@ func decryptCommand() *cobra.Command {
 				}
 				err = privKey.DecryptStream(dst, src)
 				if err != nil {
-					exitOnError(err)
+					exitOnErrorWithMessage("Error decrypting file.")
 				}
 			}
 			safeExit()

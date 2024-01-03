@@ -74,3 +74,11 @@ PublicKey: MS5JUG7ZVJLETJA7WE2XKFHRE4PP6LKYCTEF2FTNUJ5QEZJIGZPCAIABX7UMDM7DPZX6W
 Encrypted: AQQCAAN75DA3HY36N7VTLV2AQNAIL32RBWA2GJY7JNFA7QNOBT4CFXFBZMKY36DGE6FBKPATB7EJTD5SCNXI6URGO4WERYXYHYTL4RCXLRMYBG4K4UDZ5HGE7APXUVZ4RNESUV3EWVDJBHUAT5F7U5BFNUMTXB72Q3AZBGZDN3KXBWLUX23Q
 Decrypted: Hello World!
 ```
+
+### Basic CLI
+Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
+
+You can also install with brew using the following command
+```zsh
+brew install shibme/beta/xipher
+```
