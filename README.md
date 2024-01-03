@@ -79,6 +79,10 @@ Decrypted: Hello World!
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 You can also install with brew using the following command
-```zsh
+```sh
 brew install shibme/beta/xipher
+```
+Alternatively try it out using docker by mounting to `/data` directory inside the container
+```sh
+docker run --rm -it shibme/xipher version
 ```
