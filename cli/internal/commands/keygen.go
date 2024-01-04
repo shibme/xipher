@@ -45,7 +45,15 @@ func keygenCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			fmt.Println("Public Key:", encode(pubKey.Bytes()))
+			pubKeyStr := encode(pubKey.Bytes())
+			fmt.Println("Public Key:", pubKeyStr)
+			if privKeyBytes, err := privKey.Bytes(); err == nil {
+				fileName := fmt.Sprintf("xipher_%s.privkey", pubKeyStr)
+				if err := os.WriteFile(fileName, []byte(encode(privKeyBytes)), 0644); err != nil {
+					exitOnError(err)
+				}
+				fmt.Println("Private Key file:", fileName)
+			}
 		},
 	}
 	keygenCmd.Flags().BoolP(passwordFlag.name, passwordFlag.shorthand, false, passwordFlag.usage)

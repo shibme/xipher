@@ -84,5 +84,5 @@ brew install shibme/beta/xipher
 ```
 Alternatively try it out using docker by mounting to `/data` directory inside the container
 ```sh
-docker run --rm -it shibme/xipher version
+docker run --rm -v $(pwd):/data/ -it shibme/xipher help
 ```
