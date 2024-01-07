@@ -1,0 +1,30 @@
+package symcipher
+
+import (
+	"crypto/cipher"
+
+	"golang.org/x/crypto/chacha20poly1305"
+)
+
+const (
+	KeyLength           = chacha20poly1305.KeySize
+	CipherTextMinLength = chacha20poly1305.NonceSize + chacha20poly1305.Overhead
+	ptBlockSize         = 64 * 1024
+	ctBlockSize         = ptBlockSize + chacha20poly1305.Overhead
+)
+
+// SymmetricCipher is a wrapper around the AEAD interface from the golang.org/x/crypto/chacha20poly1305 package.
+type SymmetricCipher struct {
+	aead *cipher.AEAD
+}
+
+// New returns a new Cipher instance. If a Cipher instance with the same key has already been created, it will be returned instead.
+func New(key []byte) (*SymmetricCipher, error) {
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		return nil, err
+	}
+	return &SymmetricCipher{
+		aead: &aead,
+	}, nil
+}

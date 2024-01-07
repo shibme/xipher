@@ -3,7 +3,7 @@ package xipher
 import (
 	"fmt"
 
-	"dev.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symcipher"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	// PublicKeyLength is the length of a public key.
 	PublicKeyLength = cipherKeyLength + kdfSpecLength
 	// CipherTextMinLength is the minimum length of a ciphertext.
-	CipherTextMinLength = symmcipher.CipherTextMinLength
+	CipherTextMinLength = symcipher.CipherTextMinLength
 
 	// Ciphertext Types
 	ctKeySymmetric  byte = 1
@@ -37,13 +37,12 @@ const (
 var (
 	Version = "dev"
 
-	xipherPwdMap = make(map[string]*PrivateKey)
-	xipherKeyMap = make(map[string]*PrivateKey)
-
-	errGeneratingSalt           = fmt.Errorf("%s: error generating salt", "xipher")
-	errInvalidPassword          = fmt.Errorf("%s: invalid password", "xipher")
-	errInvalidCiphertext        = fmt.Errorf("%s: invalid ciphertext", "xipher")
-	errPrivKeyUnavailableForPwd = fmt.Errorf("%s: private is unavailable for passwords", "xipher")
-	errInvalidPublicKey         = fmt.Errorf("%s: invalid public key", "xipher")
-	errInvalidKDFSpec           = fmt.Errorf("%s: invalid kdf spec", "xipher")
+	errGeneratingSalt              = fmt.Errorf("%s: error generating salt", "xipher")
+	errInvalidPassword             = fmt.Errorf("%s: invalid password", "xipher")
+	errInvalidCiphertext           = fmt.Errorf("%s: invalid ciphertext", "xipher")
+	errPrivKeyUnavailableForPwd    = fmt.Errorf("%s: private is unavailable for passwords", "xipher")
+	errInvalidPublicKey            = fmt.Errorf("%s: invalid public key", "xipher")
+	errInvalidKDFSpec              = fmt.Errorf("%s: invalid kdf spec", "xipher")
+	errDecryptionFailedPwdRequired = fmt.Errorf("%s: decryption failed, password required", "xipher")
+	errDecryptionFailedKeyRequired = fmt.Errorf("%s: decryption failed, key required", "xipher")
 )

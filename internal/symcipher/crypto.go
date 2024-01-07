@@ -1,4 +1,4 @@
-package symmcipher
+package symcipher
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ type Writer struct {
 }
 
 // NewEncryptingWriter returns a new io.WriteCloser that encrypts data with the cipher and writes to dst.
-func (cipher *Cipher) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
+func (cipher *SymmetricCipher) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
 	nonce := make([]byte, chacha20poly1305.NonceSize)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (cipher *Cipher) NewEncryptingWriter(dst io.Writer, compress bool) (io.Writ
 	return cipher.newWriter(nonce, dst, compress)
 }
 
-func (cipher *Cipher) newWriter(nonce []byte, dst io.Writer, compress bool) (*Writer, error) {
+func (cipher *SymmetricCipher) newWriter(nonce []byte, dst io.Writer, compress bool) (*Writer, error) {
 	ciphWriter := &Writer{
 		aead:  *cipher.aead,
 		dst:   dst,
@@ -95,7 +95,7 @@ type Reader struct {
 }
 
 // NewDecryptingReader returns a new io.ReadCloser that decrypts src with the cipher
-func (cipher *Cipher) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
+func (cipher *SymmetricCipher) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
 	nonce := make([]byte, chacha20poly1305.NonceSize)
 	if _, err := io.ReadFull(src, nonce); err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (cipher *Cipher) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) 
 	return cipher.newReader(nonce, src)
 }
 
-func (cipher *Cipher) newReader(nonce []byte, src io.Reader) (io.ReadCloser, error) {
+func (cipher *SymmetricCipher) newReader(nonce []byte, src io.Reader) (io.ReadCloser, error) {
 	ciphReader := &Reader{
 		aead:  *cipher.aead,
 		src:   src,

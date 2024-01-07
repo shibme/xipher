@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"dev.shib.me/xipher/internal/ecc"
-	"dev.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symcipher"
 )
 
 func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
@@ -16,7 +16,7 @@ func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression boo
 		dst.Write([]byte{ctKeySymmetric})
 	}
 	if privateKey.symEncrypter == nil {
-		if privateKey.symEncrypter, err = symmcipher.New(privateKey.key); err != nil {
+		if privateKey.symEncrypter, err = symcipher.New(privateKey.key); err != nil {
 			return nil, err
 		}
 	}
@@ -93,6 +93,9 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 	ctType := ctTypeBytes[0]
 	key := privateKey.key
 	if ctType == ctPwdSymmetric || ctType == ctPwdAsymmetric {
+		if !privateKey.isPwdBased() {
+			return nil, errDecryptionFailedPwdRequired
+		}
 		specBytes := make([]byte, kdfSpecLength)
 		if _, err := io.ReadFull(src, specBytes); err != nil {
 			return nil, err
@@ -104,10 +107,12 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 		if key, err = privateKey.getKeyForPwdSpec(*spec); err != nil {
 			return nil, err
 		}
+	} else if (ctType == ctKeySymmetric || ctType == ctKeyAsymmetric) && privateKey.isPwdBased() {
+		return nil, errDecryptionFailedKeyRequired
 	}
 	switch ctType {
 	case ctKeySymmetric, ctPwdSymmetric:
-		decrypter, err := symmcipher.New(key)
+		decrypter, err := symcipher.New(key)
 		if err != nil {
 			return nil, err
 		}

@@ -3,7 +3,7 @@ package ecc
 import (
 	"io"
 
-	"dev.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symcipher"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -29,7 +29,7 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 	if err != nil {
 		return nil, err
 	}
-	decrypter, err := symmcipher.New(sharedKey)
+	decrypter, err := symcipher.New(sharedKey)
 	if err != nil {
 		return nil, err
 	}

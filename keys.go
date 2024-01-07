@@ -7,14 +7,14 @@ import (
 	"fmt"
 
 	"dev.shib.me/xipher/internal/ecc"
-	"dev.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symcipher"
 )
 
 type PrivateKey struct {
 	password     *[]byte
 	spec         *kdfSpec
 	key          []byte
-	symEncrypter *symmcipher.Cipher
+	symEncrypter *symcipher.SymmetricCipher
 	publicKey    *PublicKey
 	specKeyMap   map[string][]byte
 }
@@ -42,17 +42,13 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, er
 	if len(password) == 0 {
 		return nil, errInvalidPassword
 	}
-	privateKey := xipherPwdMap[string(password)]
-	if privateKey == nil {
-		privateKey = &PrivateKey{
-			password: &password,
-			spec:     spec,
-		}
-		privateKey.key = spec.getCipherKey(*privateKey.password)
-		xipherPwdMap[string(*privateKey.password)] = privateKey
-		privateKey.specKeyMap = make(map[string][]byte)
-		privateKey.specKeyMap[string(privateKey.spec.bytes())] = privateKey.key
+	privateKey := &PrivateKey{
+		password:   &password,
+		spec:       spec,
+		key:        spec.getCipherKey(password),
+		specKeyMap: make(map[string][]byte),
 	}
+	privateKey.specKeyMap[string(privateKey.spec.bytes())] = privateKey.key
 	return privateKey, nil
 }
 
@@ -62,11 +58,9 @@ func NewPrivateKey() (*PrivateKey, error) {
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	privateKey := &PrivateKey{
+	return &PrivateKey{
 		key: key,
-	}
-	xipherKeyMap[string(key)] = privateKey
-	return privateKey, nil
+	}, nil
 }
 
 // ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 32 bytes long.
@@ -74,14 +68,9 @@ func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 	if len(key) != PrivateKeyLength {
 		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", PrivateKeyLength, len(key))
 	}
-	privateKey := xipherKeyMap[string(key)]
-	if privateKey == nil {
-		privateKey = &PrivateKey{
-			key: key,
-		}
-		xipherKeyMap[string(key)] = privateKey
-	}
-	return privateKey, nil
+	return &PrivateKey{
+		key: key,
+	}, nil
 }
 
 func (privateKey *PrivateKey) isPwdBased() bool {

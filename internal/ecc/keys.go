@@ -4,21 +4,14 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"dev.shib.me/xipher/internal/symmcipher"
+	"dev.shib.me/xipher/internal/symcipher"
 	"golang.org/x/crypto/curve25519"
 )
 
-const (
-	// KeyLength is the length of the ECC key.
-	KeyLength = curve25519.ScalarSize
-)
+// KeyLength is the length of the ECC key.
+const KeyLength = curve25519.ScalarSize
 
-var (
-	errInvalidKeyLength = fmt.Errorf("xipher: invalid key lengths [please use %d bytes]", KeyLength)
-
-	privateKeyMap map[string]*PrivateKey = make(map[string]*PrivateKey)
-	publicKeyMap  map[string]*PublicKey  = make(map[string]*PublicKey)
-)
+var errInvalidKeyLength = fmt.Errorf("xipher: invalid key lengths [please use %d bytes]", KeyLength)
 
 // PrivateKey represents a private key.
 type PrivateKey struct {
@@ -34,7 +27,7 @@ type PublicKey struct {
 
 type encrypter struct {
 	ephPubKey []byte
-	cipher    *symmcipher.Cipher
+	cipher    *symcipher.SymmetricCipher
 }
 
 // Bytes returns the bytes of the private key.
@@ -56,14 +49,9 @@ func GetPrivateKey(key []byte) (*PrivateKey, error) {
 	if len(key) != curve25519.ScalarSize {
 		return nil, errInvalidKeyLength
 	}
-	privateKey := privateKeyMap[string(key)]
-	if privateKey == nil {
-		privateKey = &PrivateKey{
-			key: &key,
-		}
-		privateKeyMap[string(key)] = privateKey
-	}
-	return privateKey, nil
+	return &PrivateKey{
+		key: &key,
+	}, nil
 }
 
 // PublicKey returns the public key corresponding to the private key. The public key is derived from the private key.
@@ -73,14 +61,9 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 		if err != nil {
 			return nil, err
 		}
-		pubKey := publicKeyMap[string(key)]
-		if pubKey == nil {
-			pubKey = &PublicKey{
-				key: &key,
-			}
-			publicKeyMap[string(key)] = pubKey
+		privateKey.publicKey = &PublicKey{
+			key: &key,
 		}
-		privateKey.publicKey = pubKey
 	}
 	return privateKey.publicKey, nil
 }
@@ -90,14 +73,9 @@ func GetPublicKey(key []byte) (*PublicKey, error) {
 	if len(key) != curve25519.ScalarSize {
 		return nil, errInvalidKeyLength
 	}
-	publicKey := publicKeyMap[string(key)]
-	if publicKey == nil {
-		publicKey = &PublicKey{
-			key: &key,
-		}
-		publicKeyMap[string(key)] = publicKey
-	}
-	return publicKey, nil
+	return &PublicKey{
+		key: &key,
+	}, nil
 }
 
 // Bytes returns the bytes of the public key.
@@ -119,7 +97,7 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 		if err != nil {
 			return nil, err
 		}
-		cipher, err := symmcipher.New(sharedKey)
+		cipher, err := symcipher.New(sharedKey)
 		if err != nil {
 			return nil, err
 		}
