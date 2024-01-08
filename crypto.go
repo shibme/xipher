@@ -10,10 +10,16 @@ import (
 
 func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
 	if privateKey.isPwdBased() {
-		dst.Write([]byte{ctPwdSymmetric})
-		dst.Write(privateKey.spec.bytes())
+		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
+			return nil, err
+		}
+		if _, err = dst.Write(privateKey.spec.bytes()); err != nil {
+			return nil, err
+		}
 	} else {
-		dst.Write([]byte{ctKeySymmetric})
+		if _, err := dst.Write([]byte{ctKeySymmetric}); err != nil {
+			return nil, err
+		}
 	}
 	if privateKey.symEncrypter == nil {
 		if privateKey.symEncrypter, err = symcipher.New(privateKey.key); err != nil {
@@ -46,10 +52,16 @@ func (privateKey *PrivateKey) Encrypt(data []byte, compression bool) (ciphertext
 
 func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
 	if publicKey.isPwdBased() {
-		dst.Write([]byte{ctPwdAsymmetric})
-		dst.Write(publicKey.spec.bytes())
+		if _, err := dst.Write([]byte{ctPwdAsymmetric}); err != nil {
+			return nil, err
+		}
+		if _, err = dst.Write(publicKey.spec.bytes()); err != nil {
+			return nil, err
+		}
 	} else {
-		dst.Write([]byte{ctKeyAsymmetric})
+		if _, err := dst.Write([]byte{ctKeyAsymmetric}); err != nil {
+			return nil, err
+		}
 	}
 	return publicKey.publicKey.NewEncryptingWriter(dst, compression)
 }
