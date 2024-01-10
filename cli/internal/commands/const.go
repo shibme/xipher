@@ -19,8 +19,20 @@ var (
 	// Encrypt Command
 	encryptCmd *cobra.Command
 
+	// Encrypt String Command
+	encryptStrCmd *cobra.Command
+
+	// Encrypt File Command
+	encryptFileCmd *cobra.Command
+
 	// Decrypt Command
 	decryptCmd *cobra.Command
+
+	// Decrypt String Command
+	decryptStrCmd *cobra.Command
+
+	// Decrypt File Command
+	decryptFileCmd *cobra.Command
 )
 
 type flagDef struct {
@@ -50,6 +62,13 @@ var (
 		name:      "key",
 		shorthand: "k",
 		usage:     "Specify a key string",
+	}
+
+	// String Flag
+	stringFlag = flagDef{
+		name:      "string",
+		shorthand: "s",
+		usage:     "Specify a string",
 	}
 
 	// File Flag

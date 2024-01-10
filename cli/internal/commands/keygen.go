@@ -6,7 +6,6 @@ import (
 
 	"dev.shib.me/xipher"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 func keygenCommand() *cobra.Command {
@@ -24,13 +23,10 @@ func keygenCommand() *cobra.Command {
 			var privKey *xipher.PrivateKey
 			if pwdFlag {
 				// Get password from user
-				fmt.Print("Password: ")
-				var password []byte
-				password, err = term.ReadPassword(int(os.Stdin.Fd()))
+				password, err := getPasswordFromUser(true)
 				if err != nil {
-					exitOnErrorWithMessage("Error reading password.")
+					exitOnError(err)
 				}
-				fmt.Println()
 				privKey, err = xipher.NewPrivateKeyForPassword(password)
 				if err != nil {
 					exitOnError(err)
