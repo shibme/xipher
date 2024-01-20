@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"dev.shib.me/xipher/internal/symcipher"
+	"dev.shib.me/xipher/internal/xcp"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -27,7 +27,7 @@ type PublicKey struct {
 
 type encrypter struct {
 	ephPubKey []byte
-	cipher    *symcipher.SymmetricCipher
+	cipher    *xcp.SymmetricCipher
 }
 
 // Bytes returns the bytes of the private key.
@@ -97,7 +97,7 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 		if err != nil {
 			return nil, err
 		}
-		cipher, err := symcipher.New(sharedKey)
+		cipher, err := xcp.New(sharedKey)
 		if err != nil {
 			return nil, err
 		}

@@ -3,24 +3,18 @@ package xipher
 import (
 	"fmt"
 
-	"dev.shib.me/xipher/internal/symcipher"
+	"dev.shib.me/xipher/internal/xcp"
 )
 
 const (
-	cipherKeyLength = 32
+	keyLength = 32
 
-	// PrivateKeyLength is the length of a private key.
-	PrivateKeyLength = cipherKeyLength
-	// PublicKeyLength is the length of a public key.
-	PublicKeyLength = cipherKeyLength + kdfSpecLength
+	// PrivateKeyMinLength is the minimum length of a private key.
+	PrivateKeyMinLength = 1 + keyLength
+	// PublicKeyMinLength is the minimum length of a public key.
+	PublicKeyMinLength = 1 + keyLength
 	// CipherTextMinLength is the minimum length of a ciphertext.
-	CipherTextMinLength = symcipher.CipherTextMinLength
-
-	// Ciphertext Types
-	ctKeySymmetric  byte = 1
-	ctKeyAsymmetric byte = 2
-	ctPwdSymmetric  byte = 3
-	ctPwdAsymmetric byte = 4
+	CipherTextMinLength = xcp.CipherTextMinLength
 
 	// Argon2 Default Spec
 	argon2Iterations uint8 = 16
@@ -31,7 +25,9 @@ const (
 	kdfSaltLength  = 16
 	kdfSpecLength  = kdfParamsLenth + kdfSaltLength
 
-	zero byte = 0
+	// Key Types
+	keyTypeEccDirect uint8 = 0
+	keyTypeEccPwd    uint8 = 1
 )
 
 var (

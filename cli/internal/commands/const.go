@@ -3,7 +3,9 @@ package commands
 import "github.com/spf13/cobra"
 
 const (
-	appName = "xipher"
+	appName         = "xipher"
+	xipherKeyPrefix = "XK_"
+	xipherTxtPrefix = "XT_"
 )
 
 var (
@@ -20,7 +22,7 @@ var (
 	encryptCmd *cobra.Command
 
 	// Encrypt String Command
-	encryptStrCmd *cobra.Command
+	encryptTxtCmd *cobra.Command
 
 	// Encrypt File Command
 	encryptFileCmd *cobra.Command
@@ -29,7 +31,7 @@ var (
 	decryptCmd *cobra.Command
 
 	// Decrypt String Command
-	decryptStrCmd *cobra.Command
+	decryptTxtCmd *cobra.Command
 
 	// Decrypt File Command
 	decryptFileCmd *cobra.Command
@@ -50,11 +52,11 @@ var (
 		usage:     "Shows version info",
 	}
 
-	// Password Flag
-	passwordFlag = flagDef{
-		name:      "password",
-		shorthand: "p",
-		usage:     "Specify a password",
+	// Ignore Password Policy Check Flag
+	ignorePasswordCheckFlag = flagDef{
+		name:      "ignore",
+		shorthand: "i",
+		usage:     "Ignores the password policy check",
 	}
 
 	// Key Flag
@@ -64,11 +66,11 @@ var (
 		usage:     "Specify a key string",
 	}
 
-	// String Flag
-	stringFlag = flagDef{
-		name:      "string",
-		shorthand: "s",
-		usage:     "Specify a string",
+	// Ciphertext Flag
+	ciphertextFlag = flagDef{
+		name:      "ciphertext",
+		shorthand: "c",
+		usage:     "Specify the ciphertext",
 	}
 
 	// File Flag

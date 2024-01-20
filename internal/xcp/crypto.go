@@ -1,4 +1,4 @@
-package symcipher
+package xcp
 
 import (
 	"bytes"
@@ -6,8 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
-
-	"golang.org/x/crypto/chacha20poly1305"
 )
 
 type Writer struct {
@@ -20,7 +18,7 @@ type Writer struct {
 
 // NewEncryptingWriter returns a new io.WriteCloser that encrypts data with the cipher and writes to dst.
 func (cipher *SymmetricCipher) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
-	nonce := make([]byte, chacha20poly1305.NonceSize)
+	nonce := make([]byte, nonceLength)
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
@@ -96,7 +94,7 @@ type Reader struct {
 
 // NewDecryptingReader returns a new io.ReadCloser that decrypts src with the cipher
 func (cipher *SymmetricCipher) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
-	nonce := make([]byte, chacha20poly1305.NonceSize)
+	nonce := make([]byte, nonceLength)
 	if _, err := io.ReadFull(src, nonce); err != nil {
 		return nil, err
 	}

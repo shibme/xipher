@@ -1,22 +1,19 @@
 package xipher
 
 import (
-	"bytes"
 	"crypto/rand"
-	"crypto/sha1"
 	"fmt"
 
 	"dev.shib.me/xipher/internal/ecc"
-	"dev.shib.me/xipher/internal/symcipher"
 )
 
 type PrivateKey struct {
-	password     *[]byte
-	spec         *kdfSpec
-	key          []byte
-	symEncrypter *symcipher.SymmetricCipher
-	publicKey    *PublicKey
-	specKeyMap   map[string][]byte
+	keyType    uint8
+	password   *[]byte
+	spec       *kdfSpec
+	key        []byte
+	publicKey  *PublicKey
+	specKeyMap map[string][]byte
 }
 
 // NewPrivateKeyForPassword creates a new private key for the given password.
@@ -43,6 +40,7 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, er
 		return nil, errInvalidPassword
 	}
 	privateKey := &PrivateKey{
+		keyType:    keyTypeEccPwd,
 		password:   &password,
 		spec:       spec,
 		key:        spec.getCipherKey(password),
@@ -54,35 +52,37 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, er
 
 // NewPrivateKey creates a new random private key.
 func NewPrivateKey() (*PrivateKey, error) {
-	key := make([]byte, cipherKeyLength)
+	key := make([]byte, keyLength)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
 	return &PrivateKey{
-		key: key,
+		keyType: keyTypeEccDirect,
+		key:     key,
 	}, nil
 }
 
-// ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 32 bytes long.
+// ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 33 bytes long.
 func ParsePrivateKey(key []byte) (*PrivateKey, error) {
-	if len(key) != PrivateKeyLength {
-		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", PrivateKeyLength, len(key))
+	if len(key) < PrivateKeyMinLength || key[0] != keyTypeEccDirect {
+		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", PrivateKeyMinLength, len(key))
 	}
 	return &PrivateKey{
-		key: key,
+		keyType: keyTypeEccDirect,
+		key:     key,
 	}, nil
 }
 
 func (privateKey *PrivateKey) isPwdBased() bool {
-	return privateKey.password != nil && privateKey.spec != nil
+	return privateKey.keyType%2 == 1
 }
 
 // Bytes returns the private key as bytes only if it is not password based.
 func (privateKey *PrivateKey) Bytes() ([]byte, error) {
-	if privateKey.password != nil || privateKey.spec != nil {
+	if privateKey.isPwdBased() {
 		return nil, errPrivKeyUnavailableForPwd
 	}
-	return privateKey.key, nil
+	return append([]byte{privateKey.keyType}, privateKey.key...), nil
 }
 
 // PublicKey returns the public key corresponding to the private key.
@@ -97,6 +97,7 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 			return nil, err
 		}
 		privateKey.publicKey = &PublicKey{
+			keyType:   privateKey.keyType,
 			publicKey: eccPubKey,
 			spec:      privateKey.spec,
 		}
@@ -105,49 +106,57 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 }
 
 type PublicKey struct {
+	keyType   uint8
 	publicKey *ecc.PublicKey
 	spec      *kdfSpec
 }
 
-// ParsePublicKey parses the given bytes and returns a corresponding public key. the given bytes must be 51 bytes long.
+// ParsePublicKey parses the given bytes and returns a corresponding public key. the given bytes must be at least 33 bytes long.
 func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
-	if len(pubKeyBytes) != PublicKeyLength {
-		return nil, fmt.Errorf("%s: invalid public key length: expected %d, got %d", "xipher", PublicKeyLength, len(pubKeyBytes))
+	if len(pubKeyBytes) < PublicKeyMinLength {
+		return nil, errInvalidPublicKey
 	}
-	keyBytes := pubKeyBytes[:cipherKeyLength]
-	eccPubKey, err := ecc.GetPublicKey(keyBytes)
-	if err != nil {
-		return nil, err
-	}
-	publicKey := &PublicKey{
-		publicKey: eccPubKey,
-	}
-	specBytes := pubKeyBytes[cipherKeyLength:]
-	if specBytes[0] == zero {
-		sum := sha1.Sum(keyBytes)
-		if !bytes.Equal(sum[:kdfSpecLength-1], specBytes[1:]) {
-			return nil, errInvalidPublicKey
+	keyType := pubKeyBytes[0]
+	switch keyType {
+	case keyTypeEccDirect | keyTypeEccPwd:
+		keyBytes := pubKeyBytes[1:]
+		var spec *kdfSpec
+		if keyType == keyTypeEccPwd {
+			specBytes := keyBytes[keyLength:]
+			var err error
+			if spec, err = parseKdfSpec(specBytes); err != nil {
+				return nil, err
+			}
+			keyBytes = keyBytes[:keyLength]
 		}
-	} else {
-		publicKey.spec, err = parseKdfSpec(specBytes)
+		eccPubKey, err := ecc.GetPublicKey(keyBytes)
 		if err != nil {
 			return nil, err
 		}
+		publicKey := &PublicKey{
+			keyType:   keyType,
+			publicKey: eccPubKey,
+			spec:      spec,
+		}
+		return publicKey, nil
+	default:
+		return nil, errInvalidPublicKey
 	}
-	return publicKey, nil
 }
 
 func (publicKey *PublicKey) isPwdBased() bool {
-	return publicKey.spec != nil
+	return publicKey.keyType%2 == 1
+}
+
+func (publicKey *PublicKey) keyBytesWithType() []byte {
+	return append([]byte{publicKey.keyType}, publicKey.publicKey.Bytes()...)
 }
 
 // Bytes returns the public key as bytes.
 func (publicKey *PublicKey) Bytes() []byte {
-	pubKeyBytes := publicKey.publicKey.Bytes()
-	if publicKey.spec != nil {
-		return append(pubKeyBytes, publicKey.spec.bytes()...)
+	if publicKey.isPwdBased() {
+		return append(publicKey.keyBytesWithType(), publicKey.spec.bytes()...)
 	} else {
-		sum := sha1.Sum(pubKeyBytes)
-		return append(pubKeyBytes, append([]byte{zero}, sum[:kdfSpecLength-1]...)...)
+		return publicKey.keyBytesWithType()
 	}
 }

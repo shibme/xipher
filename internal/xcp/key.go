@@ -1,4 +1,4 @@
-package symcipher
+package xcp
 
 import (
 	"crypto/cipher"
@@ -8,7 +8,8 @@ import (
 
 const (
 	KeyLength           = chacha20poly1305.KeySize
-	CipherTextMinLength = chacha20poly1305.NonceSize + chacha20poly1305.Overhead
+	nonceLength         = chacha20poly1305.NonceSizeX
+	CipherTextMinLength = nonceLength + chacha20poly1305.Overhead
 	ptBlockSize         = 64 * 1024
 	ctBlockSize         = ptBlockSize + chacha20poly1305.Overhead
 )
@@ -20,7 +21,7 @@ type SymmetricCipher struct {
 
 // New returns a new Cipher instance. If a Cipher instance with the same key has already been created, it will be returned instead.
 func New(key []byte) (*SymmetricCipher, error) {
-	aead, err := chacha20poly1305.New(key)
+	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
 		return nil, err
 	}

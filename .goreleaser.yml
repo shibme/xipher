@@ -31,7 +31,7 @@ nfpms:
 brews:
   - name: xipher
     homepage: "https://dev.shib.me/xipher"
-    description: "Xipher is a curated collection of cryptographic primitives written in Go to encrypt and decrypt data with optional compression."
+    description: "Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool."
     license: "MIT"
     commit_author:
       name: Shibly Meeran

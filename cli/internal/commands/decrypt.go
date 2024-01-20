@@ -6,77 +6,68 @@ import (
 	"os"
 
 	"dev.shib.me/xipher"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
+
+func fromXipherText(xipherText string) ([]byte, error) {
+	if len(xipherText) < len(xipherTxtPrefix) || xipherText[:len(xipherTxtPrefix)] != xipherTxtPrefix {
+		return nil, fmt.Errorf("invalid xipher text")
+	}
+	return decode(xipherText[len(xipherTxtPrefix):])
+}
 
 func decryptCommand() *cobra.Command {
 	if decryptCmd != nil {
 		return decryptCmd
 	}
 	decryptCmd = &cobra.Command{
-		Use:   "decrypt",
-		Short: "Decrypts the data",
+		Use:     "decrypt",
+		Aliases: []string{"decr", "dec", "de", "d"},
+		Short:   "Decrypts the encrypted data",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
 	}
-	decryptCmd.AddCommand(decryptStringCommand())
+	decryptCmd.AddCommand(decryptTextCommand())
 	decryptCmd.AddCommand(decryptFileCommand())
 	return decryptCmd
 }
 
-func decryptStringCommand() *cobra.Command {
-	if decryptStrCmd != nil {
-		return decryptStrCmd
+func decryptTextCommand() *cobra.Command {
+	if decryptTxtCmd != nil {
+		return decryptTxtCmd
 	}
-	decryptStrCmd = &cobra.Command{
-		Use:     "string",
-		Aliases: []string{"str"},
-		Short:   "Decrypts a xipher encrypted string",
+	decryptTxtCmd = &cobra.Command{
+		Use:     "text",
+		Aliases: []string{"txt", "t", "string", "str", "s"},
+		Short:   "Decrypts a xipher encrypted text",
 		Run: func(cmd *cobra.Command, args []string) {
-			cipheredStr, err := decode(cmd.Flag(stringFlag.name).Value.String())
+			xipherText, err := fromXipherText(cmd.Flag(ciphertextFlag.name).Value.String())
 			if err != nil {
 				exitOnError(err)
 			}
 			var src, dst bytes.Buffer
-			src.Write(cipheredStr)
-			keyStr := cmd.Flag(keyFlag.name).Value.String()
-			if keyStr != "" {
-				keyBytes, err := decode(keyStr)
-				if err != nil {
-					exitOnError(err)
-				}
-				privKey, err := xipher.ParsePrivateKey(keyBytes)
-				if err != nil {
-					exitOnError(err)
-				}
-				err = privKey.DecryptStream(&dst, &src)
-				if err != nil {
-					exitOnError(err)
-				}
-			} else {
-				// Get password from user
-				password, err := getPasswordFromUser(false)
-				if err != nil {
-					exitOnError(err)
-				}
-				privKey, err := xipher.NewPrivateKeyForPassword(password)
-				if err != nil {
-					exitOnError(err)
-				}
-				err = privKey.DecryptStream(&dst, &src)
-				if err != nil {
-					exitOnError(err)
-				}
+			src.Write(xipherText)
+			password, err := getPasswordFromUser(false, true)
+			if err != nil {
+				exitOnError(err)
 			}
-			fmt.Println(dst.String())
+			privKey, err := xipher.NewPrivateKeyForPassword(password)
+			if err != nil {
+				exitOnError(err)
+			}
+			err = privKey.DecryptStream(&dst, &src)
+			if err != nil {
+				exitOnError(err)
+			}
+			fmt.Println(color.GreenString(dst.String()))
 			safeExit()
 		},
 	}
-	decryptStrCmd.Flags().StringP(stringFlag.name, stringFlag.shorthand, "", stringFlag.usage)
-	decryptStrCmd.Flags().StringP(keyFlag.name, keyFlag.shorthand, "", keyFlag.usage)
-	decryptStrCmd.MarkFlagRequired(stringFlag.name)
-	return decryptStrCmd
+	decryptTxtCmd.Flags().StringP(ciphertextFlag.name, ciphertextFlag.shorthand, "", ciphertextFlag.usage)
+	decryptTxtCmd.MarkFlagRequired(ciphertextFlag.name)
+	return decryptTxtCmd
 }
 
 func decryptFileCommand() *cobra.Command {
@@ -84,8 +75,9 @@ func decryptFileCommand() *cobra.Command {
 		return decryptFileCmd
 	}
 	decryptFileCmd = &cobra.Command{
-		Use:   "file",
-		Short: "Decrypts a xipher encrypted file",
+		Use:     "file",
+		Aliases: []string{"f"},
+		Short:   "Decrypts a xipher encrypted file",
 		Run: func(cmd *cobra.Command, args []string) {
 			srcPath := cmd.Flag(fileFlag.name).Value.String()
 			dstPath := cmd.Flag(outFlag.name).Value.String()
@@ -101,41 +93,23 @@ func decryptFileCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			keyStr := cmd.Flag(keyFlag.name).Value.String()
-			if keyStr != "" {
-				keyBytes, err := decode(keyStr)
-				if err != nil {
-					exitOnError(err)
-				}
-				privKey, err := xipher.ParsePrivateKey(keyBytes)
-				if err != nil {
-					exitOnError(err)
-				}
-				err = privKey.DecryptStream(dst, src)
-				if err != nil {
-					exitOnError(err)
-				}
-			} else {
-				// Get password from user
-				password, err := getPasswordFromUser(false)
-				if err != nil {
-					exitOnError(err)
-				}
-				privKey, err := xipher.NewPrivateKeyForPassword(password)
-				if err != nil {
-					exitOnError(err)
-				}
-				err = privKey.DecryptStream(dst, src)
-				if err != nil {
-					exitOnError(err)
-				}
+			password, err := getPasswordFromUser(false, true)
+			if err != nil {
+				exitOnError(err)
+			}
+			privKey, err := xipher.NewPrivateKeyForPassword(password)
+			if err != nil {
+				exitOnError(err)
+			}
+			err = privKey.DecryptStream(dst, src)
+			if err != nil {
+				exitOnError(err)
 			}
 			safeExit()
 		},
 	}
 	decryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
 	decryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
-	decryptFileCmd.Flags().StringP(keyFlag.name, keyFlag.shorthand, "", keyFlag.usage)
 	decryptFileCmd.MarkFlagRequired(fileFlag.name)
 	decryptFileCmd.MarkFlagRequired(outFlag.name)
 	return decryptFileCmd

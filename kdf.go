@@ -65,31 +65,38 @@ func (s *kdfSpec) getThreads() uint32 {
 }
 
 func (s *kdfSpec) getCipherKey(pwd []byte) []byte {
-	return argon2.IDKey(pwd, s.getSalt(), s.getIterations(), s.getMemory(), uint8(s.getThreads()), cipherKeyLength)
+	return argon2.IDKey(pwd, s.getSalt(), s.getIterations(), s.getMemory(), uint8(s.getThreads()), keyLength)
 }
 
 func (s *kdfSpec) bytes() []byte {
 	return append([]byte{s.iterations, s.memory, s.threads}, s.salt...)
 }
 
-func parseKdfSpec(bytes []byte) (*kdfSpec, error) {
-	if bytes == nil || len(bytes) != kdfSpecLength {
+var kdfSpecMap = make(map[string]*kdfSpec)
+
+func parseKdfSpec(kdfBytes []byte) (*kdfSpec, error) {
+	if kdfBytes == nil || len(kdfBytes) != kdfSpecLength {
 		return nil, errInvalidKDFSpec
 	}
-	if [kdfSpecLength]byte(bytes) == [kdfSpecLength]byte{} {
+	if [kdfSpecLength]byte(kdfBytes) == [kdfSpecLength]byte{} {
 		return nil, nil
 	}
-	iterations := bytes[0]
-	memory := bytes[1]
-	threads := bytes[2]
-	salt := bytes[kdfParamsLenth:]
+	if spec, ok := kdfSpecMap[string(kdfBytes)]; ok {
+		return spec, nil
+	}
+	iterations := kdfBytes[0]
+	memory := kdfBytes[1]
+	threads := kdfBytes[2]
+	salt := kdfBytes[kdfParamsLenth:]
 	if iterations == 0 || memory == 0 || threads == 0 || salt == nil {
 		return nil, errInvalidKDFSpec
 	}
-	return &kdfSpec{
+	spec := &kdfSpec{
 		iterations: iterations,
 		memory:     memory,
 		threads:    threads,
 		salt:       salt,
-	}, nil
+	}
+	kdfSpecMap[string(kdfBytes)] = spec
+	return spec, nil
 }
