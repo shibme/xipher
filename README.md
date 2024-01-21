@@ -8,7 +8,6 @@
 Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool.
 
 ### Features
-- Password based public key generation.
 - Encryption of data with the public key generated from a password.
 - Supports stream cipher along with stream compression thereby keeping a low memory footprint. Makes it handy for encrypting large files or data streams.
 
@@ -38,9 +37,13 @@ docker run --rm -v $(pwd):/data/ -it shibme/xipher help
 ```sh
 xipher keygen
 ```
-- Use the public key to encrypt text/file
+- Use the public key to encrypt
 ```sh
 xipher encrypt text -k <public_key>
+```
+- Provide the ciphertext to decrypt
+```sh
+xipher decrypt text -c <ciphertext>
 ```
 
 ### Go Package
