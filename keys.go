@@ -117,31 +117,29 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 		return nil, errInvalidPublicKey
 	}
 	keyType := pubKeyBytes[0]
-	switch keyType {
-	case keyTypeEccDirect | keyTypeEccPwd:
-		keyBytes := pubKeyBytes[1:]
-		var spec *kdfSpec
-		if keyType == keyTypeEccPwd {
-			specBytes := keyBytes[keyLength:]
-			var err error
-			if spec, err = parseKdfSpec(specBytes); err != nil {
-				return nil, err
-			}
-			keyBytes = keyBytes[:keyLength]
-		}
-		eccPubKey, err := ecc.GetPublicKey(keyBytes)
-		if err != nil {
-			return nil, err
-		}
-		publicKey := &PublicKey{
-			keyType:   keyType,
-			publicKey: eccPubKey,
-			spec:      spec,
-		}
-		return publicKey, nil
-	default:
+	if keyType != keyTypeEccDirect && keyType != keyTypeEccPwd {
 		return nil, errInvalidPublicKey
 	}
+	keyBytes := pubKeyBytes[1:]
+	var spec *kdfSpec
+	if keyType == keyTypeEccPwd {
+		specBytes := keyBytes[keyLength:]
+		var err error
+		if spec, err = parseKdfSpec(specBytes); err != nil {
+			return nil, err
+		}
+		keyBytes = keyBytes[:keyLength]
+	}
+	eccPubKey, err := ecc.GetPublicKey(keyBytes)
+	if err != nil {
+		return nil, err
+	}
+	publicKey := &PublicKey{
+		keyType:   keyType,
+		publicKey: eccPubKey,
+		spec:      spec,
+	}
+	return publicKey, nil
 }
 
 func (publicKey *PublicKey) isPwdBased() bool {
