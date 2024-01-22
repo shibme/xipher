@@ -64,8 +64,8 @@ func NewPrivateKey() (*PrivateKey, error) {
 
 // ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 33 bytes long.
 func ParsePrivateKey(key []byte) (*PrivateKey, error) {
-	if len(key) < PrivateKeyMinLength || key[0] != keyTypeEccDirect {
-		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", PrivateKeyMinLength, len(key))
+	if len(key) < privateKeyMinLength || key[0] != keyTypeEccDirect {
+		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", privateKeyMinLength, len(key))
 	}
 	return &PrivateKey{
 		keyType: keyTypeEccDirect,
@@ -113,7 +113,7 @@ type PublicKey struct {
 
 // ParsePublicKey parses the given bytes and returns a corresponding public key. the given bytes must be at least 33 bytes long.
 func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
-	if len(pubKeyBytes) < PublicKeyMinLength {
+	if len(pubKeyBytes) < publicKeyMinLength {
 		return nil, errInvalidPublicKey
 	}
 	keyType := pubKeyBytes[0]

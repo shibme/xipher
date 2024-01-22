@@ -2,19 +2,15 @@ package xipher
 
 import (
 	"fmt"
-
-	"dev.shib.me/xipher/internal/xcp"
 )
 
 const (
 	keyLength = 32
 
-	// PrivateKeyMinLength is the minimum length of a private key.
-	PrivateKeyMinLength = 1 + keyLength
-	// PublicKeyMinLength is the minimum length of a public key.
-	PublicKeyMinLength = 1 + keyLength
-	// CipherTextMinLength is the minimum length of a ciphertext.
-	CipherTextMinLength = xcp.CipherTextMinLength
+	// privateKeyMinLength is the minimum length of a private key.
+	privateKeyMinLength = 1 + keyLength
+	// publicKeyMinLength is the minimum length of a public key.
+	publicKeyMinLength = 1 + keyLength
 
 	// Argon2 Default Spec
 	argon2Iterations uint8 = 16
