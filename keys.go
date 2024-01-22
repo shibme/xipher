@@ -69,7 +69,7 @@ func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 	}
 	return &PrivateKey{
 		keyType: keyTypeEccDirect,
-		key:     key,
+		key:     key[1:],
 	}, nil
 }
 
