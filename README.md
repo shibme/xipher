@@ -20,6 +20,8 @@ Xipher uses the following cryptographic primitives and libraries to encrypt/decr
 
 ### CLI
 
+![Demo](https://dev.shib.me/xipher/demo/xipher_text.gif)
+
 #### Install/Update (CLI)
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
