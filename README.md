@@ -7,55 +7,37 @@
 
 Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool.
 
-### Features
-- Encryption of data with the public key generated from a password.
-- Supports stream cipher along with stream compression thereby keeping a low memory footprint. Makes it handy for encrypting large files or data streams.
+### What does it do?
+- Encrypts data with the public key generated based on a password.
+- Supports stream cipher along with stream compression, resulting in lower memory footprint.
 
-### Under the hood
-Xipher uses the following cryptographic primitives and libraries to encrypt/decrypt and compress/decompress data:
-- [Argon2id](https://en.wikipedia.org/wiki/Argon2) for password hashing.
-- [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for elliptic curve cryptography.
-- [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for encryption and decryption.
-- [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression and decompression.
-
-### CLI
+### Demo
 
 ![Demo](https://dev.shib.me/xipher/demo/xipher_text.gif)
 
-#### Install/Update (CLI)
+### CLI Installation
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
-You can also install with brew using the following command
+Alternatively,
+- Can be installed using brew
 ```sh
 brew install shibme/beta/xipher
 ```
-Alternatively try it out using docker
+- Can be installed using go
 ```sh
-docker run --rm -v $(pwd):/data/ -it shibme/xipher help
+go install dev.shib.me/xipher/cli/xipher@latest
+```
+- Can be run as a docker container
+```sh
+docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
-#### Usage Example (CLI)
-- Generate a new public key
-```sh
-xipher keygen
-```
-- Use the public key to encrypt
-```sh
-xipher encrypt text -k <public_key>
-```
-- Provide the ciphertext to decrypt
-```sh
-xipher decrypt text -c <ciphertext>
-```
-
-### Go Package
-
-#### Install/Update (Go Package)
+### Using as a Go package
+Install the package
 ```sh
 go get -u dev.shib.me/xipher
 ```
-
-#### Usage Example (Go Package)
+Use it in your code
 ```go
 package main
 
@@ -97,3 +79,13 @@ func main() {
 	fmt.Println("Decrypted:", string(plainText))
 }
 ```
+
+### Under the hood
+Xipher uses the following cryptographic primitives and libraries to encrypt/decrypt and compress/decompress data:
+- [Argon2id](https://en.wikipedia.org/wiki/Argon2) for password hashing.
+- [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for elliptic curve cryptography.
+- [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for encryption and decryption.
+- [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression and decompression.
+
+### Disclaimer
+This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.

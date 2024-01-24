@@ -1,5 +1,5 @@
 builds:
-  - main: ./cli/main
+  - main: ./cli/xipher
     env:
       - CGO_ENABLED=0
     ldflags: "-X dev.shib.me/xipher.Version={{.Version}}-beta"
