@@ -2,14 +2,14 @@ builds:
   - main: ./cli/xipher
     env:
       - CGO_ENABLED=0
-    ldflags: "-X dev.shib.me/xipher.Version={{.Version}}-beta"
-    goarch:
-      - amd64
-      - arm64
-    goos:
-      - darwin
-      - linux
-      - windows
+    ldflags: "-X dev.shib.me/xipher.Version={{.Version}}"
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+      - linux_amd64
+      - linux_arm64
+      - linux_arm
+      - windows_amd64
 archives:
   - format: zip
 snapshot:
@@ -38,8 +38,8 @@ brews:
       email: shibme@shib.me
     repository:
       owner: shibme
-      name: homebrew-beta
+      name: homebrew-tap
       branch: main
       git:
-        url: 'git@github.com:shibme/homebrew-beta.git'
+        url: 'git@github.com:shibme/homebrew-tap.git'
         private_key: '{{ .Env.HOMEBREW_SSH_KEY }}'

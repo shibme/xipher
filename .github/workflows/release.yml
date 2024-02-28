@@ -22,6 +22,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+    - name: Setting Xipher Version
+      run: echo "XIPHER_VERSION=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
@@ -62,6 +64,6 @@ jobs:
         push: true
         tags: |
           ${{ github.repository }}:latest
-          ${{ github.repository }}:${{ github.ref_name }}
+          ${{ github.repository }}:${{ env.XIPHER_VERSION }}
           ghcr.io/${{ github.repository }}:latest
-          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          ghcr.io/${{ github.repository }}:${{ env.XIPHER_VERSION }}

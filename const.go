@@ -22,8 +22,14 @@ const (
 	kdfSpecLength  = kdfParamsLenth + kdfSaltLength
 
 	// Key Types
-	keyTypeEccDirect uint8 = 0
-	keyTypeEccPwd    uint8 = 1
+	keyTypeDirect uint8 = 0
+	keyTypePwd    uint8 = 1
+
+	// Ciphertext Types
+	ctKeyAsymmetric uint8 = 0
+	ctPwdAsymmetric uint8 = 1
+	ctKeySymmetric  uint8 = 2
+	ctPwdSymmetric  uint8 = 3
 )
 
 var (

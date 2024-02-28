@@ -5,14 +5,61 @@ import (
 	"io"
 
 	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/xcp"
 )
 
-func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
-	if _, err := dst.Write([]byte{publicKey.keyType}); err != nil {
+func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
+	if privateKey.isPwdBased() {
+		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
+			return nil, err
+		}
+		if _, err := dst.Write(privateKey.spec.bytes()); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := dst.Write([]byte{ctKeySymmetric}); err != nil {
+			return nil, err
+		}
+	}
+	if privateKey.symmCipher == nil {
+		if privateKey.symmCipher, err = xcp.New(privateKey.key); err != nil {
+			return nil, err
+		}
+	}
+	return privateKey.symmCipher.NewEncryptingWriter(dst, compression)
+}
+
+// EncryptStream encrypts src with the private key treating it as a symmetric key and writes to dst.
+func (privateKey *PrivateKey) EncryptStream(dst io.Writer, src io.Reader, compression bool) (err error) {
+	encryptedWriter, err := privateKey.NewEncryptingWriter(dst, compression)
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(encryptedWriter, src); err != nil {
+		return err
+	}
+	return encryptedWriter.Close()
+}
+
+// Encrypt encrypts data with the private key treating it as a symmetric key.
+func (privateKey *PrivateKey) Encrypt(data []byte, compression bool) (ciphertext []byte, err error) {
+	var buf bytes.Buffer
+	if err = privateKey.EncryptStream(&buf, bytes.NewReader(data), compression); err != nil {
 		return nil, err
 	}
+	return buf.Bytes(), nil
+}
+
+func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
 	if publicKey.isPwdBased() {
-		if _, err = dst.Write(publicKey.spec.bytes()); err != nil {
+		if _, err := dst.Write([]byte{ctPwdAsymmetric}); err != nil {
+			return nil, err
+		}
+		if _, err := dst.Write(publicKey.spec.bytes()); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := dst.Write([]byte{ctKeyAsymmetric}); err != nil {
 			return nil, err
 		}
 	}
@@ -51,18 +98,18 @@ func (privateKey *PrivateKey) getKeyForPwdSpec(spec kdfSpec) (key []byte, err er
 }
 
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
-	keyTypeBytes := make([]byte, 1)
-	if _, err := io.ReadFull(src, keyTypeBytes); err != nil {
+	ctTypeBytes := make([]byte, 1)
+	if _, err := io.ReadFull(src, ctTypeBytes); err != nil {
 		return nil, err
 	}
-	var keyType uint8 = keyTypeBytes[0]
+	var ctType uint8 = ctTypeBytes[0]
 	key := privateKey.key
-	switch keyType {
-	case keyTypeEccDirect:
+	switch ctType {
+	case ctKeyAsymmetric, ctKeySymmetric:
 		if privateKey.isPwdBased() {
 			return nil, errDecryptionFailedKeyRequired
 		}
-	case keyTypeEccPwd:
+	case ctPwdAsymmetric, ctPwdSymmetric:
 		if !privateKey.isPwdBased() {
 			return nil, errDecryptionFailedPwdRequired
 		}
@@ -80,11 +127,21 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 	default:
 		return nil, errInvalidCiphertext
 	}
-	eccPrivKey, err := ecc.GetPrivateKey(key)
-	if err != nil {
-		return nil, err
+	switch ctType {
+	case ctKeyAsymmetric, ctPwdAsymmetric:
+		eccPrivKey, err := ecc.GetPrivateKey(key)
+		if err != nil {
+			return nil, err
+		}
+		return eccPrivKey.NewDecryptingReader(src)
+	case ctKeySymmetric, ctPwdSymmetric:
+		symmCipher, err := xcp.New(key)
+		if err != nil {
+			return nil, err
+		}
+		return symmCipher.NewDecryptingReader(src)
 	}
-	return eccPrivKey.NewDecryptingReader(src)
+	return nil, errInvalidCiphertext
 }
 
 // DecryptStream decrypts src and writes to dst.

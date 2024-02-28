@@ -21,7 +21,7 @@ Download the latest binary from the [releases](https://github.com/shibme/xipher/
 Alternatively,
 - Can be installed using brew
 ```sh
-brew install shibme/beta/xipher
+brew install shibme/tap/xipher
 ```
 - Can be installed using go
 ```sh

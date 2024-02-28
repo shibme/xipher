@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/xcp"
 )
 
 type PrivateKey struct {
@@ -12,6 +13,7 @@ type PrivateKey struct {
 	password   *[]byte
 	spec       *kdfSpec
 	key        []byte
+	symmCipher *xcp.SymmetricCipher
 	publicKey  *PublicKey
 	specKeyMap map[string][]byte
 }
@@ -40,7 +42,7 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, er
 		return nil, errInvalidPassword
 	}
 	privateKey := &PrivateKey{
-		keyType:    keyTypeEccPwd,
+		keyType:    keyTypePwd,
 		password:   &password,
 		spec:       spec,
 		key:        spec.getCipherKey(password),
@@ -57,18 +59,18 @@ func NewPrivateKey() (*PrivateKey, error) {
 		return nil, err
 	}
 	return &PrivateKey{
-		keyType: keyTypeEccDirect,
+		keyType: keyTypeDirect,
 		key:     key,
 	}, nil
 }
 
 // ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 33 bytes long.
 func ParsePrivateKey(key []byte) (*PrivateKey, error) {
-	if len(key) < privateKeyMinLength || key[0] != keyTypeEccDirect {
+	if len(key) < privateKeyMinLength || key[0] != keyTypeDirect {
 		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", privateKeyMinLength, len(key))
 	}
 	return &PrivateKey{
-		keyType: keyTypeEccDirect,
+		keyType: keyTypeDirect,
 		key:     key[1:],
 	}, nil
 }
@@ -117,12 +119,12 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 		return nil, errInvalidPublicKey
 	}
 	keyType := pubKeyBytes[0]
-	if keyType != keyTypeEccDirect && keyType != keyTypeEccPwd {
+	if keyType != keyTypeDirect && keyType != keyTypePwd {
 		return nil, errInvalidPublicKey
 	}
 	keyBytes := pubKeyBytes[1:]
 	var spec *kdfSpec
-	if keyType == keyTypeEccPwd {
+	if keyType == keyTypePwd {
 		specBytes := keyBytes[keyLength:]
 		var err error
 		if spec, err = parseKdfSpec(specBytes); err != nil {

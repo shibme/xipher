@@ -52,6 +52,17 @@ func TestKeyXipher(t *testing.T) {
 	if string(plaintext) != string(data) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
+	symmCiphertext, err := privKey.Encrypt(data, true)
+	if err != nil {
+		t.Error("Error encrypting data", err)
+	}
+	plaintext, err = privKey.Decrypt(symmCiphertext)
+	if err != nil {
+		t.Error("Error decrypting data", err)
+	}
+	if string(plaintext) != string(data) {
+		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+	}
 	t.Log(getMemoryStats())
 }
 
@@ -144,6 +155,17 @@ func TestPasswordXipher(t *testing.T) {
 		t.Error("Error encrypting data", err)
 	}
 	plaintext, err = privKey.Decrypt(compressedCiphertext)
+	if err != nil {
+		t.Error("Error decrypting data", err)
+	}
+	if string(plaintext) != string(data) {
+		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+	}
+	symmCiphertext, err := privKey.Encrypt(data, true)
+	if err != nil {
+		t.Error("Error encrypting data", err)
+	}
+	plaintext, err = privKey.Decrypt(symmCiphertext)
 	if err != nil {
 		t.Error("Error decrypting data", err)
 	}
