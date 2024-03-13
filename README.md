@@ -11,28 +11,49 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 - Encrypts data with the public key generated based on a password.
 - Supports stream cipher along with stream compression, resulting in lower memory footprint.
 
-### Demo
+## Demo
 
 ![Demo](https://dev.shib.me/xipher/demo/xipher_text.gif)
 
-### CLI Installation
+## CLI Installation
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
-Alternatively,
-- Can be installed using brew
-```sh
+### Homebrew
+Xipher can be installed with brew using the following command on macOS
+```zsh
 brew install shibme/tap/xipher
 ```
-- Can be installed using go
+
+### Install Script
+
+#### Install Latest Version
+**With Shell (MacOs/Linux):**
 ```sh
-go install dev.shib.me/xipher/cli/xipher@latest
+curl -fsSL https://dev.shib.me/xipher/install.sh | sh
 ```
-- Can be run as a docker container
+**With PowerShell (Windows):**
+```powershell
+irm https://dev.shib.me/xipher/install.ps1 | iex
+```
+
+#### Install Specific Version
+**With Shell (MacOs/Linux):**
 ```sh
+curl -fsSL https://dev.shib.me/xipher/install.sh | sh -s v0.9.2
+```
+**With PowerShell (Windows):**
+```powershell
+$v="0.9.2"; irm https://dev.shib.me/xipher/install.ps1 | iex
+```
+
+### Docker
+You can also run Xipher without installing using Docker:
+```zsh
 docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
-### Using as a Go package
+
+## Using as a Go package
 Install the package
 ```sh
 go get -u dev.shib.me/xipher
@@ -80,12 +101,12 @@ func main() {
 }
 ```
 
-### Under the hood
+## Under the hood
 Xipher uses the following cryptographic primitives and libraries to encrypt/decrypt and compress/decompress data:
 - [Argon2id](https://en.wikipedia.org/wiki/Argon2) for password hashing.
 - [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for elliptic curve cryptography.
 - [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for encryption and decryption.
 - [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression and decompression.
 
-### Disclaimer
+## Disclaimer
 This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.
