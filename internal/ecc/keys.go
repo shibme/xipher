@@ -37,7 +37,7 @@ func (privateKey *PrivateKey) Bytes() []byte {
 
 // NewPrivateKey generates a new random private key.
 func NewPrivateKey() (*PrivateKey, error) {
-	key := make([]byte, curve25519.ScalarSize)
+	key := make([]byte, KeyLength)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func NewPrivateKey() (*PrivateKey, error) {
 
 // GetPrivateKey returns the instance private key for given bytes. Please use exactly 32 bytes.
 func GetPrivateKey(key []byte) (*PrivateKey, error) {
-	if len(key) != curve25519.ScalarSize {
+	if len(key) != KeyLength {
 		return nil, errInvalidKeyLength
 	}
 	return &PrivateKey{
@@ -70,7 +70,7 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 
 // GetPublicKey returns the instance of public key for given bytes. Please use exactly 32 bytes.
 func GetPublicKey(key []byte) (*PublicKey, error) {
-	if len(key) != curve25519.ScalarSize {
+	if len(key) != KeyLength {
 		return nil, errInvalidKeyLength
 	}
 	return &PublicKey{
@@ -85,7 +85,7 @@ func (publicKey *PublicKey) Bytes() []byte {
 
 func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 	if publicKey.encrypter == nil {
-		ephPrivKey := make([]byte, curve25519.ScalarSize)
+		ephPrivKey := make([]byte, KeyLength)
 		if _, err := rand.Read(ephPrivKey); err != nil {
 			return nil, err
 		}

@@ -3,6 +3,7 @@ module dev.shib.me/xipher
 go 1.20
 
 require (
+	github.com/cloudflare/circl v1.3.7
 	github.com/fatih/color v1.16.0
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/crypto v0.21.0
