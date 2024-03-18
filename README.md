@@ -10,6 +10,7 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 ### What does it do?
 - Encrypts data with the public key generated based on a password.
 - Supports stream cipher along with stream compression, resulting in lower memory footprint.
+- Supports post-quantum cryptography using the Kyber algorithm.
 
 ## Demo
 
@@ -71,17 +72,21 @@ import (
 
 func main() {
 	// Creating a new private key for password
-	privKey, err := xipher.NewPrivateKeyForPassword([]byte("xipher_password"))
+	privKey, err := xipher.NewPrivateKeyForPassword([]byte("Paws0meKittyKuwan!"))
 	if err != nil {
 		panic(err)
 	}
 
 	// Deriving  public key from private key
-	pubKey, err := privKey.PublicKey()
+	pubKey, err := privKey.PublicKey(false)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("PublicKey:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(pubKey.Bytes()))
+	publicKeyBytes, err := pubKey.Bytes()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("PublicKey:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(publicKeyBytes))
 
 	platinText := []byte("Hello World!")
 
@@ -102,11 +107,12 @@ func main() {
 ```
 
 ## Under the hood
-Xipher uses the following cryptographic primitives and libraries to encrypt/decrypt and compress/decompress data:
+Xipher uses the following algorithms and libraries to achieve its functionality:
 - [Argon2id](https://en.wikipedia.org/wiki/Argon2) for password hashing.
 - [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for elliptic curve cryptography.
-- [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for encryption and decryption.
-- [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression and decompression.
+- [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) using [CIRCL](https://github.com/cloudflare/circl) library for post-quantum cryptography.
+- [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for symmetric encryption.
+- [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression.
 
 ## Disclaimer
 This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.
