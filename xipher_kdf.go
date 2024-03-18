@@ -65,7 +65,7 @@ func (s *kdfSpec) getThreads() uint32 {
 }
 
 func (s *kdfSpec) getCipherKey(pwd []byte) []byte {
-	return argon2.IDKey(pwd, s.getSalt(), s.getIterations(), s.getMemory(), uint8(s.getThreads()), keyLength)
+	return argon2.IDKey(pwd, s.getSalt(), s.getIterations(), s.getMemory(), uint8(s.getThreads()), privateKeyRawLength)
 }
 
 func (s *kdfSpec) bytes() []byte {

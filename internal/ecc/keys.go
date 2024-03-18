@@ -41,11 +41,11 @@ func NewPrivateKey() (*PrivateKey, error) {
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	return GetPrivateKey(key)
+	return ParsePrivateKey(key)
 }
 
-// GetPrivateKey returns the instance private key for given bytes. Please use exactly 32 bytes.
-func GetPrivateKey(key []byte) (*PrivateKey, error) {
+// ParsePrivateKey returns the instance private key for given bytes. Please use exactly 32 bytes.
+func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 	if len(key) != KeyLength {
 		return nil, errInvalidKeyLength
 	}
@@ -68,8 +68,8 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 	return privateKey.publicKey, nil
 }
 
-// GetPublicKey returns the instance of public key for given bytes. Please use exactly 32 bytes.
-func GetPublicKey(key []byte) (*PublicKey, error) {
+// ParsePublicKey returns the instance of public key for given bytes. Please use exactly 32 bytes.
+func ParsePublicKey(key []byte) (*PublicKey, error) {
 	if len(key) != KeyLength {
 		return nil, errInvalidKeyLength
 	}

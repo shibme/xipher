@@ -4,17 +4,17 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/asx"
 	"dev.shib.me/xipher/internal/xcp"
 )
 
 type PrivateKey struct {
+	version    uint8
 	keyType    uint8
 	password   *[]byte
 	spec       *kdfSpec
 	key        []byte
 	symmCipher *xcp.SymmetricCipher
-	publicKey  *PublicKey
 	specKeyMap map[string][]byte
 }
 
@@ -37,28 +37,31 @@ func NewPrivateKeyForPasswordAndSpec(password []byte, iterations, memory, thread
 	return newPrivateKeyForPwdAndSpec(password, spec)
 }
 
-func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (*PrivateKey, error) {
+func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (privateKey *PrivateKey, err error) {
 	if len(password) == 0 {
 		return nil, errInvalidPassword
 	}
-	privateKey := &PrivateKey{
+	privateKey = &PrivateKey{
+		version:    xipherVersion,
 		keyType:    keyTypePwd,
 		password:   &password,
 		spec:       spec,
-		key:        spec.getCipherKey(password),
 		specKeyMap: make(map[string][]byte),
 	}
-	privateKey.specKeyMap[string(privateKey.spec.bytes())] = privateKey.key
+	if privateKey.key, err = privateKey.getKeyForPwdSpec(*spec); err != nil {
+		return nil, err
+	}
 	return privateKey, nil
 }
 
 // NewPrivateKey creates a new random private key.
 func NewPrivateKey() (*PrivateKey, error) {
-	key := make([]byte, keyLength)
+	key := make([]byte, privateKeyRawLength)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
 	return &PrivateKey{
+		version: xipherVersion,
 		keyType: keyTypeDirect,
 		key:     key,
 	}, nil
@@ -66,51 +69,80 @@ func NewPrivateKey() (*PrivateKey, error) {
 
 // ParsePrivateKey parses the given bytes and returns a corresponding private key. the given bytes must be 33 bytes long.
 func ParsePrivateKey(key []byte) (*PrivateKey, error) {
-	if len(key) < privateKeyMinLength || key[0] != keyTypeDirect {
-		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", privateKeyMinLength, len(key))
+	if len(key) != privateKeyFinalLength || key[1] != keyTypeDirect {
+		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", privateKeyFinalLength, len(key))
 	}
 	return &PrivateKey{
+		version: key[0],
 		keyType: keyTypeDirect,
-		key:     key[1:],
+		key:     key[2:],
 	}, nil
 }
 
-func (privateKey *PrivateKey) isPwdBased() bool {
-	return privateKey.keyType%2 == 1
+func isPwdBased(keyType uint8) bool {
+	return keyType%2 == 1
+}
+
+func (privateKey *PrivateKey) getKeyForPwdSpec(spec kdfSpec) (key []byte, err error) {
+	specBytes := spec.bytes()
+	key = privateKey.specKeyMap[string(specBytes)]
+	if len(key) == 0 {
+		key = spec.getCipherKey(*privateKey.password)
+		privateKey.specKeyMap[string(specBytes)] = key
+	}
+	return key, nil
 }
 
 // Bytes returns the private key as bytes only if it is not password based.
 func (privateKey *PrivateKey) Bytes() ([]byte, error) {
-	if privateKey.isPwdBased() {
+	if isPwdBased(privateKey.keyType) {
 		return nil, errPrivKeyUnavailableForPwd
 	}
-	return append([]byte{privateKey.keyType}, privateKey.key...), nil
-}
-
-// PublicKey returns the public key corresponding to the private key.
-func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
-	if privateKey.publicKey == nil {
-		eccPrivKey, err := ecc.GetPrivateKey(privateKey.key)
-		if err != nil {
-			return nil, err
-		}
-		eccPubKey, err := eccPrivKey.PublicKey()
-		if err != nil {
-			return nil, err
-		}
-		privateKey.publicKey = &PublicKey{
-			keyType:   privateKey.keyType,
-			publicKey: eccPubKey,
-			spec:      privateKey.spec,
-		}
-	}
-	return privateKey.publicKey, nil
+	return append([]byte{privateKey.version, privateKey.keyType}, privateKey.key...), nil
 }
 
 type PublicKey struct {
+	version   uint8
 	keyType   uint8
-	publicKey *ecc.PublicKey
+	publicKey *asx.PublicKey
 	spec      *kdfSpec
+}
+
+// PublicKey returns the public key corresponding to the private key.
+func (privateKey *PrivateKey) PublicKey(pq bool) (*PublicKey, error) {
+	asxPrivKey, err := asx.ParsePrivateKey(privateKey.key)
+	if err != nil {
+		return nil, err
+	}
+	var asxPubKey *asx.PublicKey
+	if pq {
+		asxPubKey, err = asxPrivKey.PublicKeyKyber()
+	} else {
+		asxPubKey, err = asxPrivKey.PublicKeyECC()
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &PublicKey{
+		version:   privateKey.version,
+		keyType:   privateKey.keyType,
+		publicKey: asxPubKey,
+		spec:      privateKey.spec,
+	}, nil
+}
+
+// Bytes returns the public key as bytes.
+func (publicKey *PublicKey) Bytes() ([]byte, error) {
+	asxPubKeyBytes, err := publicKey.publicKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	headers := []byte{publicKey.version, publicKey.keyType}
+	if isPwdBased(publicKey.keyType) {
+		return append(headers, append(publicKey.spec.bytes(), asxPubKeyBytes...)...), nil
+	} else {
+		return append(headers, asxPubKeyBytes...), nil
+	}
 }
 
 // ParsePublicKey parses the given bytes and returns a corresponding public key. the given bytes must be at least 33 bytes long.
@@ -118,45 +150,29 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 	if len(pubKeyBytes) < publicKeyMinLength {
 		return nil, errInvalidPublicKey
 	}
-	keyType := pubKeyBytes[0]
+	version := pubKeyBytes[0]
+	keyType := pubKeyBytes[1]
 	if keyType != keyTypeDirect && keyType != keyTypePwd {
 		return nil, errInvalidPublicKey
 	}
-	keyBytes := pubKeyBytes[1:]
+	keyBytes := pubKeyBytes[2:]
 	var spec *kdfSpec
 	if keyType == keyTypePwd {
-		specBytes := keyBytes[keyLength:]
+		specBytes := keyBytes[:kdfSpecLength]
 		var err error
 		if spec, err = parseKdfSpec(specBytes); err != nil {
 			return nil, err
 		}
-		keyBytes = keyBytes[:keyLength]
+		keyBytes = keyBytes[kdfSpecLength:]
 	}
-	eccPubKey, err := ecc.GetPublicKey(keyBytes)
+	asxPubKey, err := asx.ParsePublicKey(keyBytes)
 	if err != nil {
 		return nil, err
 	}
-	publicKey := &PublicKey{
+	return &PublicKey{
+		version:   version,
 		keyType:   keyType,
-		publicKey: eccPubKey,
+		publicKey: asxPubKey,
 		spec:      spec,
-	}
-	return publicKey, nil
-}
-
-func (publicKey *PublicKey) isPwdBased() bool {
-	return publicKey.keyType%2 == 1
-}
-
-func (publicKey *PublicKey) keyBytesWithType() []byte {
-	return append([]byte{publicKey.keyType}, publicKey.publicKey.Bytes()...)
-}
-
-// Bytes returns the public key as bytes.
-func (publicKey *PublicKey) Bytes() []byte {
-	if publicKey.isPwdBased() {
-		return append(publicKey.keyBytesWithType(), publicKey.spec.bytes()...)
-	} else {
-		return publicKey.keyBytesWithType()
-	}
+	}, nil
 }

@@ -2,14 +2,23 @@ package xipher
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"io"
 
-	"dev.shib.me/xipher/internal/ecc"
+	"dev.shib.me/xipher/internal/asx"
 	"dev.shib.me/xipher/internal/xcp"
 )
 
+func newVariableKeySymmCipher(key []byte) (*xcp.SymmetricCipher, error) {
+	if len(key) == privateKeyRawLength {
+		keySum := sha256.Sum256(key)
+		key = keySum[:]
+	}
+	return xcp.New(key)
+}
+
 func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
-	if privateKey.isPwdBased() {
+	if isPwdBased(privateKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
 			return nil, err
 		}
@@ -22,7 +31,7 @@ func (privateKey *PrivateKey) NewEncryptingWriter(dst io.Writer, compression boo
 		}
 	}
 	if privateKey.symmCipher == nil {
-		if privateKey.symmCipher, err = xcp.New(privateKey.key); err != nil {
+		if privateKey.symmCipher, err = newVariableKeySymmCipher(privateKey.key); err != nil {
 			return nil, err
 		}
 	}
@@ -51,7 +60,7 @@ func (privateKey *PrivateKey) Encrypt(data []byte, compression bool) (ciphertext
 }
 
 func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
-	if publicKey.isPwdBased() {
+	if isPwdBased(publicKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdAsymmetric}); err != nil {
 			return nil, err
 		}
@@ -87,16 +96,6 @@ func (publicKey *PublicKey) Encrypt(data []byte, compression bool) (ciphertext [
 	return buf.Bytes(), nil
 }
 
-func (privateKey *PrivateKey) getKeyForPwdSpec(spec kdfSpec) (key []byte, err error) {
-	specBytes := spec.bytes()
-	key = privateKey.specKeyMap[string(specBytes)]
-	if len(key) == 0 {
-		key = spec.getCipherKey(*privateKey.password)
-		privateKey.specKeyMap[string(specBytes)] = key
-	}
-	return key, nil
-}
-
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
 	ctTypeBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, ctTypeBytes); err != nil {
@@ -106,11 +105,11 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 	key := privateKey.key
 	switch ctType {
 	case ctKeyAsymmetric, ctKeySymmetric:
-		if privateKey.isPwdBased() {
+		if isPwdBased(privateKey.keyType) {
 			return nil, errDecryptionFailedKeyRequired
 		}
 	case ctPwdAsymmetric, ctPwdSymmetric:
-		if !privateKey.isPwdBased() {
+		if !isPwdBased(privateKey.keyType) {
 			return nil, errDecryptionFailedPwdRequired
 		}
 		specBytes := make([]byte, kdfSpecLength)
@@ -129,13 +128,13 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser,
 	}
 	switch ctType {
 	case ctKeyAsymmetric, ctPwdAsymmetric:
-		eccPrivKey, err := ecc.GetPrivateKey(key)
+		eccPrivKey, err := asx.ParsePrivateKey(key)
 		if err != nil {
 			return nil, err
 		}
 		return eccPrivKey.NewDecryptingReader(src)
 	case ctKeySymmetric, ctPwdSymmetric:
-		symmCipher, err := xcp.New(key)
+		symmCipher, err := newVariableKeySymmCipher(key)
 		if err != nil {
 			return nil, err
 		}

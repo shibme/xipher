@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	errInvalidPrivateKeyLength = fmt.Errorf("xipher: invalid key lengths [please use %d bytes]", PrivateKeyLength)
-	errInvalidPublicKeyLength  = fmt.Errorf("xipher: invalid key lengths [please use %d bytes]", PrivateKeyLength)
+	errInvalidPrivateKeyLength = fmt.Errorf("xipher: invalid private key lengths [please use %d bytes]", PrivateKeyLength)
+	errInvalidPublicKeyLength  = fmt.Errorf("xipher: invalid public key lengths [please use %d bytes]", PublicKeyLength)
 )
 
 // PrivateKey represents a private key.
@@ -50,11 +50,11 @@ func NewPrivateKey() (*PrivateKey, error) {
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	return GetPrivateKey(key)
+	return NewPrivateKeyForSeed(key)
 }
 
-// GetPrivateKey returns the instance private key for given bytes. Please use exactly 64 bytes.
-func GetPrivateKey(keySeed []byte) (*PrivateKey, error) {
+// NewPrivateKeyForSeed returns the instance private key for given bytes. Please use exactly 64 bytes.
+func NewPrivateKeyForSeed(keySeed []byte) (*PrivateKey, error) {
 	if len(keySeed) != PrivateKeyLength {
 		return nil, errInvalidPrivateKeyLength
 	}
@@ -79,8 +79,8 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 	return privateKey.publicKey, nil
 }
 
-// GetPublicKey returns the instance of public key for given bytes. Please use exactly 32 bytes.
-func GetPublicKey(keyBytes []byte) (*PublicKey, error) {
+// ParsePublicKey returns the instance of public key for given bytes. Please use exactly 32 bytes.
+func ParsePublicKey(keyBytes []byte) (*PublicKey, error) {
 	if len(keyBytes) != PublicKeyLength {
 		return nil, errInvalidPublicKeyLength
 	}

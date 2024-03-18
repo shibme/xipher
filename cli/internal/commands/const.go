@@ -52,6 +52,13 @@ var (
 		usage:     "Shows version info",
 	}
 
+	// Quantum-safe encryption
+	quantumSafeFlag = flagDef{
+		name:      "quantum-safe",
+		shorthand: "q",
+		usage:     "Enable quantum-safe encryption",
+	}
+
 	// Ignore Password Policy Check Flag
 	ignorePasswordCheckFlag = flagDef{
 		name:      "ignore",

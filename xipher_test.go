@@ -3,7 +3,6 @@ package xipher
 import (
 	"crypto/rand"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -20,152 +19,67 @@ func getMemoryStats() string {
 	return sb.String()
 }
 
-func TestKeyXipher(t *testing.T) {
-	privKey, err := NewPrivateKey()
-	if err != nil {
-		t.Error("Error parsing private key", err)
+func getTestData() []byte {
+	data := make([]byte, 1024*1024)
+	if _, err := rand.Read(data); err != nil {
+		panic(err)
 	}
-	pubKey, err := privKey.PublicKey()
-	if err != nil {
-		t.Error("Error generating public key", err)
-	}
-	data := []byte("Hello World!")
-	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
-	if err != nil {
-		t.Error("Error encrypting data", err)
-	}
-	plaintext, err := privKey.Decrypt(uncompressedCiphertext)
-	if err != nil {
-		t.Error("Error decrypting data", err)
-	}
-	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
-	}
-	compressedCiphertext, err := pubKey.Encrypt(data, true)
-	if err != nil {
-		t.Error("Error encrypting data", err)
-	}
-	plaintext, err = privKey.Decrypt(compressedCiphertext)
-	if err != nil {
-		t.Error("Error decrypting data", err)
-	}
-	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
-	}
-	symmCiphertext, err := privKey.Encrypt(data, true)
-	if err != nil {
-		t.Error("Error encrypting data", err)
-	}
-	plaintext, err = privKey.Decrypt(symmCiphertext)
-	if err != nil {
-		t.Error("Error decrypting data", err)
-	}
-	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
-	}
-	t.Log(getMemoryStats())
+	return data
+
 }
 
-func TestFileEncryption(t *testing.T) {
+func getTestPassword() []byte {
+	password := make([]byte, 100)
+	if _, err := rand.Read(password); err != nil {
+		panic(err)
+	}
+	return password
+}
+
+func symmetricKeyTest(t *testing.T, compress bool) {
+	data := getTestData()
 	privKey, err := NewPrivateKey()
 	if err != nil {
 		t.Error("Error generating private key", err)
 	}
-
-	pubKey, err := privKey.PublicKey()
+	privKeyBytes, err := privKey.Bytes()
 	if err != nil {
-		t.Error("Error generating public key", err)
+		t.Error("Error converting private key to bytes", err)
 	}
-
-	// Generating Test Data
-	ptFile, err := os.CreateTemp("", "xipher")
+	ciphertext, err := privKey.Encrypt(data, compress)
 	if err != nil {
-		t.Error("Error creating temp file", err)
-	}
-	block := make([]byte, 1024*1024)
-	for i := 0; i < 10; i++ {
-		_, err := rand.Read(block)
-		if err != nil {
-			t.Error("Error generating random data", err)
-		}
-		ptFile.Write(block)
-	}
-	ptFile.Close()
-
-	// Encrypting Test Data
-	ptFile, err = os.Open(ptFile.Name())
-	if err != nil {
-		t.Error("Error opening test file for PT", err)
-	}
-	ctFile, err := os.CreateTemp("", "xipher")
-	if err != nil {
-		t.Error("Error creating temp file for CT", err)
-	}
-	if err := pubKey.EncryptStream(ctFile, ptFile, false); err != nil {
 		t.Error("Error encrypting data", err)
 	}
-	ctFile.Close()
-	ptFile.Close()
-
-	// Decrypting Test Data
-	ctFile, err = os.Open(ctFile.Name())
+	privKeyFromBytes, err := ParsePrivateKey(privKeyBytes)
 	if err != nil {
-		t.Error("Error opening test file for CT", err)
+		t.Error("Error parsing private key", err)
 	}
-	ptFile, err = os.CreateTemp("", "xipher")
+	plaintext, err := privKeyFromBytes.Decrypt(ciphertext)
 	if err != nil {
-		t.Error("Error creating temp file for PT", err)
-	}
-	if err := privKey.DecryptStream(ptFile, ctFile); err != nil {
 		t.Error("Error decrypting data", err)
 	}
-	ptFile.Close()
-	ctFile.Close()
-
+	if string(plaintext) != string(data) {
+		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+	}
 	t.Log(getMemoryStats())
 }
 
-func TestPasswordXipher(t *testing.T) {
-	password := make([]byte, 14)
-	if _, err := rand.Read(password); err != nil {
-		t.Error("Error generating random password", err)
-	}
+func symmetricPwdTest(t *testing.T, compress bool) {
+	password := getTestPassword()
+	data := getTestData()
 	privKey, err := NewPrivateKeyForPassword(password)
 	if err != nil {
-		t.Error("Error generating private key for password", err)
+		t.Error("Error generating private key", err)
 	}
-	pubKey, err := privKey.PublicKey()
-	if err != nil {
-		t.Error("Error generating public key", err)
-	}
-	data := []byte("Hello World!")
-	uncompressedCiphertext, err := pubKey.Encrypt(data, false)
+	ciphertext, err := privKey.Encrypt(data, compress)
 	if err != nil {
 		t.Error("Error encrypting data", err)
 	}
-	plaintext, err := privKey.Decrypt(uncompressedCiphertext)
+	privKeyRecreated, err := NewPrivateKeyForPassword(password)
 	if err != nil {
-		t.Error("Error decrypting data", err)
+		t.Error("Error generating private key", err)
 	}
-	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
-	}
-	compressedCiphertext, err := pubKey.Encrypt(data, true)
-	if err != nil {
-		t.Error("Error encrypting data", err)
-	}
-	plaintext, err = privKey.Decrypt(compressedCiphertext)
-	if err != nil {
-		t.Error("Error decrypting data", err)
-	}
-	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
-	}
-	symmCiphertext, err := privKey.Encrypt(data, true)
-	if err != nil {
-		t.Error("Error encrypting data", err)
-	}
-	plaintext, err = privKey.Decrypt(symmCiphertext)
+	plaintext, err := privKeyRecreated.Decrypt(ciphertext)
 	if err != nil {
 		t.Error("Error decrypting data", err)
 	}
@@ -173,4 +87,102 @@ func TestPasswordXipher(t *testing.T) {
 		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
 	}
 	t.Log(getMemoryStats())
+}
+
+func asymmetricKeyTest(t *testing.T, compress, pq bool) {
+	data := getTestData()
+	privKey, err := NewPrivateKey()
+	if err != nil {
+		t.Error("Error generating private key", err)
+	}
+	privKeyBytes, err := privKey.Bytes()
+	if err != nil {
+		t.Error("Error converting private key to bytes", err)
+	}
+	publicKey, err := privKey.PublicKey(pq)
+	if err != nil {
+		t.Error("Error generating public key", err)
+	}
+	ciphertext, err := publicKey.Encrypt(data, compress)
+	if err != nil {
+		t.Error("Error encrypting data", err)
+	}
+	privKeyFromBytes, err := ParsePrivateKey(privKeyBytes)
+	if err != nil {
+		t.Error("Error parsing private key", err)
+	}
+	plaintext, err := privKeyFromBytes.Decrypt(ciphertext)
+	if err != nil {
+		t.Error("Error decrypting data", err)
+	}
+	if string(plaintext) != string(data) {
+		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+	}
+	t.Log(getMemoryStats())
+}
+
+func asymmetricPwdTest(t *testing.T, compress, pq bool) {
+	password := getTestPassword()
+	data := getTestData()
+	privKey, err := NewPrivateKeyForPassword(password)
+	if err != nil {
+		t.Error("Error generating private key", err)
+	}
+	publicKey, err := privKey.PublicKey(pq)
+	if err != nil {
+		t.Error("Error generating public key", err)
+	}
+	ciphertext, err := publicKey.Encrypt(data, compress)
+	if err != nil {
+		t.Error("Error encrypting data", err)
+	}
+	privKeyRecreated, err := NewPrivateKeyForPassword(password)
+	if err != nil {
+		t.Error("Error generating private key", err)
+	}
+	plaintext, err := privKeyRecreated.Decrypt(ciphertext)
+	if err != nil {
+		t.Error("Error decrypting data", err)
+	}
+	if string(plaintext) != string(data) {
+		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+	}
+	t.Log(getMemoryStats())
+}
+
+func TestSymmetricKeyCompress(t *testing.T) {
+	symmetricKeyTest(t, true)
+}
+func TestSymmetricKeyNoCompress(t *testing.T) {
+	symmetricKeyTest(t, false)
+}
+func TestSymmetricPasswordCompress(t *testing.T) {
+	symmetricPwdTest(t, true)
+}
+func TestSymmetricPasswordNoCompress(t *testing.T) {
+	symmetricPwdTest(t, false)
+}
+func TestAsymmetricKeyCompressPQ(t *testing.T) {
+	asymmetricKeyTest(t, true, true)
+}
+func TestAsymmetricKeyNoCompressPQ(t *testing.T) {
+	asymmetricKeyTest(t, false, true)
+}
+func TestAsymmetricKeyCompressNoPQ(t *testing.T) {
+	asymmetricKeyTest(t, true, false)
+}
+func TestAsymmetricKeyNoCompressNoPQ(t *testing.T) {
+	asymmetricKeyTest(t, false, false)
+}
+func TestAsymmetricPasswordCompressPQ(t *testing.T) {
+	asymmetricPwdTest(t, true, true)
+}
+func TestAsymmetricPasswordNoCompressPQ(t *testing.T) {
+	asymmetricPwdTest(t, false, true)
+}
+func TestAsymmetricPasswordCompressNoPQ(t *testing.T) {
+	asymmetricPwdTest(t, true, false)
+}
+func TestAsymmetricPasswordNoCompressNoPQ(t *testing.T) {
+	asymmetricPwdTest(t, false, false)
 }
