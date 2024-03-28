@@ -3,9 +3,10 @@ package commands
 import "github.com/spf13/cobra"
 
 const (
-	appName         = "xipher"
-	xipherKeyPrefix = "XK_"
-	xipherTxtPrefix = "XT_"
+	appNameLowerCase = "xipher"
+	xipherKeyPrefix  = "XPK_"
+	xipherTxtPrefix  = "XCT_"
+	xipherFileExt    = "." + appNameLowerCase
 )
 
 var (

@@ -5,7 +5,7 @@
 [![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
 
-Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool.
+Xipher is a curated collection of cryptographic primitives put together to key/password based asymmetric encryption.
 
 ### What does it do?
 - Encrypts data with the public key generated based on a password.

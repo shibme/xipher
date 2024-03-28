@@ -8,7 +8,7 @@ import (
 )
 
 func showVersionInfo() {
-	fmt.Println(appName, xipher.Version)
+	fmt.Println(xipher.VersionInfo())
 }
 
 func versionCommand() *cobra.Command {

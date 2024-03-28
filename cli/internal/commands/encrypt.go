@@ -90,7 +90,17 @@ func encryptFileCommand() *cobra.Command {
 			}
 			dstPath := cmd.Flag(outFlag.name).Value.String()
 			if dstPath == "" {
-				dstPath = srcPath + ".xipher"
+				dstPath = srcPath + xipherFileExt
+			}
+			for {
+				if _, err = os.Stat(dstPath); os.IsNotExist(err) {
+					break
+				}
+				fmt.Println("File already exists:", color.YellowString(dstPath))
+				dstPath, err = getVisibleInput("Enter a new file path ending with .xipher: ")
+				if err != nil {
+					exitOnError(err)
+				}
 			}
 			dst, err := os.Create(dstPath)
 			if err != nil {

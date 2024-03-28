@@ -81,9 +81,23 @@ func decryptFileCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			srcPath := cmd.Flag(fileFlag.name).Value.String()
 			dstPath := cmd.Flag(outFlag.name).Value.String()
-			// Check match between src and dst
-			if srcPath == dstPath {
-				exitOnErrorWithMessage("Source and destination paths cannot be the same.")
+			if dstPath == "" {
+				if idx := len(srcPath) - len(xipherFileExt); idx > 0 {
+					if srcPath[idx:] == xipherFileExt {
+						dstPath = srcPath[:idx]
+					}
+				}
+			}
+			var err error
+			for {
+				if _, err = os.Stat(dstPath); os.IsNotExist(err) {
+					break
+				}
+				fmt.Println("File already exists:", color.YellowString(dstPath))
+				dstPath, err = getVisibleInput("Enter a new file path for the decrypted file: ")
+				if err != nil {
+					exitOnError(err)
+				}
 			}
 			src, err := os.Open(srcPath)
 			if err != nil {
@@ -105,12 +119,12 @@ func decryptFileCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
+			fmt.Println("Decrypted file:", color.GreenString(dstPath))
 			safeExit()
 		},
 	}
 	decryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
 	decryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
 	decryptFileCmd.MarkFlagRequired(fileFlag.name)
-	decryptFileCmd.MarkFlagRequired(outFlag.name)
 	return decryptFileCmd
 }

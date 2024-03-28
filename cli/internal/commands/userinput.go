@@ -46,6 +46,13 @@ func pwdCheck(password string) error {
 	return nil
 }
 
+func getVisibleInput(prompt string) (string, error) {
+	var input string
+	fmt.Print(prompt)
+	_, err := fmt.Scanln(&input)
+	return input, err
+}
+
 func getHiddenInputFromUser(prompt string) ([]byte, error) {
 	fmt.Print(prompt)
 	input, err := term.ReadPassword(int(syscall.Stdin))
