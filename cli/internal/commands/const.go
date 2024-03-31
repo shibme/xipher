@@ -3,9 +3,11 @@ package commands
 import "github.com/spf13/cobra"
 
 const (
-	appName         = "xipher"
-	xipherKeyPrefix = "XK_"
-	xipherTxtPrefix = "XT_"
+	appNameLowerCase    = "xipher"
+	xipherKeyPrefix     = "XPK_"
+	xipherTxtPrefix     = "XCT_"
+	xipherPubKeyFileExt = ".xpk"
+	xipherFileExt       = "." + appNameLowerCase
 )
 
 var (
@@ -52,11 +54,18 @@ var (
 		usage:     "Shows version info",
 	}
 
+	// Public Key File Flag
+	publicKeyFileFlag = flagDef{
+		name:      "public-key-file",
+		shorthand: "p",
+		usage:     "Specify path to the public key file",
+	}
+
 	// Quantum-safe encryption
 	quantumSafeFlag = flagDef{
 		name:      "quantum-safe",
 		shorthand: "q",
-		usage:     "Enable quantum-safe encryption",
+		usage:     "Uses quantum-safe cryptography",
 	}
 
 	// Ignore Password Policy Check Flag
@@ -66,11 +75,11 @@ var (
 		usage:     "Ignores the password policy check",
 	}
 
-	// Key Flag
-	keyFlag = flagDef{
-		name:      "key",
+	// Public Key Flag
+	publicKeyFlag = flagDef{
+		name:      "public-key",
 		shorthand: "k",
-		usage:     "Specify a key string",
+		usage:     "Specify the public key string or path to public key file",
 	}
 
 	// Ciphertext Flag

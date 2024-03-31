@@ -5,7 +5,7 @@
 [![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
 
-Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool.
+Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption.
 
 ### What does it do?
 - Encrypts data with the public key generated based on a password.
@@ -40,11 +40,11 @@ irm https://dev.shib.me/xipher/install.ps1 | iex
 #### Install Specific Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://dev.shib.me/xipher/install.sh | sh -s v0.9.2
+curl -fsSL https://dev.shib.me/xipher/install.sh | sh -s v1.1.0
 ```
 **With PowerShell (Windows):**
 ```powershell
-$v="0.9.2"; irm https://dev.shib.me/xipher/install.ps1 | iex
+$v="1.1.0"; irm https://dev.shib.me/xipher/install.ps1 | iex
 ```
 
 ### Docker

@@ -7,7 +7,7 @@ func XipherCommand() *cobra.Command {
 		return xipherCmd
 	}
 	xipherCmd = &cobra.Command{
-		Use:   appName,
+		Use:   appNameLowerCase,
 		Short: "Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool.",
 		Run: func(cmd *cobra.Command, args []string) {
 			version, _ := cmd.Flags().GetBool(versionFlag.name)

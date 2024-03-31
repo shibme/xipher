@@ -9,8 +9,7 @@ import (
 )
 
 func exitOnError(err error) {
-	fmt.Fprintln(os.Stderr, color.RedString(err.Error()))
-	erroredExit()
+	exitOnErrorWithMessage(err.Error())
 }
 
 func exitOnErrorWithMessage(errMessage string) {

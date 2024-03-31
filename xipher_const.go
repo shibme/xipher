@@ -2,6 +2,9 @@ package xipher
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
+	"time"
 
 	"dev.shib.me/xipher/internal/asx"
 )
@@ -37,8 +40,6 @@ const (
 )
 
 var (
-	Version = "dev"
-
 	errGeneratingSalt              = fmt.Errorf("%s: error generating salt", "xipher")
 	errInvalidPassword             = fmt.Errorf("%s: invalid password", "xipher")
 	errInvalidCiphertext           = fmt.Errorf("%s: invalid ciphertext", "xipher")
@@ -48,3 +49,50 @@ var (
 	errDecryptionFailedPwdRequired = fmt.Errorf("%s: decryption failed, password required", "xipher")
 	errDecryptionFailedKeyRequired = fmt.Errorf("%s: decryption failed, key required", "xipher")
 )
+
+var (
+	version    = ""
+	commitDate = ""
+	fullCommit = ""
+	releaseURL = ""
+	appInfo    *string
+)
+
+const (
+	website     = "https://dev.shib.me/xipher"
+	description = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
+	art         = `
+	__  ___       _               
+	\ \/ (_)_ __ | |__   ___ _ __ 
+	 \  /| | '_ \| '_ \ / _ \ '__|
+	 /  \| | |_) | | | |  __/ |   
+	/_/\_\_| .__/|_| |_|\___|_|   
+	       |_|                    `
+)
+
+func VersionInfo() string {
+	if appInfo == nil {
+		appInfo = new(string)
+		var committedAt string
+		if builtAtTime, err := time.Parse(time.RFC3339, commitDate); err == nil {
+			builtAtLocalTime := builtAtTime.Local()
+			committedAt = builtAtLocalTime.Format("02 Jan 2006 03:04:05 PM MST")
+		}
+		appInfoBuilder := strings.Builder{}
+		appInfoBuilder.WriteString(art)
+		appInfoBuilder.WriteString("\n")
+		appInfoBuilder.WriteString(description)
+		appInfoBuilder.WriteString("\n")
+		appInfoBuilder.WriteString("-------------------------------------------------")
+		appInfoBuilder.WriteString("\n")
+		appInfoBuilder.WriteString(fmt.Sprintf("SLV Version  : %s\n", version))
+		appInfoBuilder.WriteString(fmt.Sprintf("Built At     : %s\n", committedAt))
+		appInfoBuilder.WriteString(fmt.Sprintf("Release      : %s\n", releaseURL))
+		appInfoBuilder.WriteString(fmt.Sprintf("Git Commit   : %s\n", fullCommit))
+		appInfoBuilder.WriteString(fmt.Sprintf("Web          : %s\n", website))
+		appInfoBuilder.WriteString(fmt.Sprintf("Platform     : %s\n", runtime.GOOS+"/"+runtime.GOARCH))
+		appInfoBuilder.WriteString(fmt.Sprintf("Go Version   : %s", runtime.Version()))
+		*appInfo = appInfoBuilder.String()
+	}
+	return *appInfo
+}

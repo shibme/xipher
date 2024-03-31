@@ -14,11 +14,27 @@ func toXipherText(data []byte) string {
 	return xipherTxtPrefix + encode(data)
 }
 
+var errInvalidXipherKey = fmt.Errorf("invalid xipher public key")
+
 func fromXipherKey(xipherKey string) ([]byte, error) {
 	if len(xipherKey) < len(xipherKeyPrefix) || xipherKey[:len(xipherKeyPrefix)] != xipherKeyPrefix {
-		return nil, fmt.Errorf("invalid xipher key")
+		return nil, errInvalidXipherKey
 	}
 	return decode(xipherKey[len(xipherKeyPrefix):])
+}
+
+func fromXipherKeyFlagValue(xipherPubKeyFlagValue string) ([]byte, error) {
+	if pubKeyBytes, err := fromXipherKey(xipherPubKeyFlagValue); err == nil {
+		return pubKeyBytes, nil
+	}
+	if _, err := os.Stat(xipherPubKeyFlagValue); err != nil {
+		return nil, errInvalidXipherKey
+	}
+	keyFileData, err := os.ReadFile(xipherPubKeyFlagValue)
+	if err != nil {
+		return nil, err
+	}
+	return fromXipherKey(string(keyFileData))
 }
 
 func encryptCommand() *cobra.Command {
@@ -47,7 +63,7 @@ func encryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Encrypts a given text",
 		Run: func(cmd *cobra.Command, args []string) {
-			keyBytes, err := fromXipherKey(cmd.Flag(keyFlag.name).Value.String())
+			keyBytes, err := fromXipherKeyFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
 			if err != nil {
 				exitOnError(err)
 			}
@@ -66,11 +82,12 @@ func encryptTextCommand() *cobra.Command {
 				exitOnError(err)
 			}
 			fmt.Println(color.GreenString(toXipherText(dst.Bytes())))
+			fmt.Println("It is completely safe to share this encrypted text over any medium.")
 			safeExit()
 		},
 	}
-	encryptTxtCmd.Flags().StringP(keyFlag.name, keyFlag.shorthand, "", keyFlag.usage)
-	encryptTxtCmd.MarkFlagRequired(keyFlag.name)
+	encryptTxtCmd.Flags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
+	encryptTxtCmd.MarkFlagRequired(publicKeyFlag.name)
 	return encryptTxtCmd
 }
 
@@ -90,15 +107,24 @@ func encryptFileCommand() *cobra.Command {
 			}
 			dstPath := cmd.Flag(outFlag.name).Value.String()
 			if dstPath == "" {
-				dstPath = srcPath + ".xipher"
+				dstPath = srcPath + xipherFileExt
+			}
+			for {
+				if _, err = os.Stat(dstPath); os.IsNotExist(err) {
+					break
+				}
+				fmt.Println("File already exists:", color.YellowString(dstPath))
+				dstPath, err = getVisibleInput("Enter a new file path ending with .xipher: ")
+				if err != nil {
+					exitOnError(err)
+				}
 			}
 			dst, err := os.Create(dstPath)
 			if err != nil {
 				exitOnError(err)
 			}
-			keyStr := cmd.Flag(keyFlag.name).Value.String()
 			compress, _ := cmd.Flags().GetBool(compressFlag.name)
-			keyBytes, err := fromXipherKey(keyStr)
+			keyBytes, err := fromXipherKeyFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
 			if err != nil {
 				exitOnError(err)
 			}
@@ -111,14 +137,15 @@ func encryptFileCommand() *cobra.Command {
 				exitOnError(err)
 			}
 			fmt.Println("Encrypted file:", color.GreenString(dstPath))
+			fmt.Println("It is completely safe to share this encrypted file over any medium.")
 			safeExit()
 		},
 	}
 	encryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
 	encryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
-	encryptFileCmd.Flags().StringP(keyFlag.name, keyFlag.shorthand, "", keyFlag.usage)
+	encryptFileCmd.Flags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
 	encryptFileCmd.Flags().BoolP(compressFlag.name, compressFlag.shorthand, false, compressFlag.usage)
 	encryptFileCmd.MarkFlagRequired(fileFlag.name)
-	encryptFileCmd.MarkFlagRequired(keyFlag.name)
+	encryptFileCmd.MarkFlagRequired(publicKeyFlag.name)
 	return encryptFileCmd
 }

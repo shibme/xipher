@@ -46,15 +46,26 @@ func pwdCheck(password string) error {
 	return nil
 }
 
-func getHiddenInputFromUser(prompt string) ([]byte, error) {
+func getVisibleInput(prompt string) (string, error) {
+	var input string
 	fmt.Print(prompt)
+	_, err := fmt.Scanln(&input)
+	return input, err
+}
+
+func getHiddenInputFromUser(prompt string) ([]byte, error) {
+	fmt.Print(prompt + "(hidden)")
 	input, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 	return input, err
 }
 
 func getPasswordFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
-	password, err := getHiddenInputFromUser("Enter a Password: ")
+	initialPrompt := "Enter a Password: "
+	if !confirm {
+		initialPrompt = "Enter Password: "
+	}
+	password, err := getHiddenInputFromUser(initialPrompt)
 	if err != nil {
 		return nil, err
 	}

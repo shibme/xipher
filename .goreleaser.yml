@@ -1,8 +1,9 @@
+project_name: xipher
 builds:
   - main: ./cli/xipher
     env:
       - CGO_ENABLED=0
-    ldflags: "-X dev.shib.me/xipher.Version={{.Version}}"
+    ldflags: "-X dev.shib.me/xipher.version={{.Version}} -X dev.shib.me/xipher.commitDate={{.CommitDate}} -X dev.shib.me/xipher.fullCommit={{.FullCommit}} -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}"
     targets:
       - darwin_amd64
       - darwin_arm64
@@ -32,7 +33,7 @@ nfpms:
 brews:
   - name: xipher
     homepage: "https://dev.shib.me/xipher"
-    description: "Xipher is a curated collection of cryptographic primitives put together to perform password-based asymmetric encryption. It is written in Go and can be used as a library or a CLI tool."
+    description: "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
     license: "MIT"
     commit_author:
       name: Shibly Meeran
