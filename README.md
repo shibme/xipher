@@ -53,7 +53,6 @@ You can also run Xipher without installing using Docker:
 docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
-
 ## Using as a Go package
 Install the package
 ```sh
@@ -104,6 +103,26 @@ func main() {
 	}
 	fmt.Println("Decrypted:", string(plainText))
 }
+```
+
+## Web Assembly
+To use xipher as a web assembly (wasm) module in a browser app, follow the example below.
+```html
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<script src="https://dev.shib.me/xipher/wasm/wasm_exec.js"></script>
+		<script>
+			const go = new Go();
+			WebAssembly.instantiateStreaming(fetch("https://dev.shib.me/xipher/wasm/xipher.wasm"), go.importObject).then((result) => {
+				go.run(result.instance);
+			});
+		</script>
+	</head>
+<body>
+	Call Xipher methods that start with xipher. For example: xipherNewSecretKey()
+</body>
+</html>
 ```
 
 ## Under the hood
