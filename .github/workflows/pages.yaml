@@ -26,12 +26,15 @@ jobs:
       - name: Prepare pages directory
         run: |
           cp scripts/install/* pages/
-          mkdir -p pages/wasm
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" pages/wasm/
       - name: Set up Go
         uses: actions/setup-go@v5
-      - name: Build WASM
-        run: GOOS=js GOARCH=wasm go build -o pages/wasm/xipher.wasm ./app/wasm
+        with:
+          go-version: 'stable'
+      - name: Build WASM to pages directory
+        run: |
+          mkdir -p pages/wasm
+          GOOS=js GOARCH=wasm go build -o pages/wasm/xipher.wasm ./app/wasm
+          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" pages/wasm/
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

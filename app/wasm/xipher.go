@@ -63,7 +63,7 @@ func encryptStr() js.Func {
 		}
 		pk := args[0].String()
 		message := args[1].String()
-		ciphertext, err := utils.EncryptText(pk, message)
+		ciphertext, err := utils.EncryptDataWithPubKeyStr(pk, []byte(message))
 		if err != nil {
 			fmt.Printf(err.Error())
 			return err.Error()
@@ -98,7 +98,7 @@ func decryptStrWithPassword() js.Func {
 		}
 		password := args[0].String()
 		ciphertext := args[1].String()
-		message, err := utils.DecryptTextWithPassword(password, ciphertext)
+		message, err := utils.DecryptTextWithPassword([]byte(password), ciphertext)
 		if err != nil {
 			fmt.Printf(err.Error())
 			return err.Error()
