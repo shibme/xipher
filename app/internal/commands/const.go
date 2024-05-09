@@ -4,8 +4,6 @@ import "github.com/spf13/cobra"
 
 const (
 	appNameLowerCase    = "xipher"
-	xipherKeyPrefix     = "XPK_"
-	xipherTxtPrefix     = "XCT_"
 	xipherPubKeyFileExt = ".xpk"
 	xipherFileExt       = "." + appNameLowerCase
 )

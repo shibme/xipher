@@ -1,21 +1,14 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
 	"dev.shib.me/xipher"
+	"dev.shib.me/xipher/app/internal/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
-
-func fromXipherText(xipherText string) ([]byte, error) {
-	if len(xipherText) < len(xipherTxtPrefix) || xipherText[:len(xipherTxtPrefix)] != xipherTxtPrefix {
-		return nil, fmt.Errorf("invalid xipher text")
-	}
-	return decode(xipherText[len(xipherTxtPrefix):])
-}
 
 func decryptCommand() *cobra.Command {
 	if decryptCmd != nil {
@@ -43,25 +36,16 @@ func decryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Decrypts a xipher encrypted text",
 		Run: func(cmd *cobra.Command, args []string) {
-			xipherText, err := fromXipherText(cmd.Flag(ciphertextFlag.name).Value.String())
-			if err != nil {
-				exitOnError(err)
-			}
-			var src, dst bytes.Buffer
-			src.Write(xipherText)
+			xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
 			password, err := getPasswordFromUser(false, true)
 			if err != nil {
 				exitOnError(err)
 			}
-			privKey, err := xipher.NewPrivateKeyForPassword(password)
+			text, err := utils.DecryptTextWithPassword(password, xipherText)
 			if err != nil {
 				exitOnError(err)
 			}
-			err = privKey.DecryptStream(&dst, &src)
-			if err != nil {
-				exitOnError(err)
-			}
-			fmt.Println(color.GreenString(dst.String()))
+			fmt.Println(color.GreenString(text))
 			safeExit()
 		},
 	}

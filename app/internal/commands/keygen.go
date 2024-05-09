@@ -5,14 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"dev.shib.me/xipher"
+	"dev.shib.me/xipher/app/internal/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
-
-func toXipherKey(pubKey []byte) string {
-	return xipherKeyPrefix + encode(pubKey)
-}
 
 func keygenCommand() *cobra.Command {
 	if keygenCmd != nil {
@@ -29,19 +25,10 @@ func keygenCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			privKey, err := xipher.NewPrivateKeyForPassword(password)
+			pubKeyStr, err := utils.PubKeyForPassword(password, quantumSafe)
 			if err != nil {
 				exitOnError(err)
 			}
-			pubKey, err := privKey.PublicKey(quantumSafe)
-			if err != nil {
-				exitOnError(err)
-			}
-			pubKeyBytes, err := pubKey.Bytes()
-			if err != nil {
-				exitOnError(err)
-			}
-			pubKeyStr := toXipherKey(pubKeyBytes)
 			if publicKeyFilePath != "" {
 				if !strings.HasSuffix(publicKeyFilePath, xipherPubKeyFileExt) {
 					publicKeyFilePath += xipherPubKeyFileExt

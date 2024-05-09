@@ -1,40 +1,23 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
 	"dev.shib.me/xipher"
+	"dev.shib.me/xipher/app/internal/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-func toXipherText(data []byte) string {
-	return xipherTxtPrefix + encode(data)
-}
-
-var errInvalidXipherKey = fmt.Errorf("invalid xipher public key")
-
-func fromXipherKey(xipherKey string) ([]byte, error) {
-	if len(xipherKey) < len(xipherKeyPrefix) || xipherKey[:len(xipherKeyPrefix)] != xipherKeyPrefix {
-		return nil, errInvalidXipherKey
+func pubKeyFromFlagValue(xipherPubKeyFlagValue string) (*xipher.PublicKey, error) {
+	pubKeyStr := xipherPubKeyFlagValue
+	if _, err := os.Stat(xipherPubKeyFlagValue); err == nil {
+		if keyFileData, err := os.ReadFile(xipherPubKeyFlagValue); err == nil {
+			pubKeyStr = string(keyFileData)
+		}
 	}
-	return decode(xipherKey[len(xipherKeyPrefix):])
-}
-
-func fromXipherKeyFlagValue(xipherPubKeyFlagValue string) ([]byte, error) {
-	if pubKeyBytes, err := fromXipherKey(xipherPubKeyFlagValue); err == nil {
-		return pubKeyBytes, nil
-	}
-	if _, err := os.Stat(xipherPubKeyFlagValue); err != nil {
-		return nil, errInvalidXipherKey
-	}
-	keyFileData, err := os.ReadFile(xipherPubKeyFlagValue)
-	if err != nil {
-		return nil, err
-	}
-	return fromXipherKey(string(keyFileData))
+	return utils.PubKeyFromStr(pubKeyStr)
 }
 
 func encryptCommand() *cobra.Command {
@@ -63,11 +46,7 @@ func encryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Encrypts a given text",
 		Run: func(cmd *cobra.Command, args []string) {
-			keyBytes, err := fromXipherKeyFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
-			if err != nil {
-				exitOnError(err)
-			}
-			pubKey, err := xipher.ParsePublicKey(keyBytes)
+			pubKey, err := pubKeyFromFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
 			if err != nil {
 				exitOnError(err)
 			}
@@ -75,13 +54,11 @@ func encryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			var src, dst bytes.Buffer
-			src.Write(input)
-			err = pubKey.EncryptStream(&dst, &src, true)
+			ct, err := utils.EncryptDataWithPubKey(pubKey, input)
 			if err != nil {
 				exitOnError(err)
 			}
-			fmt.Println(color.GreenString(toXipherText(dst.Bytes())))
+			fmt.Println(color.GreenString(ct))
 			fmt.Println("It is completely safe to share this encrypted text over any medium.")
 			safeExit()
 		},
@@ -124,11 +101,7 @@ func encryptFileCommand() *cobra.Command {
 				exitOnError(err)
 			}
 			compress, _ := cmd.Flags().GetBool(compressFlag.name)
-			keyBytes, err := fromXipherKeyFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
-			if err != nil {
-				exitOnError(err)
-			}
-			pubKey, err := xipher.ParsePublicKey(keyBytes)
+			pubKey, err := pubKeyFromFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
 			if err != nil {
 				exitOnError(err)
 			}
