@@ -41,7 +41,7 @@ func decryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			text, err := utils.DecryptTextWithPassword(password, xipherText)
+			text, err := utils.DecryptText(string(password), xipherText)
 			if err != nil {
 				exitOnError(err)
 			}

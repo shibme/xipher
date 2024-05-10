@@ -9,6 +9,7 @@ const (
 	xipherTxtPrefix       = "XCT_"
 	xipherPubKeyFileExt   = ".xpk"
 	xipherFileExt         = "." + appNameLowerCase
+	secretKeyStrRegex     = "^" + xipherSecretKeyPrefix + "[A-Z2-7]{106}$"
 )
 
 var (

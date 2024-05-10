@@ -1,6 +1,10 @@
 package utils
 
-import "dev.shib.me/xipher"
+import (
+	"regexp"
+
+	"dev.shib.me/xipher"
+)
 
 func pubKeyToStr(pubKey *xipher.PublicKey) (string, error) {
 	pubKeyBytes, err := pubKey.Bytes()
@@ -30,7 +34,7 @@ func PubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
 }
 
 func secretKeyFromStr(secretKeyStr string) (*xipher.PrivateKey, error) {
-	if len(secretKeyStr) < len(xipherSecretKeyPrefix) || secretKeyStr[:len(xipherSecretKeyPrefix)] != xipherSecretKeyPrefix {
+	if !regexp.MustCompile(secretKeyStrRegex).MatchString(secretKeyStr) {
 		return nil, errInvalidXipherPrivKey
 	}
 	keyBytes, err := decode(secretKeyStr[len(xipherSecretKeyPrefix):])

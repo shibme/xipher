@@ -21,18 +21,13 @@ func DecryptTextWithSecretKey(secretKey *xipher.PrivateKey, ctStr string) (strin
 	return string(text), nil
 }
 
-func DecryptTextWithSecretKeyStr(sk, ctStr string) (string, error) {
-	secretKey, err := secretKeyFromStr(sk)
+func DecryptText(secret string, ctStr string) (string, error) {
+	secretKey, err := secretKeyFromStr(secret)
 	if err != nil {
-		return "", err
-	}
-	return DecryptTextWithSecretKey(secretKey, ctStr)
-}
-
-func DecryptTextWithPassword(password []byte, ctStr string) (string, error) {
-	secretKey, err := xipher.NewPrivateKeyForPassword(password)
-	if err != nil {
-		return "", err
+		secretKey, err = xipher.NewPrivateKeyForPassword([]byte(secret))
+		if err != nil {
+			return "", err
+		}
 	}
 	return DecryptTextWithSecretKey(secretKey, ctStr)
 }

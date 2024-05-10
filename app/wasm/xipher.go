@@ -1,57 +1,56 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"syscall/js"
 
 	"dev.shib.me/xipher/app/internal/utils"
 )
 
+type jsr struct {
+	Result any    `json:"result,omitempty"`
+	Err    string `json:"error,omitempty"`
+}
+
+func jsReturn(result any, err error) string {
+	r := jsr{Result: result}
+	if err != nil {
+		r.Err = err.Error()
+	}
+	jsonReturn, errJson := json.Marshal(r)
+	if errJson != nil {
+		return fmt.Sprintf(`{"error":"%s"}`, errJson.Error())
+	}
+	return string(jsonReturn)
+}
+
 func newSecretKey() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
-			return "Invalid no of arguments passed"
+			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
 		}
-		sk, err := utils.KeyGen()
+		sk, err := utils.NewSecretKey()
 		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
+			return jsReturn("", err)
 		}
-		return sk
+		return jsReturn(sk, nil)
 	})
 	return jsonFunc
 }
 
-func pubKeyFromPrivKey() js.Func {
+func getPublicKey() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return "Invalid no of arguments passed"
+			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
 		}
-		sk := args[0].String()
+		secret := args[0].String()
 		quantumSafe := args[1].Bool()
-		pk, err := utils.PubKeyForPrivKey(sk, quantumSafe)
+		pk, err := utils.GetPublicKey(secret, quantumSafe)
 		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
+			return jsReturn("", err)
 		}
-		return pk
-	})
-	return jsonFunc
-}
-
-func pubKeyFromPassword() js.Func {
-	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 2 {
-			return "Invalid no of arguments passed"
-		}
-		password := args[0].String()
-		quantumSafe := args[1].Bool()
-		pk, err := utils.PubKeyForPassword([]byte(password), quantumSafe)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
-		}
-		return pk
+		return jsReturn(pk, nil)
 	})
 	return jsonFunc
 }
@@ -59,51 +58,32 @@ func pubKeyFromPassword() js.Func {
 func encryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return "Invalid no of arguments passed"
+			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
 		}
 		pk := args[0].String()
 		message := args[1].String()
 		ciphertext, err := utils.EncryptDataWithPubKeyStr(pk, []byte(message))
 		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
+			return jsReturn("", err)
 		}
-		return ciphertext
+		return jsReturn(ciphertext, nil)
 	})
 	return jsonFunc
 
 }
 
-func decryptStrWithSecretKey() js.Func {
+func decryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return "Invalid no of arguments passed"
+			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
 		}
-		privKey := args[0].String()
+		secret := args[0].String()
 		ciphertext := args[1].String()
-		message, err := utils.DecryptTextWithSecretKeyStr(privKey, ciphertext)
+		message, err := utils.DecryptText(secret, ciphertext)
 		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
+			return jsReturn("", err)
 		}
-		return message
-	})
-	return jsonFunc
-}
-
-func decryptStrWithPassword() js.Func {
-	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 2 {
-			return "Invalid no of arguments passed"
-		}
-		password := args[0].String()
-		ciphertext := args[1].String()
-		message, err := utils.DecryptTextWithPassword([]byte(password), ciphertext)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return err.Error()
-		}
-		return message
+		return jsReturn(message, nil)
 	})
 	return jsonFunc
 }

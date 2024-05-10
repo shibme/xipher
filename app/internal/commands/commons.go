@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/base32"
 	"fmt"
 	"os"
 
@@ -23,12 +22,4 @@ func erroredExit() {
 
 func safeExit() {
 	os.Exit(0)
-}
-
-func encode(data []byte) string {
-	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(data)
-}
-
-func decode(str string) ([]byte, error) {
-	return base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(str)
 }

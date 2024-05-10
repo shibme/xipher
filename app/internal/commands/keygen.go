@@ -25,7 +25,7 @@ func keygenCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			pubKeyStr, err := utils.PubKeyForPassword(password, quantumSafe)
+			pubKeyStr, err := utils.GetPublicKey(string(password), quantumSafe)
 			if err != nil {
 				exitOnError(err)
 			}

@@ -8,10 +8,8 @@ import (
 func main() {
 	fmt.Println("Xipher Web Assembly!")
 	js.Global().Set("xipherNewSecretKey", newSecretKey())
-	js.Global().Set("xipherPubKeyFromPrivKey", pubKeyFromPrivKey())
-	js.Global().Set("xipherPubKeyFromPassword", pubKeyFromPassword())
+	js.Global().Set("xipherGetPublicKey", getPublicKey())
 	js.Global().Set("xipherEncryptStr", encryptStr())
-	js.Global().Set("xipherDecryptStrWithSecretKey", decryptStrWithSecretKey())
-	js.Global().Set("xipherDecryptStrWithPassword", decryptStrWithPassword())
+	js.Global().Set("xipherDecryptStr", decryptStr())
 	<-make(chan struct{})
 }
