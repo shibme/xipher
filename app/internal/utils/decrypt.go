@@ -22,12 +22,9 @@ func DecryptTextWithSecretKey(secretKey *xipher.PrivateKey, ctStr string) (strin
 }
 
 func DecryptText(secret string, ctStr string) (string, error) {
-	secretKey, err := secretKeyFromStr(secret)
+	secretKey, err := SecretKeyFromSecret(secret)
 	if err != nil {
-		secretKey, err = xipher.NewPrivateKeyForPassword([]byte(secret))
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
 	return DecryptTextWithSecretKey(secretKey, ctStr)
 }

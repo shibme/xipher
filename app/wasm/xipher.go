@@ -28,11 +28,11 @@ func jsReturn(result any, err error) string {
 func newSecretKey() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
-			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
+			return jsReturn(nil, fmt.Errorf("No arguments required for new secret key generation"))
 		}
 		sk, err := utils.NewSecretKey()
 		if err != nil {
-			return jsReturn("", err)
+			return jsReturn(nil, err)
 		}
 		return jsReturn(sk, nil)
 	})
@@ -41,14 +41,17 @@ func newSecretKey() js.Func {
 
 func getPublicKey() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
-		if len(args) != 2 {
-			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
+		if len(args) != 1 && len(args) != 2 {
+			return jsReturn(nil, fmt.Errorf("Supported arguments: secret key (required), quantum safe (optional)"))
 		}
 		secret := args[0].String()
-		quantumSafe := args[1].Bool()
+		quantumSafe := false
+		if len(args) == 2 {
+			quantumSafe = args[1].Bool()
+		}
 		pk, err := utils.GetPublicKey(secret, quantumSafe)
 		if err != nil {
-			return jsReturn("", err)
+			return jsReturn(nil, err)
 		}
 		return jsReturn(pk, nil)
 	})
@@ -58,13 +61,13 @@ func getPublicKey() js.Func {
 func encryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
+			return jsReturn(nil, fmt.Errorf("Supported arguments: public key (required), message (required)"))
 		}
 		pk := args[0].String()
 		message := args[1].String()
 		ciphertext, err := utils.EncryptDataWithPubKeyStr(pk, []byte(message))
 		if err != nil {
-			return jsReturn("", err)
+			return jsReturn(nil, err)
 		}
 		return jsReturn(ciphertext, nil)
 	})
@@ -75,13 +78,13 @@ func encryptStr() js.Func {
 func decryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return jsReturn("", fmt.Errorf("Invalid no of arguments passed"))
+			return jsReturn(nil, fmt.Errorf("Supported arguments: secret key (required), ciphertext (required)"))
 		}
 		secret := args[0].String()
 		ciphertext := args[1].String()
 		message, err := utils.DecryptText(secret, ciphertext)
 		if err != nil {
-			return jsReturn("", err)
+			return jsReturn(nil, err)
 		}
 		return jsReturn(message, nil)
 	})

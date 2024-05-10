@@ -32,6 +32,8 @@ func encryptCommand() *cobra.Command {
 			cmd.Help()
 		},
 	}
+	encryptCmd.PersistentFlags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
+	encryptCmd.MarkPersistentFlagRequired(publicKeyFlag.name)
 	encryptCmd.AddCommand(encryptTextCommand())
 	encryptCmd.AddCommand(encryptFileCommand())
 	return encryptCmd
@@ -63,8 +65,6 @@ func encryptTextCommand() *cobra.Command {
 			safeExit()
 		},
 	}
-	encryptTxtCmd.Flags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
-	encryptTxtCmd.MarkFlagRequired(publicKeyFlag.name)
 	return encryptTxtCmd
 }
 
@@ -116,9 +116,7 @@ func encryptFileCommand() *cobra.Command {
 	}
 	encryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
 	encryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
-	encryptFileCmd.Flags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
 	encryptFileCmd.Flags().BoolP(compressFlag.name, compressFlag.shorthand, false, compressFlag.usage)
 	encryptFileCmd.MarkFlagRequired(fileFlag.name)
-	encryptFileCmd.MarkFlagRequired(publicKeyFlag.name)
 	return encryptFileCmd
 }

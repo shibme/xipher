@@ -63,7 +63,7 @@ func getHiddenInputFromUser(prompt string) ([]byte, error) {
 func getPasswordFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
 	initialPrompt := "Enter a Password: "
 	if !confirm {
-		initialPrompt = "Enter Password: "
+		initialPrompt = "Enter Password/Secret Key: "
 	}
 	password, err := getHiddenInputFromUser(initialPrompt)
 	if err != nil {

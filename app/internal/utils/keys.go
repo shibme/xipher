@@ -43,3 +43,14 @@ func secretKeyFromStr(secretKeyStr string) (*xipher.PrivateKey, error) {
 	}
 	return xipher.ParsePrivateKey(keyBytes)
 }
+
+func SecretKeyFromSecret(secret string) (*xipher.PrivateKey, error) {
+	secretKey, err := secretKeyFromStr(secret)
+	if err != nil {
+		secretKey, err = xipher.NewPrivateKeyForPassword([]byte(secret))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return secretKey, nil
+}

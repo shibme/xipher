@@ -13,12 +13,9 @@ func NewSecretKey() (sk string, err error) {
 }
 
 func GetPublicKey(secret string, quantumSafe bool) (string, error) {
-	secretKey, err := secretKeyFromStr(secret)
+	secretKey, err := SecretKeyFromSecret(secret)
 	if err != nil {
-		secretKey, err = xipher.NewPrivateKeyForPassword([]byte(secret))
-		if err != nil {
-			return "", err
-		}
+		return "", err
 	}
 	pubKey, err := secretKey.PublicKey(quantumSafe)
 	if err != nil {

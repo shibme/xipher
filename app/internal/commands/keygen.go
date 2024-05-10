@@ -20,12 +20,23 @@ func keygenCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			publicKeyFilePath := cmd.Flag(publicKeyFileFlag.name).Value.String()
 			ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
+			autoGen, _ := cmd.Flags().GetBool(autoGenerateSecretKey.name)
 			quantumSafe, _ := cmd.Flags().GetBool(quantumSafeFlag.name)
-			password, err := getPasswordFromUser(true, ignoreFlag)
-			if err != nil {
-				exitOnError(err)
+			var secret string
+			var err error
+			if autoGen {
+				if secret, err = utils.NewSecretKey(); err != nil {
+					exitOnError(err)
+				}
+				fmt.Println("Secret Key:", color.HiBlackString(secret))
+			} else {
+				password, err := getPasswordFromUser(false, ignoreFlag)
+				if err != nil {
+					exitOnError(err)
+				}
+				secret = string(password)
 			}
-			pubKeyStr, err := utils.GetPublicKey(string(password), quantumSafe)
+			pubKeyStr, err := utils.GetPublicKey(secret, quantumSafe)
 			if err != nil {
 				exitOnError(err)
 			}
@@ -45,6 +56,7 @@ func keygenCommand() *cobra.Command {
 	}
 	keygenCmd.Flags().BoolP(ignorePasswordCheckFlag.name, ignorePasswordCheckFlag.shorthand, false, ignorePasswordCheckFlag.usage)
 	keygenCmd.Flags().StringP(publicKeyFileFlag.name, publicKeyFileFlag.shorthand, "", publicKeyFileFlag.usage)
+	keygenCmd.Flags().BoolP(autoGenerateSecretKey.name, autoGenerateSecretKey.shorthand, false, autoGenerateSecretKey.usage)
 	keygenCmd.Flags().BoolP(quantumSafeFlag.name, quantumSafeFlag.shorthand, false, quantumSafeFlag.usage)
 	return keygenCmd
 }

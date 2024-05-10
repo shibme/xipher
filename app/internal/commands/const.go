@@ -6,7 +6,10 @@ const (
 	appNameLowerCase    = "xipher"
 	xipherPubKeyFileExt = ".xpk"
 	xipherFileExt       = "." + appNameLowerCase
+	envar_XIPHER_SECRET = "XIPHER_SECRET"
 )
+
+var secret *string
 
 var (
 	// Xipher Command
@@ -71,6 +74,13 @@ var (
 		name:      "ignore",
 		shorthand: "i",
 		usage:     "Ignores the password policy check",
+	}
+
+	// Auto generate secret key Flag
+	autoGenerateSecretKey = flagDef{
+		name:      "auto",
+		shorthand: "a",
+		usage:     "Automatically generate a secret key",
 	}
 
 	// Public Key Flag

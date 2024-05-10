@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"dev.shib.me/xipher"
 	"dev.shib.me/xipher/app/internal/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -27,6 +26,21 @@ func decryptCommand() *cobra.Command {
 	return decryptCmd
 }
 
+func getSecret() (string, error) {
+	if secret == nil {
+		secret = new(string)
+		*secret = os.Getenv(envar_XIPHER_SECRET)
+		if *secret == "" {
+			password, err := getPasswordFromUser(false, true)
+			if err != nil {
+				return "", err
+			}
+			*secret = string(password)
+		}
+	}
+	return *secret, nil
+}
+
 func decryptTextCommand() *cobra.Command {
 	if decryptTxtCmd != nil {
 		return decryptTxtCmd
@@ -37,11 +51,11 @@ func decryptTextCommand() *cobra.Command {
 		Short:   "Decrypts a xipher encrypted text",
 		Run: func(cmd *cobra.Command, args []string) {
 			xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
-			password, err := getPasswordFromUser(false, true)
+			secret, err := getSecret()
 			if err != nil {
 				exitOnError(err)
 			}
-			text, err := utils.DecryptText(string(password), xipherText)
+			text, err := utils.DecryptText(secret, xipherText)
 			if err != nil {
 				exitOnError(err)
 			}
@@ -91,11 +105,11 @@ func decryptFileCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			password, err := getPasswordFromUser(false, true)
+			secret, err := getSecret()
 			if err != nil {
 				exitOnError(err)
 			}
-			privKey, err := xipher.NewPrivateKeyForPassword(password)
+			privKey, err := utils.SecretKeyFromSecret(secret)
 			if err != nil {
 				exitOnError(err)
 			}
