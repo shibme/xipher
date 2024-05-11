@@ -71,16 +71,15 @@ var (
 
 	// Ignore Password Policy Check Flag
 	ignorePasswordCheckFlag = flagDef{
-		name:      "ignore",
-		shorthand: "i",
-		usage:     "Ignores the password policy check",
+		name:  "ignore-password-policy",
+		usage: "Ignores the password policy check",
 	}
 
 	// Auto generate secret key Flag
 	autoGenerateSecretKey = flagDef{
 		name:      "auto",
 		shorthand: "a",
-		usage:     "Automatically generate a secret key",
+		usage:     "Auto generate a secret key",
 	}
 
 	// Public Key Flag
