@@ -133,5 +133,23 @@ Xipher uses the following algorithms and libraries to achieve its functionality:
 - [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for symmetric encryption.
 - [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression.
 
+## Workflow
+The following sequence diagram illustrates the workflow of Xipher in encrypting data using a password based public key.
+```mermaid
+sequenceDiagram
+participant RX as Xipher
+actor Receiver
+actor Sender
+participant SX as Xipher
+    Receiver-->>+RX: Derive public (inputs password)
+    RX-->>-Receiver: Returns Public Key
+    Receiver->>Sender: Shares Public Key
+    Sender-->>+SX: Encrypt data with public key
+    SX-->>-Sender: Returns ciphertext encrypted with Public Key
+    Sender->>Receiver: Sends the encrypted ciphertext to the Receiver
+    Receiver-->>+RX: Decrypt data (inputs ciphertext and password)
+    RX-->>-Receiver: Returns decrypted data
+```
+
 ## Disclaimer
 This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.
