@@ -1,6 +1,7 @@
 package kyb
 
 import (
+	"fmt"
 	"io"
 
 	"dev.shib.me/xipher/internal/xcp"
@@ -14,7 +15,7 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 		return nil, err
 	}
 	if _, err = dst.Write(encrypter.keyEnc); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: encrypter failed to write encapsulated key: %w", "xipher", err)
 	}
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compression)
 }
@@ -23,11 +24,11 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
 	keyEnc := make([]byte, ctLength)
 	if _, err := io.ReadFull(src, keyEnc); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to read encapsulated key: %w", "xipher", err)
 	}
 	sharedKey, err := kyber1024.Scheme().Decapsulate(privateKey.sk, keyEnc)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to generate shared key: %w", "xipher", err)
 	}
 	decrypter, err := xcp.New(sharedKey)
 	if err != nil {

@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/cloudflare/circl v1.3.8
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/term v0.20.0

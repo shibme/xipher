@@ -1,6 +1,7 @@
 package ecc
 
 import (
+	"fmt"
 	"io"
 
 	"dev.shib.me/xipher/internal/xcp"
@@ -14,7 +15,7 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 		return nil, err
 	}
 	if _, err = dst.Write(encrypter.ephPubKey); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: encrypter failed to write ephemeral public key: %w", "xipher", err)
 	}
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compression)
 }
@@ -23,11 +24,11 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
 	ephPubKey := make([]byte, KeyLength)
 	if _, err := io.ReadFull(src, ephPubKey); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to read ephemeral public key: %w", "xipher", err)
 	}
 	sharedKey, err := curve25519.X25519(*privateKey.key, ephPubKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to generate shared key: %w", "xipher", err)
 	}
 	decrypter, err := xcp.New(sharedKey)
 	if err != nil {

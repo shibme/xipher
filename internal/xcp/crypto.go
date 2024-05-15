@@ -5,6 +5,7 @@ import (
 	"compress/zlib"
 	"crypto/cipher"
 	"crypto/rand"
+	"fmt"
 	"io"
 )
 
@@ -20,10 +21,10 @@ type Writer struct {
 func (cipher *SymmetricCipher) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
 	nonce := make([]byte, nonceLength)
 	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: encrypter failed to generate nonce: %w", "xipher", err)
 	}
 	if _, err := dst.Write(nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: encrypter failed to write nonce: %w", "xipher", err)
 	}
 	return cipher.newWriter(nonce, dst, compress)
 }
@@ -37,16 +38,16 @@ func (cipher *SymmetricCipher) newWriter(nonce []byte, dst io.Writer, compress b
 	}
 	if compress {
 		if _, err := dst.Write([]byte{1}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: encrypter failed to write compress flag: %w", "xipher", err)
 		}
 		zWriter, err := zlib.NewWriterLevel(&ciphWriter.buf, zlib.BestCompression)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: encrypter failed to create compressed writer: %w", "xipher", err)
 		}
 		ciphWriter.zWriter = zWriter
 	} else {
 		if _, err := dst.Write([]byte{0}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: encrypter failed to write compression flag: %w", "xipher", err)
 		}
 	}
 	return ciphWriter, nil
@@ -59,7 +60,7 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 		n, err = w.zWriter.Write(p)
 	}
 	if err != nil {
-		return n, err
+		return n, fmt.Errorf("%s: encrypter failed to write: %w", "xipher", err)
 	}
 	return n, w.flush(ptBlockSize)
 }
@@ -69,7 +70,7 @@ func (w *Writer) flush(minBufSize int) error {
 		block := w.buf.Next(ptBlockSize)
 		ct := w.aead.Seal(nil, w.nonce, block, nil)
 		if _, err := w.dst.Write(ct); err != nil {
-			return err
+			return fmt.Errorf("%s: encrypter failed to write: %w", "xipher", err)
 		}
 	}
 	return nil
@@ -79,7 +80,7 @@ func (w *Writer) flush(minBufSize int) error {
 func (w *Writer) Close() error {
 	if w.zWriter != nil {
 		if err := w.zWriter.Close(); err != nil {
-			return err
+			return fmt.Errorf("%s: encrypter failed to close compressed writer: %w", "xipher", err)
 		}
 	}
 	return w.flush(1)
@@ -96,7 +97,7 @@ type Reader struct {
 func (cipher *SymmetricCipher) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
 	nonce := make([]byte, nonceLength)
 	if _, err := io.ReadFull(src, nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to read nonce: %w", "xipher", err)
 	}
 	return cipher.newReader(nonce, src)
 }
@@ -110,14 +111,14 @@ func (cipher *SymmetricCipher) newReader(nonce []byte, src io.Reader) (io.ReadCl
 	}
 	compressFlag := make([]byte, 1)
 	if _, err := io.ReadFull(src, compressFlag); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to read compress flag: %w", "xipher", err)
 	}
 	if compressFlag[0] == 0 {
 		return io.NopCloser(ciphReader), nil
 	}
 	zReader, err := zlib.NewReader(ciphReader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: decrypter failed to create compressed reader: %w", "xipher", err)
 	}
 	return zReader, nil
 }
@@ -131,13 +132,13 @@ func (r *Reader) Read(p []byte) (int, error) {
 	if err == nil || err == io.ErrUnexpectedEOF {
 		pt, err := r.aead.Open(nil, r.nonce, block[:n], nil)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("%s: decrypter failed to decrypt: %w", "xipher", err)
 		}
 		r.buf.Write(pt)
 		return r.buf.Read(p)
 	} else if err == io.EOF {
 		return r.buf.Read(p)
 	} else {
-		return 0, err
+		return 0, fmt.Errorf("%s: decrypter failed to read: %w", "xipher", err)
 	}
 }

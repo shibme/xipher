@@ -3,6 +3,7 @@ package asx
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 
 	"dev.shib.me/xipher/internal/ecc"
 	"dev.shib.me/xipher/internal/kyb"
@@ -32,7 +33,7 @@ func (privateKey *PrivateKey) Bytes() []byte {
 func NewPrivateKey() (*PrivateKey, error) {
 	key := make([]byte, PrivateKeyLength)
 	if _, err := rand.Read(key); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: failed to generate private key: %w", "xipher", err)
 	}
 	return ParsePrivateKey(key)
 }

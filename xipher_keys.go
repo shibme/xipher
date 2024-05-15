@@ -48,9 +48,7 @@ func newPrivateKeyForPwdAndSpec(password []byte, spec *kdfSpec) (privateKey *Pri
 		spec:       spec,
 		specKeyMap: make(map[string][]byte),
 	}
-	if privateKey.key, err = privateKey.getKeyForPwdSpec(*spec); err != nil {
-		return nil, err
-	}
+	privateKey.key = privateKey.getKeyForPwdSpec(*spec)
 	return privateKey, nil
 }
 
@@ -83,14 +81,14 @@ func isPwdBased(keyType uint8) bool {
 	return keyType%2 == 1
 }
 
-func (privateKey *PrivateKey) getKeyForPwdSpec(spec kdfSpec) (key []byte, err error) {
+func (privateKey *PrivateKey) getKeyForPwdSpec(spec kdfSpec) (key []byte) {
 	specBytes := spec.bytes()
 	key = privateKey.specKeyMap[string(specBytes)]
 	if len(key) == 0 {
 		key = spec.getCipherKey(*privateKey.password)
 		privateKey.specKeyMap[string(specBytes)] = key
 	}
-	return key, nil
+	return key
 }
 
 // Bytes returns the private key as bytes only if it is not password based.

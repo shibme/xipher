@@ -2,6 +2,7 @@ package xcp
 
 import (
 	"crypto/cipher"
+	"fmt"
 
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -23,7 +24,7 @@ type SymmetricCipher struct {
 func New(key []byte) (*SymmetricCipher, error) {
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: failed to create new symmetric cipher: %w", "xipher", err)
 	}
 	return &SymmetricCipher{
 		aead: &aead,
