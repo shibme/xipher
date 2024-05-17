@@ -2,8 +2,8 @@ name: Deploy static content to GitHub Pages
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,15 +26,29 @@ jobs:
       - name: Prepare pages directory
         run: |
           cp scripts/install/* pages/
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: robinraju/release-downloader@v1.10
         with:
-          go-version: 'stable'
-      - name: Build WASM to pages directory
+          latest: true
+          fileName: '*wasm*'
+      - name: Add WASM files to pages directory
         run: |
+          unzip xipher_js_wasm.zip
           mkdir -p pages/wasm
-          GOOS=js GOARCH=wasm go build -o pages/wasm/xipher.wasm ./app/wasm
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" pages/wasm/
+          mv wasm_exec.js pages/wasm/
+          mv xipher.wasm pages/wasm/
+      - name: Checkout xenigma
+        uses: actions/checkout@v4
+        with:
+          repository: shibina3/xenigma
+          path: xenigma
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+      - name: Install node dependencies
+        run: npm -C xenigma ci
+      - name: Build Xenigma
+        run: npm -C xenigma run build
+      - name: Add pages from Xenigma
+        run: mv xenigma/build pages/web
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

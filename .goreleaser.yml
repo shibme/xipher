@@ -1,6 +1,7 @@
 project_name: xipher
 builds:
-  - main: ./app/cmd
+  - id: xipher
+    main: ./app/cmd
     env:
       - CGO_ENABLED=0
     ldflags: "-X dev.shib.me/xipher.version={{.Version}} -X dev.shib.me/xipher.commitDate={{.CommitDate}} -X dev.shib.me/xipher.fullCommit={{.FullCommit}} -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}"
@@ -11,6 +12,13 @@ builds:
       - linux_arm64
       - linux_arm
       - windows_amd64
+  - id: xipher-wasm
+    main: ./app/wasm
+    env:
+      - CGO_ENABLED=0
+    ldflags: "-X dev.shib.me/xipher.version={{.Version}} -X dev.shib.me/xipher.commitDate={{.CommitDate}} -X dev.shib.me/xipher.fullCommit={{.FullCommit}} -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}"
+    targets:
+      - js_wasm
 archives:
   - format: zip
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"

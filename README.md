@@ -7,17 +7,23 @@
 
 Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption.
 
-### What does it do?
+## What does it do?
+
+- Allows sharing of data securely between two parties over an insecure channel using asymmetric encryption.
+- The sender encrypts the data using a public key (received from a receiver) derived from a password and shares the encrypted data with the receiver.
+- The receiver decrypts the data using the same password.
+
+## Key Aspects
 - Encrypts data with the public key generated based on a password.
 - Supports stream cipher along with stream compression, resulting in lower memory footprint.
 - Supports post-quantum cryptography using the Kyber algorithm.
 
-## Demo
+## CLI
+Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
+
+### Demo
 
 ![Demo](https://dev.shib.me/xipher/demo/xipher_text.gif)
-
-## CLI Installation
-Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 ### Homebrew
 Xipher can be installed with brew using the following command on macOS
@@ -52,6 +58,11 @@ You can also run Xipher without installing using Docker:
 ```zsh
 docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
+
+## Web Interface
+
+- An interoperable web interface implemented using [web assembly](#web-assembly) is available at [https://dev.shib.me/xipher/web](https://dev.shib.me/xipher/web).
+- The source code for the web implementation is available at [shibina3/xenigma](https://github.com/shibina3/xenigma).
 
 ## Using as a Go package
 Install the package
