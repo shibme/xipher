@@ -32,7 +32,7 @@ jobs:
           fileName: '*wasm*'
       - name: Add WASM files to pages directory
         run: |
-          unzip xipher_js_wasm.zip
+          unzip -n xipher_js_wasm.zip
           mkdir -p pages/wasm
           mv wasm_exec.js pages/wasm/
           mv xipher.wasm pages/wasm/
