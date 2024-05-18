@@ -36,19 +36,6 @@ jobs:
           mkdir -p pages/wasm
           mv wasm_exec.js pages/wasm/
           mv xipher.wasm pages/wasm/
-      - name: Checkout xenigma
-        uses: actions/checkout@v4
-        with:
-          repository: shibina3/xenigma
-          path: xenigma
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Install node dependencies
-        run: npm -C xenigma ci
-      - name: Build Xenigma
-        run: npm -C xenigma run build
-      - name: Add pages from Xenigma
-        run: mv xenigma/build pages/web
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact

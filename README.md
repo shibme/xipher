@@ -61,7 +61,7 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 
 ## Web Interface
 
-- An interoperable web interface implemented using [web assembly](#web-assembly) is available at [https://dev.shib.me/xipher/web](https://dev.shib.me/xipher/web).
+- An interoperable web interface implemented using [web assembly](#web-assembly) is available [here](https://shibina3.github.io/xenigma).
 - The source code for the web implementation is available at [shibina3/xenigma](https://github.com/shibina3/xenigma).
 
 ## Using as a Go package
@@ -131,7 +131,7 @@ To use xipher as a web assembly (wasm) module in a browser app, follow the examp
 		</script>
 	</head>
 <body>
-	Call Xipher methods that start with xipher. For example: xipherNewSecretKey()
+	Call wasm methods that begin with xipher. For example: xipherNewSecretKey()
 </body>
 </html>
 ```
