@@ -30,7 +30,7 @@ func keygenCommand() *cobra.Command {
 				}
 				fmt.Println("Secret Key:", color.HiBlackString(secret))
 			} else {
-				password, err := getPasswordFromUser(false, ignoreFlag)
+				password, err := getPasswordFromUser(true, ignoreFlag)
 				if err != nil {
 					exitOnError(err)
 				}

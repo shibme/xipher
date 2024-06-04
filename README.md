@@ -81,14 +81,14 @@ import (
 )
 
 func main() {
-	// Creating a new private key for password
-	privKey, err := xipher.NewPrivateKeyForPassword([]byte("Paws0meKittyKuwan!"))
+	// Creating a new secret key for password
+	scrtKey, err := xipher.NewSecretKeyForPassword([]byte("Paws0meKittyKuwan!"))
 	if err != nil {
 		panic(err)
 	}
 
-	// Deriving  public key from private key
-	pubKey, err := privKey.PublicKey(false)
+	// Deriving  public key from secret key
+	pubKey, err := scrtKey.PublicKey(false)
 	if err != nil {
 		panic(err)
 	}
@@ -107,8 +107,8 @@ func main() {
 	}
 	fmt.Println("Encrypted:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(cipherText))
 
-	// Decrypting cipher text with private key
-	plainText, err := privKey.Decrypt(cipherText)
+	// Decrypting cipher text with secret key
+	plainText, err := scrtKey.Decrypt(cipherText)
 	if err != nil {
 		panic(err)
 	}

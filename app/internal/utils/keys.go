@@ -14,7 +14,7 @@ func pubKeyToStr(pubKey *xipher.PublicKey) (string, error) {
 	return xipherPublicKeyPrefix + encode(pubKeyBytes), nil
 }
 
-func secretKeyToStr(secretKey *xipher.PrivateKey) (string, error) {
+func secretKeyToStr(secretKey *xipher.SecretKey) (string, error) {
 	secretKeyBytes, err := secretKey.Bytes()
 	if err != nil {
 		return "", err
@@ -33,7 +33,7 @@ func PubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
 	return xipher.ParsePublicKey(keyBytes)
 }
 
-func secretKeyFromStr(secretKeyStr string) (*xipher.PrivateKey, error) {
+func secretKeyFromStr(secretKeyStr string) (*xipher.SecretKey, error) {
 	if !regexp.MustCompile(secretKeyStrRegex).MatchString(secretKeyStr) {
 		return nil, errInvalidXipherPrivKey
 	}
@@ -41,13 +41,13 @@ func secretKeyFromStr(secretKeyStr string) (*xipher.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return xipher.ParsePrivateKey(keyBytes)
+	return xipher.ParseSecretKey(keyBytes)
 }
 
-func SecretKeyFromSecret(secret string) (*xipher.PrivateKey, error) {
+func SecretKeyFromSecret(secret string) (*xipher.SecretKey, error) {
 	secretKey, err := secretKeyFromStr(secret)
 	if err != nil {
-		secretKey, err = xipher.NewPrivateKeyForPassword([]byte(secret))
+		secretKey, err = xipher.NewSecretKeyForPassword([]byte(secret))
 		if err != nil {
 			return nil, err
 		}

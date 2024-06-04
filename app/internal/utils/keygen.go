@@ -5,7 +5,7 @@ import (
 )
 
 func NewSecretKey() (sk string, err error) {
-	privKey, err := xipher.NewPrivateKey()
+	privKey, err := xipher.NewSecretKey()
 	if err != nil {
 		return "", err
 	}

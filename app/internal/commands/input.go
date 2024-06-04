@@ -54,7 +54,7 @@ func getVisibleInput(prompt string) (string, error) {
 }
 
 func getHiddenInputFromUser(prompt string) ([]byte, error) {
-	fmt.Print(prompt + "(hidden)")
+	fmt.Print("[Hidden] " + prompt)
 	input, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Println()
 	return input, err

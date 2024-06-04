@@ -11,11 +11,11 @@ const (
 	// PrivateKeyLength is the allowed length of the private key
 	PrivateKeyLength = kyb.PrivateKeyLength
 	// MinPublicKeyLength is the minimum length allowed for the public key
-	MinPublicKeyLength = ecc.KeyLength + 1
+	MinPublicKeyLength = ecc.KeyLength + 1 // +1 for the algorithm type
 
 	// Algorithm Types
-	AlgoECC   uint8 = 0
-	AlgoKyber uint8 = 1
+	algoECC   uint8 = 0
+	algoKyber uint8 = 1
 )
 
 var (

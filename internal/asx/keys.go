@@ -33,7 +33,7 @@ func (privateKey *PrivateKey) Bytes() []byte {
 func NewPrivateKey() (*PrivateKey, error) {
 	key := make([]byte, PrivateKeyLength)
 	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("%s: failed to generate private key: %w", "xipher", err)
+		return nil, fmt.Errorf("%s: failed to generate private key", "xipher")
 	}
 	return ParsePrivateKey(key)
 }
@@ -111,13 +111,13 @@ func (privateKey *PrivateKey) PublicKeyKyber() (*PublicKey, error) {
 // Bytes returns the public key as bytes.
 func (publicKey *PublicKey) Bytes() ([]byte, error) {
 	if publicKey.ePub != nil {
-		return append([]byte{AlgoECC}, publicKey.ePub.Bytes()...), nil
+		return append([]byte{algoECC}, publicKey.ePub.Bytes()...), nil
 	} else if publicKey.kPub != nil {
 		kybPubKeyBytes, err := publicKey.kPub.Bytes()
 		if err != nil {
 			return nil, err
 		}
-		return append([]byte{AlgoKyber}, kybPubKeyBytes...), nil
+		return append([]byte{algoKyber}, kybPubKeyBytes...), nil
 	} else {
 		return nil, errInvalidPublicKey
 	}
@@ -129,7 +129,7 @@ func ParsePublicKey(key []byte) (*PublicKey, error) {
 		return nil, errInvalidPublicKeyLength
 	}
 	switch key[0] {
-	case AlgoECC:
+	case algoECC:
 		eccPubKey, err := ecc.ParsePublicKey(key[1:])
 		if err != nil {
 			return nil, err
@@ -137,7 +137,7 @@ func ParsePublicKey(key []byte) (*PublicKey, error) {
 		return &PublicKey{
 			ePub: eccPubKey,
 		}, nil
-	case AlgoKyber:
+	case algoKyber:
 		kybPubKey, err := kyb.ParsePublicKey(key[1:])
 		if err != nil {
 			return nil, err
