@@ -47,21 +47,17 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Prepare wasm_exec.js
+      run: cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" ./
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v5
+      uses: goreleaser/goreleaser-action@v6
       with:
         distribution: goreleaser
-        version: latest
+        version: '~> v2'
         args: release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HOMEBREW_SSH_KEY: ${{ secrets.HOMEBREW_SSH_KEY }}
-    - name: Prepare wasm_exec.js
-      run: cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" ./
-    - name: Upload wasm_exec.js to the current release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: wasm_exec.js
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
