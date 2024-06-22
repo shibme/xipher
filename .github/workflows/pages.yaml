@@ -1,45 +1,45 @@
-name: Deploy static content to GitHub Pages
+name: Publish Web Pages
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+
+  web:
+    name: Deploy to GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Prepare pages directory
         run: |
-          cp scripts/install/* pages/
+          cp scripts/install/* web/
       - uses: robinraju/release-downloader@v1.10
         with:
           latest: true
           fileName: '*wasm*'
-      - name: Add WASM files to pages directory
+      - name: Add WASM files to web directory
         run: |
-          mkdir -p pages/wasm
-          unzip xipher_js_wasm.zip -d pages/wasm/
+          mkdir -p web/wasm
+          unzip xipher_js_wasm.zip -d web/wasm/
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: pages
+          path: web
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

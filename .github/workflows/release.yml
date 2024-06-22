@@ -8,6 +8,7 @@ on:
 jobs:
 
   test:
+    name: Running Tests
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,6 +20,7 @@ jobs:
       run: go test -v .
 
   release:
+    name: Release
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -79,3 +81,41 @@ jobs:
           ${{ github.repository }}:${{ env.XIPHER_VERSION }}
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ env.XIPHER_VERSION }}
+
+  web:
+    name: Deploy to GitHub Pages
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Prepare pages directory
+        run: |
+          cp scripts/install/* web/
+      - uses: robinraju/release-downloader@v1.10
+        with:
+          latest: true
+          fileName: '*wasm*'
+      - name: Add WASM files to web directory
+        run: |
+          mkdir -p web/wasm
+          unzip xipher_js_wasm.zip -d web/wasm/
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
