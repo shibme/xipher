@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"dev.shib.me/xipher/app/internal/utils"
+	"dev.shib.me/xipher/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +55,7 @@ func decryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			text, err := utils.DecryptText(secret, xipherText)
+			text, err := utils.DecryptData(secret, xipherText)
 			if err != nil {
 				exitOnError(err)
 			}

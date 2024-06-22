@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"dev.shib.me/xipher/app/internal/utils"
+	"dev.shib.me/xipher/utils"
 )
 
 type jsr struct {
@@ -72,7 +72,6 @@ func encryptStr() js.Func {
 		return jsReturn(ciphertext, nil)
 	})
 	return jsonFunc
-
 }
 
 func decryptStr() js.Func {
@@ -82,7 +81,7 @@ func decryptStr() js.Func {
 		}
 		secret := args[0].String()
 		ciphertext := args[1].String()
-		message, err := utils.DecryptText(secret, ciphertext)
+		message, err := utils.DecryptData(secret, ciphertext)
 		if err != nil {
 			return jsReturn(nil, err)
 		}

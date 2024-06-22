@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"dev.shib.me/xipher/internal/xcp"
+	"dev.shib.me/xipher/crypto/xcp"
 	"golang.org/x/crypto/curve25519"
 )
 

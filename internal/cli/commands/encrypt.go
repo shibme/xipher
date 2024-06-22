@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"dev.shib.me/xipher"
-	"dev.shib.me/xipher/app/internal/utils"
+	"dev.shib.me/xipher/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )

@@ -9,7 +9,7 @@ func ctFromStr(ctStr string) ([]byte, error) {
 	return decode(ctStr[len(xipherTxtPrefix):])
 }
 
-func DecryptTextWithSecretKey(secretKey *xipher.SecretKey, ctStr string) (string, error) {
+func decryptDataWithSecretKey(secretKey *xipher.SecretKey, ctStr string) (string, error) {
 	ct, err := ctFromStr(ctStr)
 	if err != nil {
 		return "", err
@@ -21,10 +21,10 @@ func DecryptTextWithSecretKey(secretKey *xipher.SecretKey, ctStr string) (string
 	return string(text), nil
 }
 
-func DecryptText(secret string, ctStr string) (string, error) {
+func DecryptData(secret string, ctStr string) (string, error) {
 	secretKey, err := SecretKeyFromSecret(secret)
 	if err != nil {
 		return "", err
 	}
-	return DecryptTextWithSecretKey(secretKey, ctStr)
+	return decryptDataWithSecretKey(secretKey, ctStr)
 }

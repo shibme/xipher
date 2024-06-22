@@ -1,12 +1,17 @@
 version: 2
+
 project_name: xipher
+
 env:
-  - CGO_ENABLED=0
+  - GO111MODULE=on
+  - CGO_ENABLED=1
+
 builds:
 
+# Builds for CLI
   - id: xipher-cli
     binary: xipher
-    main: ./app/cmd
+    main: ./internal/cli
     targets:
       - darwin_amd64
       - darwin_arm64
@@ -15,6 +20,8 @@ builds:
       - linux_arm
       - windows_amd64
       - windows_arm64
+    env:
+      - CGO_ENABLED=0
     flags: "-mod=readonly"
     ldflags:
       - -X dev.shib.me/xipher.version={{.Version}}
@@ -22,17 +29,152 @@ builds:
       - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
       - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
 
+# Builds for Web Assembly
   - id: xipher-wasm
     binary: xipher
-    main: ./app/wasm
+    main: ./internal/wasm
     targets:
       - js_wasm
+    env:
+      - CGO_ENABLED=0
     flags: "-mod=readonly"
     ldflags:
       - -X dev.shib.me/xipher.version={{.Version}}
       - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
       - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
       - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+
+# Builds for Shared Library
+  - id: xipher-shared-lib-darwin-amd64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+
+  - id: xipher-shared-lib-darwin-arm64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    env:
+      - CC=oa64-clang
+      - CXX=oa64-clang++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+
+  - id: xipher-shared-lib-windows-amd64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - windows
+    goarch:
+      - amd64
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+
+  - id: xipher-shared-lib-windows-arm64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - windows
+    goarch:
+      - arm64
+    env:
+      - CC=/llvm-mingw/bin/aarch64-w64-mingw32-gcc
+      - CXX=/llvm-mingw/bin/aarch64-w64-mingw32-g++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+
+  - id: xipher-shared-lib-linux-amd64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CC=x86_64-linux-gnu-gcc
+      - CXX=x86_64-linux-gnu-g++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -extldflags "-lc -lrt -lpthread"
+
+  - id: xipher-shared-lib-linux-arm64
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - linux
+    goarch:
+      - arm64
+    env:
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -extldflags "-lc -lrt -lpthread"
+
+  - id: xipher-shared-lib-linux-armv7
+    binary: xipher
+    main: ./internal/sharedlib
+    buildmode: c-shared
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - 7
+    env:
+      - CC=arm-linux-gnueabihf-gcc
+      - CXX=arm-linux-gnueabihf-g++
+    flags: "-mod=readonly"
+    ldflags:
+      - -X dev.shib.me/xipher.version={{.Version}}
+      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
+      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
+      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -extldflags "-lc -lrt -lpthread"
 
 archives:
   - id: xipher-cli
@@ -47,6 +189,17 @@ archives:
       - wasm_exec.js
     builds:
       - xipher-wasm
+  - id: xipher-shared-lib
+    name_template: "xipher-shared-lib_{{ .Os }}_{{ .Arch }}"
+    format: zip
+    builds:
+      - xipher-shared-lib-darwin-amd64
+      - xipher-shared-lib-darwin-arm64
+      - xipher-shared-lib-windows-amd64
+      - xipher-shared-lib-windows-arm64
+      - xipher-shared-lib-linux-amd64
+      - xipher-shared-lib-linux-arm64
+      - xipher-shared-lib-linux-armv7
 
 checksum:
   name_template: "{{ .ProjectName }}_checksums.txt"

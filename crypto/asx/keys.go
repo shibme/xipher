@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"dev.shib.me/xipher/internal/ecc"
-	"dev.shib.me/xipher/internal/kyb"
+	"dev.shib.me/xipher/crypto/ecc"
+	"dev.shib.me/xipher/crypto/kyb"
 )
 
 // PrivateKey represents a private key.

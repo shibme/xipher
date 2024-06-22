@@ -3,7 +3,7 @@ package xipher
 import (
 	"fmt"
 
-	"dev.shib.me/xipher/internal/asx"
+	"dev.shib.me/xipher/crypto/asx"
 )
 
 const (
