@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  web:
+  pages:
     name: Deploy to GitHub Pages
     environment:
       name: github-pages
@@ -23,23 +23,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Prepare pages directory
-        run: |
-          cp scripts/install/* web/
-      - uses: robinraju/release-downloader@v1.10
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+      - name: Install dependencies
+        run: npm -C web ci
+      - name: Build Xipher Web
+        run: npm -C web run build
+      - name: Download wasm files from latest release
+        uses: robinraju/release-downloader@v1.10
         with:
           latest: true
           fileName: '*wasm*'
-      - name: Add WASM files to web directory
+      - name: Add WASM files to build directory
         run: |
-          mkdir -p web/wasm
-          unzip xipher_js_wasm.zip -d web/wasm/
+          mkdir -p web/build/wasm
+          unzip xipher_js_wasm.zip -d web/build/wasm/
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: Upload artifact
+      - name: Upload artifact from web/build
         uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: web/build
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

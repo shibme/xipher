@@ -23,7 +23,7 @@ Download the latest binary from the [releases](https://github.com/shibme/xipher/
 
 ### Demo
 
-![Demo](https://dev.shib.me/xipher/demo/xipher_text.gif)
+![Demo](https://dev.shib.me/xipher/demo.gif)
 
 ### Homebrew
 Xipher can be installed with brew using the following command on macOS
@@ -36,21 +36,21 @@ brew install shibme/tap/xipher
 #### Install Latest Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://dev.shib.me/xipher/install.sh | sh
+curl -fsSL https://dev.shib.me/xipher/install/install.sh | sh
 ```
 **With PowerShell (Windows):**
 ```powershell
-irm https://dev.shib.me/xipher/install.ps1 | iex
+irm https://dev.shib.me/xipher/install/install.ps1 | iex
 ```
 
 #### Install Specific Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://dev.shib.me/xipher/install.sh | sh -s v1.1.0
+curl -fsSL https://dev.shib.me/xipher/install/install.sh | sh -s v1.1.0
 ```
 **With PowerShell (Windows):**
 ```powershell
-$v="1.1.0"; irm https://dev.shib.me/xipher/install.ps1 | iex
+$v="1.1.0"; irm https://dev.shib.me/xipher/install/install.ps1 | iex
 ```
 
 ### Docker
@@ -61,8 +61,7 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 
 ## Web Interface
 
-- An interoperable web interface implemented using [web assembly](#web-assembly) is available [here](https://shibina3.github.io/xenigma).
-- The source code for the web implementation is available at [shibina3/xenigma](https://github.com/shibina3/xenigma).
+A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://dev.shib.me/xipher).
 
 ## Using as a Go package
 Install the package
