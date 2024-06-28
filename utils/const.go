@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	errInvalidXipherPubKey  = errors.New("invalid xipher public key")
-	errInvalidXipherPrivKey = errors.New("invalid xipher private key")
-	errInvalidCipherText    = errors.New("invalid cipher text")
+	errInvalidXipherPubKey    = errors.New("invalid xipher public key")
+	errInvalidXipherSecretKey = errors.New("invalid xipher secret key")
+	errInvalidCipherText      = errors.New("invalid cipher text")
 )

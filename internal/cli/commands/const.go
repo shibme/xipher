@@ -82,11 +82,11 @@ var (
 		usage:     "Auto generate a secret key",
 	}
 
-	// Public Key Flag
-	publicKeyFlag = flagDef{
-		name:      "public-key",
+	// Key or Pwd Flag
+	keyOrPwdFlag = flagDef{
+		name:      "key",
 		shorthand: "k",
-		usage:     "Specify the public key string or path to public key file",
+		usage:     "Specify public key, secret key or a password",
 	}
 
 	// Ciphertext Flag

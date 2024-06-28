@@ -1,30 +1,42 @@
 package utils
 
-import "dev.shib.me/xipher"
+import (
+	"io"
 
-func ctFromStr(ctStr string) ([]byte, error) {
+	"dev.shib.me/xipher"
+)
+
+func getSecretKey(secretKeyOrPwd string) (*xipher.SecretKey, error) {
+	if IsSecretKeyStr(secretKeyOrPwd) {
+		return secretKeyFromStr(secretKeyOrPwd)
+	} else {
+		return secretKeyFromPwd(secretKeyOrPwd)
+	}
+}
+
+func DecryptData(secretKeyOrPwd string, ctStr string) ([]byte, error) {
+	secretKey, err := getSecretKey(secretKeyOrPwd)
+	if err != nil {
+		return nil, err
+	}
 	if len(ctStr) < len(xipherTxtPrefix) || ctStr[:len(xipherTxtPrefix)] != xipherTxtPrefix {
 		return nil, errInvalidCipherText
 	}
-	return decode(ctStr[len(xipherTxtPrefix):])
+	ct, err := decode(ctStr[len(xipherTxtPrefix):])
+	if err != nil {
+		return nil, err
+	}
+	data, err := secretKey.Decrypt(ct)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
-func decryptDataWithSecretKey(secretKey *xipher.SecretKey, ctStr string) (string, error) {
-	ct, err := ctFromStr(ctStr)
+func DecryptStream(secretKeyOrPwd string, dst io.Writer, src io.Reader) (err error) {
+	secretKey, err := getSecretKey(secretKeyOrPwd)
 	if err != nil {
-		return "", err
+		return err
 	}
-	text, err := secretKey.Decrypt(ct)
-	if err != nil {
-		return "", err
-	}
-	return string(text), nil
-}
-
-func DecryptData(secret string, ctStr string) (string, error) {
-	secretKey, err := SecretKeyFromSecret(secret)
-	if err != nil {
-		return "", err
-	}
-	return decryptDataWithSecretKey(secretKey, ctStr)
+	return secretKey.DecryptStream(dst, src)
 }

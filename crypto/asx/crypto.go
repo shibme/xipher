@@ -6,17 +6,17 @@ import (
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.
-func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (io.WriteCloser, error) {
+func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
 	if publicKey.ePub != nil {
 		if _, err := dst.Write([]byte{algoECC}); err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to write algorithm", "xipher")
 		}
-		return publicKey.ePub.NewEncryptingWriter(dst, compression)
+		return publicKey.ePub.NewEncryptingWriter(dst, compress)
 	} else if publicKey.kPub != nil {
 		if _, err := dst.Write([]byte{algoKyber}); err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to write algorithm", "xipher")
 		}
-		return publicKey.kPub.NewEncryptingWriter(dst, compression)
+		return publicKey.kPub.NewEncryptingWriter(dst, compress)
 	} else {
 		return nil, errInvalidPublicKey
 	}

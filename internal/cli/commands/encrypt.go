@@ -4,21 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"dev.shib.me/xipher"
 	"dev.shib.me/xipher/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
-
-func pubKeyFromFlagValue(xipherPubKeyFlagValue string) (*xipher.PublicKey, error) {
-	pubKeyStr := xipherPubKeyFlagValue
-	if _, err := os.Stat(xipherPubKeyFlagValue); err == nil {
-		if keyFileData, err := os.ReadFile(xipherPubKeyFlagValue); err == nil {
-			pubKeyStr = string(keyFileData)
-		}
-	}
-	return utils.PubKeyFromStr(pubKeyStr)
-}
 
 func encryptCommand() *cobra.Command {
 	if encryptCmd != nil {
@@ -32,11 +21,38 @@ func encryptCommand() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	encryptCmd.PersistentFlags().StringP(publicKeyFlag.name, publicKeyFlag.shorthand, "", publicKeyFlag.usage)
-	encryptCmd.MarkPersistentFlagRequired(publicKeyFlag.name)
+	encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.name, keyOrPwdFlag.shorthand, "", keyOrPwdFlag.usage)
+	encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.name, ignorePasswordCheckFlag.shorthand, false, ignorePasswordCheckFlag.usage)
 	encryptCmd.AddCommand(encryptTextCommand())
 	encryptCmd.AddCommand(encryptFileCommand())
 	return encryptCmd
+}
+
+func getKeyPwdStr(cmd *cobra.Command) (string, error) {
+	keyPwdStr := cmd.Flag(keyOrPwdFlag.name).Value.String()
+	if keyPwdStr == "" {
+		keyPwdInput, err := getHiddenInputFromUser("Enter a public key, secret key or a password: ")
+		if err != nil {
+			return "", err
+		}
+		keyPwdStr = string(keyPwdInput)
+	}
+	if !utils.IsPubKeyStr(keyPwdStr) && !utils.IsSecretKeyStr(keyPwdStr) {
+		ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
+		if !ignoreFlag {
+			if err := pwdCheck(keyPwdStr); err != nil {
+				return "", err
+			}
+		}
+		confirmPwd, err := getHiddenInputFromUser("Confirm the password: ")
+		if err != nil {
+			return "", err
+		}
+		if string(confirmPwd) != keyPwdStr {
+			return "", fmt.Errorf("passwords do not match")
+		}
+	}
+	return keyPwdStr, nil
 }
 
 func encryptTextCommand() *cobra.Command {
@@ -48,7 +64,7 @@ func encryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Encrypts a given text",
 		Run: func(cmd *cobra.Command, args []string) {
-			pubKey, err := pubKeyFromFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
+			keyPwdStr, err := getKeyPwdStr(cmd)
 			if err != nil {
 				exitOnError(err)
 			}
@@ -56,7 +72,7 @@ func encryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			ct, err := utils.EncryptDataWithPubKey(pubKey, input)
+			ct, err := utils.EncryptData(keyPwdStr, input)
 			if err != nil {
 				exitOnError(err)
 			}
@@ -100,13 +116,12 @@ func encryptFileCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			compress, _ := cmd.Flags().GetBool(compressFlag.name)
-			pubKey, err := pubKeyFromFlagValue(cmd.Flag(publicKeyFlag.name).Value.String())
+			keyPwdStr, err := getKeyPwdStr(cmd)
 			if err != nil {
 				exitOnError(err)
 			}
-			err = pubKey.EncryptStream(dst, src, compress)
-			if err != nil {
+			compress, _ := cmd.Flags().GetBool(compressFlag.name)
+			if err = utils.EncryptStream(keyPwdStr, dst, src, compress); err != nil {
 				exitOnError(err)
 			}
 			fmt.Println("Encrypted file:", color.GreenString(dstPath))

@@ -65,7 +65,7 @@ func encryptStr() js.Func {
 		}
 		pk := args[0].String()
 		message := args[1].String()
-		ciphertext, err := utils.EncryptDataWithPubKeyStr(pk, []byte(message))
+		ciphertext, err := utils.EncryptData(pk, []byte(message))
 		if err != nil {
 			return jsReturn(nil, err)
 		}

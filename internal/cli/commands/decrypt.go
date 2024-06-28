@@ -26,7 +26,7 @@ func decryptCommand() *cobra.Command {
 	return decryptCmd
 }
 
-func getSecret() (string, error) {
+func getSecretKeyOrPwd() (string, error) {
 	if secret == nil {
 		secret = new(string)
 		*secret = os.Getenv(envar_XIPHER_SECRET)
@@ -51,15 +51,15 @@ func decryptTextCommand() *cobra.Command {
 		Short:   "Decrypts a xipher encrypted text",
 		Run: func(cmd *cobra.Command, args []string) {
 			xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
-			secret, err := getSecret()
+			secretKeyOrPwd, err := getSecretKeyOrPwd()
 			if err != nil {
 				exitOnError(err)
 			}
-			text, err := utils.DecryptData(secret, xipherText)
+			text, err := utils.DecryptData(secretKeyOrPwd, xipherText)
 			if err != nil {
 				exitOnError(err)
 			}
-			fmt.Println(color.GreenString(text))
+			fmt.Println(color.GreenString(string(text)))
 			safeExit()
 		},
 	}
@@ -105,16 +105,11 @@ func decryptFileCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			secret, err := getSecret()
+			secretKeyOrPwd, err := getSecretKeyOrPwd()
 			if err != nil {
 				exitOnError(err)
 			}
-			privKey, err := utils.SecretKeyFromSecret(secret)
-			if err != nil {
-				exitOnError(err)
-			}
-			err = privKey.DecryptStream(dst, src)
-			if err != nil {
+			if err = utils.DecryptStream(secretKeyOrPwd, dst, src); err != nil {
 				exitOnError(err)
 			}
 			fmt.Println("Decrypted file:", color.GreenString(dstPath))

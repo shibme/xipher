@@ -18,7 +18,7 @@ func newVariableKeySymmCipher(key []byte) (*xcp.SymmetricCipher, error) {
 	return xcp.New(key)
 }
 
-func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
+func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compress bool) (writer io.WriteCloser, err error) {
 	if isPwdBased(secretKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to write ciphertext type", "xipher")
@@ -36,12 +36,12 @@ func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compression bool)
 			return nil, err
 		}
 	}
-	return secretKey.symmCipher.NewEncryptingWriter(dst, compression)
+	return secretKey.symmCipher.NewEncryptingWriter(dst, compress)
 }
 
 // EncryptStream encrypts src with the secret key treating it as a symmetric key and writes to dst.
-func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compression bool) (err error) {
-	encryptedWriter, err := secretKey.NewEncryptingWriter(dst, compression)
+func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compress bool) (err error) {
+	encryptedWriter, err := secretKey.NewEncryptingWriter(dst, compress)
 	if err != nil {
 		return err
 	}
@@ -52,15 +52,15 @@ func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compress
 }
 
 // Encrypt encrypts data with the secret key treating it as a symmetric key.
-func (secretKey *SecretKey) Encrypt(data []byte, compression bool) (ciphertext []byte, err error) {
+func (secretKey *SecretKey) Encrypt(data []byte, compress bool) (ciphertext []byte, err error) {
 	var buf bytes.Buffer
-	if err = secretKey.EncryptStream(&buf, bytes.NewReader(data), compression); err != nil {
+	if err = secretKey.EncryptStream(&buf, bytes.NewReader(data), compress); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (writer io.WriteCloser, err error) {
+func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (writer io.WriteCloser, err error) {
 	if isPwdBased(publicKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdAsymmetric}); err != nil {
 			return nil, err
@@ -73,12 +73,12 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 			return nil, err
 		}
 	}
-	return publicKey.publicKey.NewEncryptingWriter(dst, compression)
+	return publicKey.publicKey.NewEncryptingWriter(dst, compress)
 }
 
 // EncryptStream encrypts src with the public key and writes to dst.
-func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compression bool) (err error) {
-	encryptedWriter, err := publicKey.NewEncryptingWriter(dst, compression)
+func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compress bool) (err error) {
+	encryptedWriter, err := publicKey.NewEncryptingWriter(dst, compress)
 	if err != nil {
 		return err
 	}
@@ -89,9 +89,9 @@ func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compress
 }
 
 // Encrypt encrypts data with the public key.
-func (publicKey *PublicKey) Encrypt(data []byte, compression bool) (ciphertext []byte, err error) {
+func (publicKey *PublicKey) Encrypt(data []byte, compress bool) (ciphertext []byte, err error) {
 	var buf bytes.Buffer
-	if err = publicKey.EncryptStream(&buf, bytes.NewReader(data), compression); err != nil {
+	if err = publicKey.EncryptStream(&buf, bytes.NewReader(data), compress); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

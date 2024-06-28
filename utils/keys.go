@@ -22,8 +22,8 @@ func secretKeyToStr(secretKey *xipher.SecretKey) (string, error) {
 	return xipherSecretKeyPrefix + encode(secretKeyBytes), nil
 }
 
-func PubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
-	if len(pubKeyStr) < len(xipherPublicKeyPrefix) || pubKeyStr[:len(xipherPublicKeyPrefix)] != xipherPublicKeyPrefix {
+func pubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
+	if !IsPubKeyStr(pubKeyStr) {
 		return nil, errInvalidXipherPubKey
 	}
 	keyBytes, err := decode(pubKeyStr[len(xipherPublicKeyPrefix):])
@@ -34,8 +34,8 @@ func PubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
 }
 
 func secretKeyFromStr(secretKeyStr string) (*xipher.SecretKey, error) {
-	if !regexp.MustCompile(secretKeyStrRegex).MatchString(secretKeyStr) {
-		return nil, errInvalidXipherPrivKey
+	if !IsSecretKeyStr(secretKeyStr) {
+		return nil, errInvalidXipherSecretKey
 	}
 	keyBytes, err := decode(secretKeyStr[len(xipherSecretKeyPrefix):])
 	if err != nil {
@@ -44,13 +44,45 @@ func secretKeyFromStr(secretKeyStr string) (*xipher.SecretKey, error) {
 	return xipher.ParseSecretKey(keyBytes)
 }
 
-func SecretKeyFromSecret(secret string) (*xipher.SecretKey, error) {
-	secretKey, err := secretKeyFromStr(secret)
+func secretKeyFromPwd(pwd string) (*xipher.SecretKey, error) {
+	return xipher.NewSecretKeyForPassword([]byte(pwd))
+}
+
+func secretKeyFromSecret(secretKeyOrPwd string) (*xipher.SecretKey, error) {
+	secretKey, err := secretKeyFromStr(secretKeyOrPwd)
 	if err != nil {
-		secretKey, err = xipher.NewSecretKeyForPassword([]byte(secret))
+		secretKey, err = xipher.NewSecretKeyForPassword([]byte(secretKeyOrPwd))
 		if err != nil {
 			return nil, err
 		}
 	}
 	return secretKey, nil
+}
+
+func NewSecretKey() (sk string, err error) {
+	secretKey, err := xipher.NewSecretKey()
+	if err != nil {
+		return "", err
+	}
+	return secretKeyToStr(secretKey)
+}
+
+func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (string, error) {
+	secretKey, err := secretKeyFromSecret(secretKeyOrPwd)
+	if err != nil {
+		return "", err
+	}
+	pubKey, err := secretKey.PublicKey(quantumSafe)
+	if err != nil {
+		return "", err
+	}
+	return pubKeyToStr(pubKey)
+}
+
+func IsPubKeyStr(pubKeyStr string) bool {
+	return len(pubKeyStr) > len(xipherPublicKeyPrefix) && pubKeyStr[:len(xipherPublicKeyPrefix)] == xipherPublicKeyPrefix
+}
+
+func IsSecretKeyStr(secretKeyStr string) bool {
+	return regexp.MustCompile(secretKeyStrRegex).MatchString(secretKeyStr)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.
-func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool) (io.WriteCloser, error) {
+func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
 	encrypter, err := publicKey.getEncrypter()
 	if err != nil {
 		return nil, err
@@ -17,7 +17,7 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compression bool)
 	if _, err = dst.Write(encrypter.ephPubKey); err != nil {
 		return nil, fmt.Errorf("%s: encrypter failed to write ephemeral public key", "xipher")
 	}
-	return (*encrypter.cipher).NewEncryptingWriter(dst, compression)
+	return (*encrypter.cipher).NewEncryptingWriter(dst, compress)
 }
 
 // NewDecryptingReader returns a new ReadCloser that reads and decrypts data with the private key from src.
