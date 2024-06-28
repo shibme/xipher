@@ -18,11 +18,11 @@ func XipherGetPublicKey(secretKeyOrPassword *C.char, quantumSafe C.int, publicKe
 	xipherGetPublicKey(secretKeyOrPassword, quantumSafe, publicKey, publicKeyLength, errMessage, errLength)
 }
 
-// XipherEncryptData encrypts data with a given public key
+// XipherEncryptData encrypts data with a given public key, secret key or password
 //
 //export XipherEncryptData
-func XipherEncryptData(publicKey *C.char, data *C.char, cipherText **C.char, cipherTextLength *C.int, errMessage **C.char, errLength *C.int) {
-	xipherEncryptData(publicKey, data, cipherText, cipherTextLength, errMessage, errLength)
+func XipherEncryptData(keyOrPassword *C.char, data *C.char, cipherText **C.char, cipherTextLength *C.int, errMessage **C.char, errLength *C.int) {
+	xipherEncryptData(keyOrPassword, data, cipherText, cipherTextLength, errMessage, errLength)
 }
 
 // XipherDecryptData decrypts data with a given secret key or password

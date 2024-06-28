@@ -37,9 +37,9 @@ func xipherGetPublicKey(secretKeyOrPassword *C.char, quantumSafe C.int, publicKe
 	}
 }
 
-func xipherEncryptData(key *C.char, data *C.char, cipherText **C.char, cipherTextLength *C.int, errMessage **C.char, errLength *C.int) {
+func xipherEncryptData(keyOrPassword *C.char, data *C.char, cipherText **C.char, cipherTextLength *C.int, errMessage **C.char, errLength *C.int) {
 	dataBytes := C.GoBytes(unsafe.Pointer(data), C.int(len(C.GoString(data))))
-	if ct, err := utils.EncryptData(C.GoString(key), dataBytes); err != nil {
+	if ct, err := utils.EncryptData(C.GoString(keyOrPassword), dataBytes); err != nil {
 		*cipherText = nil
 		*cipherTextLength = 0
 		*errMessage = C.CString(err.Error())

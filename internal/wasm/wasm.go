@@ -61,7 +61,7 @@ func getPublicKey() js.Func {
 func encryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return jsReturn(nil, fmt.Errorf("Supported arguments: public key (required), message (required)"))
+			return jsReturn(nil, fmt.Errorf("Supported arguments: public key, secret key or password (required), message (required)"))
 		}
 		pk := args[0].String()
 		message := args[1].String()
@@ -77,7 +77,7 @@ func encryptStr() js.Func {
 func decryptStr() js.Func {
 	jsonFunc := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) != 2 {
-			return jsReturn(nil, fmt.Errorf("Supported arguments: secret key (required), ciphertext (required)"))
+			return jsReturn(nil, fmt.Errorf("Supported arguments: secret key or password (required), ciphertext (required)"))
 		}
 		secret := args[0].String()
 		ciphertext := args[1].String()
