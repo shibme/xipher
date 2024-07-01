@@ -33,6 +33,14 @@ func DecryptData(secretKeyOrPwd string, ctStr string) ([]byte, error) {
 	return data, nil
 }
 
+func DecryptingReader(secretKeyOrPwd string, src io.Reader) (io.Reader, error) {
+	secretKey, err := getSecretKey(secretKeyOrPwd)
+	if err != nil {
+		return nil, err
+	}
+	return secretKey.NewDecryptingReader(src)
+}
+
 func DecryptStream(secretKeyOrPwd string, dst io.Writer, src io.Reader) (err error) {
 	secretKey, err := getSecretKey(secretKeyOrPwd)
 	if err != nil {

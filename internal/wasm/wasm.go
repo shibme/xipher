@@ -63,9 +63,9 @@ func encryptStr() js.Func {
 		if len(args) != 2 {
 			return jsReturn(nil, fmt.Errorf("Supported arguments: public key, secret key or password (required), message (required)"))
 		}
-		pk := args[0].String()
+		keyOrPwd := args[0].String()
 		message := args[1].String()
-		ciphertext, err := utils.EncryptData(pk, []byte(message))
+		ciphertext, err := utils.EncryptData(keyOrPwd, []byte(message))
 		if err != nil {
 			return jsReturn(nil, err)
 		}
@@ -79,13 +79,13 @@ func decryptStr() js.Func {
 		if len(args) != 2 {
 			return jsReturn(nil, fmt.Errorf("Supported arguments: secret key or password (required), ciphertext (required)"))
 		}
-		secret := args[0].String()
+		secretKeyOrPwd := args[0].String()
 		ciphertext := args[1].String()
-		message, err := utils.DecryptData(secret, ciphertext)
+		message, err := utils.DecryptData(secretKeyOrPwd, ciphertext)
 		if err != nil {
 			return jsReturn(nil, err)
 		}
-		return jsReturn(message, nil)
+		return jsReturn(string(message), nil)
 	})
 	return jsonFunc
 }

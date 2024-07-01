@@ -44,24 +44,35 @@ func EncryptData(keyOrPwd string, data []byte) (string, error) {
 	}
 }
 
-func EncryptStream(keyOrPwd string, dst io.Writer, src io.Reader, compress bool) (err error) {
+func EncryptingWriter(keyOrPwd string, dst io.Writer, compress bool) (io.WriteCloser, error) {
 	if IsPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return pubKey.EncryptStream(dst, src, compress)
+		return pubKey.NewEncryptingWriter(dst, compress)
 	} else if IsSecretKeyStr(keyOrPwd) {
 		secretKey, err := secretKeyFromStr(keyOrPwd)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return secretKey.EncryptStream(dst, src, compress)
+		return secretKey.NewEncryptingWriter(dst, compress)
 	} else {
 		secretKey, err := xipher.NewSecretKeyForPassword([]byte(keyOrPwd))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		return secretKey.EncryptStream(dst, src, compress)
+		return secretKey.NewEncryptingWriter(dst, compress)
 	}
+}
+
+func EncryptStream(keyOrPwd string, dst io.Writer, src io.Reader, compress bool) (err error) {
+	encryptingWriter, err := EncryptingWriter(keyOrPwd, dst, compress)
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(encryptingWriter, src); err != nil {
+		return err
+	}
+	return encryptingWriter.Close()
 }
