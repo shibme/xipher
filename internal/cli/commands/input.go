@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"unicode"
@@ -48,7 +49,9 @@ func pwdCheck(password string) error {
 
 func getVisibleInput(prompt string) (string, error) {
 	var input string
-	fmt.Print(prompt)
+	if prompt != "" {
+		fmt.Print(prompt)
+	}
 	_, err := fmt.Scanln(&input)
 	return input, err
 }
@@ -82,4 +85,20 @@ func getPasswordFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
 		}
 	}
 	return password, nil
+}
+
+func readBufferFromStdin(prompt string) ([]byte, error) {
+	var input []byte
+	buffer := make([]byte, 1024)
+	if prompt != "" {
+		fmt.Println(prompt)
+	}
+	for {
+		n, err := os.Stdin.Read(buffer)
+		if err != nil || n == 0 {
+			break
+		}
+		input = append(input, buffer[:n]...)
+	}
+	return input, nil
 }

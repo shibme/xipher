@@ -8,7 +8,6 @@
 Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption.
 
 ## What does it do?
-
 - Allows sharing of data securely between two parties over an insecure channel using asymmetric encryption.
 - The sender encrypts the data using a public key (received from a receiver) derived from a password and shares the encrypted data with the receiver.
 - The receiver decrypts the data using the same password.
@@ -22,7 +21,6 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 ### Demo
-
 ![Demo](https://dev.shib.me/xipher/demo.gif)
 
 ### Homebrew
@@ -60,7 +58,6 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
 ## Web Interface
-
 A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://dev.shib.me/xipher).
 
 ## Using as a Go package

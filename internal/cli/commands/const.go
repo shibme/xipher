@@ -46,74 +46,121 @@ type flagDef struct {
 	usage     string
 }
 
+type strFlag struct {
+	flagDef
+	value string
+}
+
+func (f *strFlag) flagFields() (string, string, string, string) {
+	return f.name, f.shorthand, f.value, f.usage
+}
+
+type boolFlag struct {
+	flagDef
+	value bool
+}
+
+func (f *boolFlag) flagFields() (string, string, bool, string) {
+	return f.name, f.shorthand, f.value, f.usage
+}
+
 var (
 
 	// Version Flag
-	versionFlag = flagDef{
-		name:      "version",
-		shorthand: "v",
-		usage:     "Shows version info",
+	versionFlag = boolFlag{
+		flagDef: flagDef{
+			name:      "version",
+			shorthand: "v",
+			usage:     "Shows version info",
+		},
 	}
 
 	// Public Key File Flag
-	publicKeyFileFlag = flagDef{
-		name:      "public-key-file",
-		shorthand: "p",
-		usage:     "Specify path to the public key file",
+	publicKeyFileFlag = strFlag{
+		flagDef: flagDef{
+			name:      "public-key-file",
+			shorthand: "p",
+			usage:     "Specify path to the public key file",
+		},
 	}
 
 	// Quantum-safe encryption
-	quantumSafeFlag = flagDef{
-		name:      "quantum-safe",
-		shorthand: "q",
-		usage:     "Uses quantum-safe cryptography",
+	quantumSafeFlag = boolFlag{
+		flagDef: flagDef{
+			name:      "quantum-safe",
+			shorthand: "q",
+			usage:     "Uses quantum-safe cryptography",
+		},
 	}
 
 	// Ignore Password Policy Check Flag
-	ignorePasswordCheckFlag = flagDef{
-		name:  "ignore-password-policy",
-		usage: "Ignores the password policy check",
+	ignorePasswordCheckFlag = boolFlag{
+		flagDef: flagDef{
+			name:  "ignore-password-policy",
+			usage: "Ignores the password policy check",
+		},
 	}
 
 	// Auto generate secret key Flag
-	autoGenerateSecretKey = flagDef{
-		name:      "auto",
-		shorthand: "a",
-		usage:     "Auto generate a secret key",
+	autoGenerateSecretKey = boolFlag{
+		flagDef: flagDef{
+			name:      "auto",
+			shorthand: "a",
+			usage:     "Auto generate a secret key",
+		},
 	}
 
 	// Key or Pwd Flag
-	keyOrPwdFlag = flagDef{
-		name:      "key",
-		shorthand: "k",
-		usage:     "Specify public key, secret key or a password",
+	keyOrPwdFlag = strFlag{
+		flagDef: flagDef{
+			name:      "key",
+			shorthand: "k",
+			usage:     "Specify public key, secret key or a password",
+		},
+	}
+
+	// Text Flag
+	textFlag = strFlag{
+		flagDef: flagDef{
+			name:      "text",
+			shorthand: "t",
+			usage:     "Specify the text to encrypt (use '-' to read from stdin)",
+		},
 	}
 
 	// Ciphertext Flag
-	ciphertextFlag = flagDef{
-		name:      "ciphertext",
-		shorthand: "c",
-		usage:     "Specify the ciphertext",
+	ciphertextFlag = strFlag{
+		flagDef: flagDef{
+			name:      "ciphertext",
+			shorthand: "c",
+			usage:     "Specify the ciphertext",
+		},
 	}
 
 	// File Flag
-	fileFlag = flagDef{
-		name:      "file",
-		shorthand: "f",
-		usage:     "Specify file path",
+	fileFlag = strFlag{
+		flagDef: flagDef{
+			name:      "file",
+			shorthand: "f",
+			usage:     "Specify file path",
+		},
 	}
 
 	// Out Flag
-	outFlag = flagDef{
-		name:      "out",
-		shorthand: "o",
-		usage:     "Specify an output file path",
+	outFlag = strFlag{
+		flagDef: flagDef{
+			name:      "out",
+			shorthand: "o",
+			usage:     "Specify an output file path",
+		},
 	}
 
 	// Compress Flag
-	compressFlag = flagDef{
-		name:      "compress",
-		shorthand: "c",
-		usage:     "Enable compression as the data is encrypted",
+	compressFlag = boolFlag{
+		flagDef: flagDef{
+			name:      "compress",
+			shorthand: "c",
+			usage:     "Enable compression as the data is encrypted",
+		},
 	}
 )

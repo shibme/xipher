@@ -18,7 +18,7 @@ func XipherCommand() *cobra.Command {
 			}
 		},
 	}
-	xipherCmd.Flags().BoolP(versionFlag.name, versionFlag.shorthand, false, versionFlag.usage)
+	xipherCmd.Flags().BoolP(versionFlag.flagFields())
 	xipherCmd.AddCommand(versionCommand())
 	xipherCmd.AddCommand(keygenCommand())
 	xipherCmd.AddCommand(encryptCommand())

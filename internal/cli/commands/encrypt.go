@@ -21,8 +21,8 @@ func encryptCommand() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.name, keyOrPwdFlag.shorthand, "", keyOrPwdFlag.usage)
-	encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.name, ignorePasswordCheckFlag.shorthand, false, ignorePasswordCheckFlag.usage)
+	encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.flagFields())
+	encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.flagFields())
 	encryptCmd.AddCommand(encryptTextCommand())
 	encryptCmd.AddCommand(encryptFileCommand())
 	return encryptCmd
@@ -68,7 +68,15 @@ func encryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			input, err := getHiddenInputFromUser("Enter text to encrypt: ")
+			text, _ := cmd.Flags().GetString(textFlag.name)
+			var input []byte
+			if text == "" {
+				input, err = getHiddenInputFromUser("Enter text to encrypt: ")
+			} else if text == "-" {
+				input, err = readBufferFromStdin("")
+			} else {
+				input = []byte(text)
+			}
 			if err != nil {
 				exitOnError(err)
 			}
@@ -81,6 +89,7 @@ func encryptTextCommand() *cobra.Command {
 			safeExit()
 		},
 	}
+	encryptTxtCmd.Flags().StringP(textFlag.flagFields())
 	return encryptTxtCmd
 }
 
@@ -129,9 +138,9 @@ func encryptFileCommand() *cobra.Command {
 			safeExit()
 		},
 	}
-	encryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
-	encryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
-	encryptFileCmd.Flags().BoolP(compressFlag.name, compressFlag.shorthand, false, compressFlag.usage)
+	encryptFileCmd.Flags().StringP(fileFlag.flagFields())
+	encryptFileCmd.Flags().StringP(outFlag.flagFields())
+	encryptFileCmd.Flags().BoolP(compressFlag.flagFields())
 	encryptFileCmd.MarkFlagRequired(fileFlag.name)
 	return encryptFileCmd
 }

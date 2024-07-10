@@ -63,7 +63,7 @@ func decryptTextCommand() *cobra.Command {
 			safeExit()
 		},
 	}
-	decryptTxtCmd.Flags().StringP(ciphertextFlag.name, ciphertextFlag.shorthand, "", ciphertextFlag.usage)
+	decryptTxtCmd.Flags().StringP(ciphertextFlag.flagFields())
 	decryptTxtCmd.MarkFlagRequired(ciphertextFlag.name)
 	return decryptTxtCmd
 }
@@ -116,8 +116,8 @@ func decryptFileCommand() *cobra.Command {
 			safeExit()
 		},
 	}
-	decryptFileCmd.Flags().StringP(fileFlag.name, fileFlag.shorthand, "", fileFlag.usage)
-	decryptFileCmd.Flags().StringP(outFlag.name, outFlag.shorthand, "", outFlag.usage)
+	decryptFileCmd.Flags().StringP(fileFlag.flagFields())
+	decryptFileCmd.Flags().StringP(outFlag.flagFields())
 	decryptFileCmd.MarkFlagRequired(fileFlag.name)
 	return decryptFileCmd
 }

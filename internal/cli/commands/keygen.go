@@ -54,9 +54,9 @@ func keygenCommand() *cobra.Command {
 			fmt.Println("It is completely safe to share this public key with anyone.")
 		},
 	}
-	keygenCmd.Flags().BoolP(ignorePasswordCheckFlag.name, ignorePasswordCheckFlag.shorthand, false, ignorePasswordCheckFlag.usage)
-	keygenCmd.Flags().StringP(publicKeyFileFlag.name, publicKeyFileFlag.shorthand, "", publicKeyFileFlag.usage)
-	keygenCmd.Flags().BoolP(autoGenerateSecretKey.name, autoGenerateSecretKey.shorthand, false, autoGenerateSecretKey.usage)
-	keygenCmd.Flags().BoolP(quantumSafeFlag.name, quantumSafeFlag.shorthand, false, quantumSafeFlag.usage)
+	keygenCmd.Flags().BoolP(ignorePasswordCheckFlag.flagFields())
+	keygenCmd.Flags().StringP(publicKeyFileFlag.flagFields())
+	keygenCmd.Flags().BoolP(autoGenerateSecretKey.flagFields())
+	keygenCmd.Flags().BoolP(quantumSafeFlag.flagFields())
 	return keygenCmd
 }
