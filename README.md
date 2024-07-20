@@ -1,21 +1,21 @@
 # Xipher
 [![Go Reference](https://pkg.go.dev/badge/dev.shib.me/xipher.svg)](https://pkg.go.dev/dev.shib.me/xipher)
 [![Go Report Card](https://goreportcard.com/badge/dev.shib.me/xipher)](https://goreportcard.com/report/dev.shib.me/xipher)
-[![Test Status](https://github.com/shibme/xipher/actions/workflows/test.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/test.yml)
-[![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yml)
+[![Test Status](https://github.com/shibme/xipher/actions/workflows/test.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/test.yaml)
+[![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yaml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
 
 Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption.
 
 ## What does it do?
 - Allows sharing of data securely between two parties over an insecure channel using asymmetric encryption.
-- The sender encrypts the data using a public key (received from a receiver) derived from a password and shares the encrypted data with the receiver.
-- The receiver decrypts the data using the same password.
+- The sender encrypts the data using a public key (of the receiver - usually derived from a password) and shares the encrypted data with the receiver.
+- The receiver decrypts the data using the secret key (or password).
 
 ## Key Aspects
 - Encrypts data with the public key generated based on a password.
-- Supports stream cipher along with stream compression, resulting in lower memory footprint.
-- Supports post-quantum cryptography using the Kyber algorithm.
+- Supports stream cipher along with stream compression, resulting in lower memory footprint and smaller ciphertext.
+- Supports post-quantum cryptography using the Kyber1024 algorithm.
 
 ## CLI
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
@@ -59,6 +59,41 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 
 ## Web Interface
 A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://dev.shib.me/xipher).
+
+### How does Xipher Web App work?
+- Receiver opens the Xipher web app on a browser.
+- Xipher generates a key pair and stores them in the browser local storage.
+- The Xiher web app returns the public key as a URL that can be shared.
+- Receiver shares the encryption URL (this contains the public key as a parameter) with the sender.
+- Sender opens the public encryption URL (opens Xipher encryption web page).
+- Sender inputs the data that needs to be encrypted.
+- Xipher encrypts the data using the public key from the URL.
+- Xipher returns ciphertext encrypted with the public key.
+- Sender sends the encrypted ciphertext to the receiver.
+- Receiver inputs the ciphertext in the decryption page.
+- Xipher decrypts the ciphertext using the secret key from local storage.
+- Xipher returns decrypted data.
+
+The following sequence diagram illustrates the workflow of the web app.
+```mermaid
+sequenceDiagram
+participant RX as Xipher<br>(on Browser)
+actor Receiver
+actor Sender
+participant SX as Xipher<br>(on Browser)
+    Receiver-->>+RX: Opens Xipher App on browser
+    RX-->>RX: Generates a key pair and stores them in the browser local storage
+    RX-->>-Receiver: Returns the Public Key<br>(as a URL that can be shared)
+    Receiver->>+Sender: Shares the encryption URL<br>(this contains the public key as parameter)
+    Sender-->>+SX: Opens the public encryption URL<br>(opens Xipher encryption web page)
+    Sender-->>SX: Inputs the data that needs to be encrypted
+    SX-->>SX: Encrypts the data using the public key from the URL
+    SX-->>-Sender: Returns ciphertext encrypted with the Public Key
+    Sender->>-Receiver: Sends the encrypted ciphertext to the Receiver
+    Receiver-->>+RX: Inputs the ciphertext<br>(in the decyrption page)
+    RX-->>RX: Decrypts the ciphertext<br>(using the secret key from local storage)
+    RX-->>-Receiver: Returns decrypted data
+```
 
 ## Using as a Go package
 Install the package

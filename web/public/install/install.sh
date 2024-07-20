@@ -24,7 +24,7 @@ else
 	xipher_uri="https://github.com/shibme/xipher/releases/download/${1}/xipher_${target}.zip"
 fi
 
-xipher_install="${Xipher_INSTALL:-$HOME/.xipher}"
+xipher_install="${XIPHER_INSTALL:-$HOME/.xipher}"
 bin_dir="$xipher_install/bin"
 exe="$bin_dir/xipher"
 
@@ -50,8 +50,8 @@ else
 	*) shell_profile=".bashrc" ;;
 	esac
 	echo "Manually add the directory to your \$HOME/$shell_profile (or similar)"
-	echo "  export Xipher_INSTALL=\"$xipher_install\""
-	echo "  export PATH=\"\$Xipher_INSTALL/bin:\$PATH\""
+	echo "  export XIPHER_INSTALL=\"$xipher_install\""
+	echo "  export PATH=\"\$XIPHER_INSTALL/bin:\$PATH\""
 	echo "Run '$exe --help' to get started"
 fi
 echo

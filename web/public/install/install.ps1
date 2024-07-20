@@ -9,7 +9,7 @@ if ($Args.Length -eq 1) {
   $Version = $Args.Get(0)
 }
 
-$XipherInstall = $env:Xipher_INSTALL
+$XipherInstall = $env:XIPHER_INSTALL
 $BinDir = if ($XipherInstall) {
   "${XipherInstall}\bin"
 } else {
