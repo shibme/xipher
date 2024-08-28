@@ -9,15 +9,8 @@ jobs:
 
   test:
     name: Running Tests
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 'stable'
-    - name: Test
-      run: go test -v .
+    uses: ./.github/workflows/test.yaml
+    secrets: inherit
 
   release:
     name: Release
@@ -36,9 +29,6 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Preparing GoReleaser Builder
-      run: |
-        docker build -t goreleaser:local -f Dockerfile.goreleaser .
     - name: Copy wasm_exec.js to project root
       run: |
         docker run --rm \
@@ -47,7 +37,7 @@ jobs:
         -e GITHUB_TOKEN \
         -e HOMEBREW_SSH_KEY \
         --entrypoint sh \
-        goreleaser:local \
+        ghcr.io/goreleaser/goreleaser-cross:latest \
         -c "cp \$(go env GOROOT)/misc/wasm/wasm_exec.js ./"
     - name: GoReleaser - Release Xipher
       run: |
@@ -56,7 +46,7 @@ jobs:
         -v $PWD:/workspace \
         -e GITHUB_TOKEN \
         -e HOMEBREW_SSH_KEY \
-        goreleaser:local \
+        ghcr.io/goreleaser/goreleaser-cross:latest \
         release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -83,43 +73,10 @@ jobs:
           ghcr.io/${{ github.repository }}:${{ env.XIPHER_VERSION }}
 
   pages:
-    name: Deploy to GitHub Pages
+    name: Run GitHub Pages Workflow
     needs: release
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
     concurrency:
       group: "pages"
       cancel-in-progress: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-      - name: Install dependencies
-        run: npm -C web ci
-      - name: Build Xipher Web
-        run: npm -C web run build
-      - name: Download wasm files from latest release
-        uses: robinraju/release-downloader@v1.10
-        with:
-          latest: true
-          fileName: '*wasm*'
-      - name: Add WASM files to build directory
-        run: |
-          mkdir -p web/build/wasm
-          unzip xipher_js_wasm.zip -d web/build/wasm/
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload artifact from web/build
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/build
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    uses: ./.github/workflows/pages.yaml
+    secrets: inherit

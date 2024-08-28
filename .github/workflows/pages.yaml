@@ -1,14 +1,20 @@
-name: Publish Web Pages
+name: Publish Xipher Web
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        description: 'The branch, tag or SHA of shibme/xipher to publish'
+        default: ${{ github.ref }}
 
 jobs:
 
   pages:
-    name: Deploy to GitHub Pages
+    name: Deploy Xipher Web to GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -23,6 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          repository: shibme/xipher
+          ref: ${{ inputs.ref }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Install dependencies
@@ -30,8 +39,9 @@ jobs:
       - name: Build Xipher Web
         run: npm -C web run build
       - name: Download wasm files from latest release
-        uses: robinraju/release-downloader@v1.10
+        uses: robinraju/release-downloader@v1.11
         with:
+          repository: shibme/xipher
           latest: true
           fileName: '*wasm*'
       - name: Add WASM files to build directory
@@ -39,7 +49,7 @@ jobs:
           mkdir -p web/build/wasm
           unzip xipher_js_wasm.zip -d web/build/wasm/
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       - name: Upload artifact from web/build
         uses: actions/upload-pages-artifact@v3
         with:

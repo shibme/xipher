@@ -5,7 +5,7 @@ export default function WasmLoader({children}) {
 
     useEffect(() => {
         const go = new window.Go();
-        WebAssembly.instantiateStreaming(fetch("https://dev.shib.me/xipher/wasm/xipher.wasm"), go.importObject).then((result) => {
+        WebAssembly.instantiateStreaming(fetch("wasm/xipher.wasm"), go.importObject).then((result) => {
           go.run(result.instance);
           setIsLoaded(true);
         });
