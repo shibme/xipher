@@ -75,8 +75,5 @@ jobs:
   pages:
     name: Run GitHub Pages Workflow
     needs: release
-    concurrency:
-      group: "pages"
-      cancel-in-progress: true
     uses: ./.github/workflows/pages.yaml
     secrets: inherit
