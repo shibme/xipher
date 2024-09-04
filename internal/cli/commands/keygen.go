@@ -16,7 +16,7 @@ func keygenCommand() *cobra.Command {
 	}
 	keygenCmd = &cobra.Command{
 		Use:   "keygen",
-		Short: "Generate a new key pair or public key based on a password",
+		Short: "Generate a new random key pair or a public key based on a given password or secret key",
 		Run: func(cmd *cobra.Command, args []string) {
 			publicKeyFilePath := cmd.Flag(publicKeyFileFlag.name).Value.String()
 			ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
@@ -30,7 +30,7 @@ func keygenCommand() *cobra.Command {
 				}
 				fmt.Println("Secret Key:", color.HiBlackString(secret))
 			} else {
-				password, err := getPasswordFromUser(true, ignoreFlag)
+				password, err := getPasswordOrSecretKeyFromUser(true, ignoreFlag)
 				if err != nil {
 					exitOnError(err)
 				}

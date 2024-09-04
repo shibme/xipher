@@ -31,11 +31,11 @@ func getSecretKeyOrPwd() (string, error) {
 		secret = new(string)
 		*secret = os.Getenv(envar_XIPHER_SECRET)
 		if *secret == "" {
-			password, err := getPasswordFromUser(false, true)
+			passwordOrSecretKey, err := getPasswordOrSecretKeyFromUser(false, true)
 			if err != nil {
 				return "", err
 			}
-			*secret = string(password)
+			*secret = string(passwordOrSecretKey)
 		}
 	}
 	return *secret, nil

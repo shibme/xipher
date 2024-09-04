@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"unicode"
 
+	"dev.shib.me/xipher/utils"
 	"golang.org/x/term"
 )
 
@@ -63,28 +64,28 @@ func getHiddenInputFromUser(prompt string) ([]byte, error) {
 	return input, err
 }
 
-func getPasswordFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
-	initialPrompt := "Enter a Password: "
-	if !confirm {
-		initialPrompt = "Enter Password/Secret Key: "
-	}
-	password, err := getHiddenInputFromUser(initialPrompt)
+func getPasswordOrSecretKeyFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
+	initialPrompt := "Enter a Password/Secret Key: "
+	passwordOrSecretKey, err := getHiddenInputFromUser(initialPrompt)
 	if err != nil {
 		return nil, err
 	}
+	if utils.IsSecretKeyStr(string(passwordOrSecretKey)) {
+		return passwordOrSecretKey, nil
+	}
 	if !ignorePolicyCheck {
-		if err = pwdCheck(string(password)); err != nil {
+		if err = pwdCheck(string(passwordOrSecretKey)); err != nil {
 			return nil, err
 		}
 	}
 	if confirm {
-		if confirmPassword, err := getHiddenInputFromUser("Confirm Password: "); err != nil {
+		if confirmPassword, err := getHiddenInputFromUser("Confirm Password/Secret Key: "); err != nil {
 			return nil, err
-		} else if !bytes.Equal(password, confirmPassword) {
+		} else if !bytes.Equal(passwordOrSecretKey, confirmPassword) {
 			return nil, fmt.Errorf("passwords do not match")
 		}
 	}
-	return password, nil
+	return passwordOrSecretKey, nil
 }
 
 func readBufferFromStdin(prompt string) ([]byte, error) {
