@@ -97,7 +97,7 @@ func (publicKey *PublicKey) Encrypt(data []byte, compress bool) (ciphertext []by
 	return buf.Bytes(), nil
 }
 
-func (secretKey *SecretKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
+func (secretKey *SecretKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	ctTypeBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, ctTypeBytes); err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to read ciphertext type", "xipher")
@@ -148,10 +148,8 @@ func (secretKey *SecretKey) DecryptStream(dst io.Writer, src io.Reader) (err err
 	if err != nil {
 		return err
 	}
-	if _, err = io.Copy(dst, decryptedReader); err != nil {
-		return err
-	}
-	return decryptedReader.Close()
+	_, err = io.Copy(dst, decryptedReader)
+	return err
 }
 
 // Decrypt decrypts the given ciphertext and returns the decrypted data.

@@ -20,8 +20,8 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compress)
 }
 
-// NewDecryptingReader returns a new ReadCloser that reads and decrypts data with the private key from src.
-func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
+// NewDecryptingReader returns a new Reader that reads and decrypts data with the private key from src.
+func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	ephPubKey := make([]byte, KeyLength)
 	if _, err := io.ReadFull(src, ephPubKey); err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to read ephemeral public key", "xipher")

@@ -22,8 +22,8 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 	}
 }
 
-// NewDecryptingReader returns a new ReadCloser that reads and decrypts data with the private key from src.
-func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.ReadCloser, error) {
+// NewDecryptingReader returns a new Reader that reads and decrypts data with the private key from src.
+func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	algoBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, algoBytes); err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to read algorithm", "xipher")
