@@ -87,10 +87,10 @@ func (w *Writer) Close() error {
 }
 
 type Reader struct {
-	aead  cipher.AEAD
-	src   io.Reader
-	buf   bytes.Buffer
-	nonce []byte
+	aead   cipher.AEAD
+	src    io.Reader
+	outBuf bytes.Buffer
+	nonce  []byte
 }
 
 // NewDecryptingReader returns a new io.ReadCloser that decrypts src with the cipher
@@ -104,10 +104,10 @@ func (cipher *SymmetricCipher) NewDecryptingReader(src io.Reader) (io.ReadCloser
 
 func (cipher *SymmetricCipher) newReader(nonce []byte, src io.Reader) (io.ReadCloser, error) {
 	ciphReader := &Reader{
-		aead:  *cipher.aead,
-		src:   src,
-		buf:   bytes.Buffer{},
-		nonce: nonce,
+		aead:   *cipher.aead,
+		src:    src,
+		outBuf: bytes.Buffer{},
+		nonce:  nonce,
 	}
 	compressFlag := make([]byte, 1)
 	if _, err := io.ReadFull(src, compressFlag); err != nil {
@@ -124,8 +124,8 @@ func (cipher *SymmetricCipher) newReader(nonce []byte, src io.Reader) (io.ReadCl
 }
 
 func (r *Reader) Read(p []byte) (int, error) {
-	if r.buf.Len() > len(p) {
-		return r.buf.Read(p)
+	if r.outBuf.Len() > len(p) {
+		return r.outBuf.Read(p)
 	}
 	var block [ctBlockSize]byte
 	n, err := io.ReadFull(r.src, block[:])
@@ -134,10 +134,10 @@ func (r *Reader) Read(p []byte) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("%s: decrypter failed to decrypt", "xipher")
 		}
-		r.buf.Write(pt)
-		return r.buf.Read(p)
+		r.outBuf.Write(pt)
+		return r.outBuf.Read(p)
 	} else if err == io.EOF {
-		return r.buf.Read(p)
+		return r.outBuf.Read(p)
 	} else {
 		return 0, fmt.Errorf("%s: decrypter failed to read", "xipher")
 	}

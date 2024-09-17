@@ -80,7 +80,7 @@ func encryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			ct, err := utils.EncryptData(keyPwdStr, input)
+			ct, err := utils.EncryptData(keyPwdStr, input, true)
 			if err != nil {
 				exitOnError(err)
 			}

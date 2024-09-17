@@ -10,13 +10,13 @@ func ctToStr(ct []byte) string {
 	return xipherTxtPrefix + encode(ct)
 }
 
-func EncryptData(keyOrPwd string, data []byte) (string, error) {
+func EncryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
 	if IsPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {
 			return "", err
 		}
-		ct, err := pubKey.Encrypt(data, true)
+		ct, err := pubKey.Encrypt(data, compress)
 		if err != nil {
 			return "", err
 		}
@@ -26,7 +26,7 @@ func EncryptData(keyOrPwd string, data []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		ct, err := secretKey.Encrypt(data, true)
+		ct, err := secretKey.Encrypt(data, compress)
 		if err != nil {
 			return "", err
 		}
@@ -36,7 +36,7 @@ func EncryptData(keyOrPwd string, data []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		ct, err := secretKey.Encrypt(data, true)
+		ct, err := secretKey.Encrypt(data, compress)
 		if err != nil {
 			return "", err
 		}

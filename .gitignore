@@ -1,3 +1,4 @@
 .vscode
 dist/
 wasm_exec.js
+.ignore/
