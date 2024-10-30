@@ -10,10 +10,9 @@ jobs:
   test:
     name: Running Tests
     uses: ./.github/workflows/test.yaml
-    secrets: inherit
 
   release:
-    name: Release
+    name: "Releasing Xipher: ${{ github.ref_name }}"
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -76,4 +75,5 @@ jobs:
     name: Run GitHub Pages Workflow
     needs: release
     uses: ./.github/workflows/pages.yaml
-    secrets: inherit
+    with:
+      ref: ${{ github.ref }}

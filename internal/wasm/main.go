@@ -26,7 +26,7 @@ func main() {
 	js.Global().Set("xipherNewSecretKey", unifiedReturn(newSecretKey))
 	js.Global().Set("xipherGetPublicKey", unifiedReturn(getPublicKey))
 
-	// String Encryption Functions
+	// Encryption Functions
 	js.Global().Set("xipherEncryptStr", unifiedReturn(encryptStr))
 	js.Global().Set("xipherNewStreamEncrypter", unifiedReturn(newStreamEncrypter))
 	js.Global().Set("xipherEncrypterWrite", unifiedReturn(writeToEncrypter))
