@@ -131,6 +131,8 @@ func encryptFileCommand() *cobra.Command {
 			}
 			compress, _ := cmd.Flags().GetBool(compressFlag.name)
 			if err = utils.EncryptStream(keyPwdStr, dst, src, compress); err != nil {
+				dst.Close()
+				os.Remove(dstPath)
 				exitOnError(err)
 			}
 			fmt.Println("Encrypted file:", color.GreenString(dstPath))

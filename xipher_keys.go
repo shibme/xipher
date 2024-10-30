@@ -20,20 +20,15 @@ type SecretKey struct {
 
 // NewSecretKeyForPassword creates a new private key for the given password.
 func NewSecretKeyForPassword(password []byte) (*SecretKey, error) {
-	spec, err := newSpec()
-	if err != nil {
-		return nil, err
-	}
-	return newSecretKeyForPwdAndSpec(password, spec)
+	return NewSecretKeyForPasswordAndSpec(password, defaultKdfIterations, defaultKdfMemory, defaultKdfThreads)
 }
 
 // NewSecretKeyForPasswordAndSpec creates a new private key for the given password and kdf spec.
 func NewSecretKeyForPasswordAndSpec(password []byte, iterations, memory, threads uint8) (*SecretKey, error) {
-	spec, err := newSpec()
+	spec, err := newSpec(iterations, memory, threads)
 	if err != nil {
 		return nil, err
 	}
-	spec.setIterations(iterations).setMemory(memory).setThreads(threads)
 	return newSecretKeyForPwdAndSpec(password, spec)
 }
 

@@ -110,6 +110,8 @@ func decryptFileCommand() *cobra.Command {
 				exitOnError(err)
 			}
 			if err = utils.DecryptStream(secretKeyOrPwd, dst, src); err != nil {
+				dst.Close()
+				os.Remove(dstPath)
 				exitOnError(err)
 			}
 			fmt.Println("Decrypted file:", color.GreenString(dstPath))

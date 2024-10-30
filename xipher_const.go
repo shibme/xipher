@@ -16,9 +16,9 @@ const (
 	publicKeyMinLength = asx.MinPublicKeyLength + 1 // +1 for the key type
 
 	// Argon2 Default Spec
-	argon2Iterations uint8 = 16
-	argon2Memory     uint8 = 64
-	argon2Threads    uint8 = 1
+	defaultKdfIterations uint8 = 16
+	defaultKdfMemory     uint8 = 64
+	defaultKdfThreads    uint8 = 1
 
 	kdfParamsLenth = 3
 	kdfSaltLength  = 16
