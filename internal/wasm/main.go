@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"syscall/js"
 )
 
-func unifiedReturn(fn func(args []js.Value) (result any, err error)) js.Func {
-	return js.FuncOf(func(this js.Value, args []js.Value) any {
+func exportJSFunc(name string, fn func(args []js.Value) (result any, err error)) {
+	js.Global().Set(name, js.FuncOf(func(this js.Value, args []js.Value) any {
 		result, err := fn(args)
 		if err != nil {
 			return map[string]any{
@@ -16,27 +15,25 @@ func unifiedReturn(fn func(args []js.Value) (result any, err error)) js.Func {
 		return map[string]any{
 			"result": result,
 		}
-	})
+	}))
 }
 
 func main() {
-	fmt.Println("Xipher Web Assembly!")
-
 	// Keygen Functions
-	js.Global().Set("xipherNewSecretKey", unifiedReturn(newSecretKey))
-	js.Global().Set("xipherGetPublicKey", unifiedReturn(getPublicKey))
+	exportJSFunc("xipherNewSecretKey", newSecretKey)
+	exportJSFunc("xipherGetPublicKey", getPublicKey)
 
 	// Encryption Functions
-	js.Global().Set("xipherEncryptStr", unifiedReturn(encryptStr))
-	js.Global().Set("xipherNewStreamEncrypter", unifiedReturn(newStreamEncrypter))
-	js.Global().Set("xipherEncrypterWrite", unifiedReturn(writeToEncrypter))
-	js.Global().Set("xipherEncrypterClose", unifiedReturn(closeEncrypter))
+	exportJSFunc("xipherEncryptStr", encryptStr)
+	exportJSFunc("xipherNewStreamEncrypter", newStreamEncrypter)
+	exportJSFunc("xipherEncrypterWrite", writeToEncrypter)
+	exportJSFunc("xipherEncrypterClose", closeEncrypter)
 
 	// Decryption Functions
-	js.Global().Set("xipherDecryptStr", unifiedReturn(decryptStr))
-	js.Global().Set("xipherNewStreamDecrypter", unifiedReturn(newStreamDecrypter))
-	js.Global().Set("xipherDecrypterRead", unifiedReturn(readFromDecrypter))
-	js.Global().Set("xipherDecrypterClose", unifiedReturn(closeDecrypter))
+	exportJSFunc("xipherDecryptStr", decryptStr)
+	exportJSFunc("xipherNewStreamDecrypter", newStreamDecrypter)
+	exportJSFunc("xipherDecrypterRead", readFromDecrypter)
+	exportJSFunc("xipherDecrypterClose", closeDecrypter)
 
 	<-make(chan struct{})
 }

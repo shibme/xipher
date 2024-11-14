@@ -7,17 +7,6 @@ import (
 	"dev.shib.me/xipher/utils"
 )
 
-func jsReturn(result any, err error) any {
-	if err != nil {
-		return map[string]any{
-			"error": err.Error(),
-		}
-	}
-	return map[string]any{
-		"result": result,
-	}
-}
-
 func newSecretKey(args []js.Value) (any, error) {
 	if len(args) > 0 {
 		return nil, fmt.Errorf("no arguments required for new secret key generation")

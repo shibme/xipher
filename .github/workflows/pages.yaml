@@ -2,6 +2,11 @@ name: Publish Xipher Web
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        type: string
+        description: 'The branch, tag or SHA of shibme/xipher to publish'
+        required: false
   workflow_call:
     inputs:
       ref:
@@ -55,3 +60,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy web/build --project-name=xipher
