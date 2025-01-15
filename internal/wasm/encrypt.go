@@ -34,7 +34,7 @@ type encrypter struct {
 	dst    *bytes.Buffer
 }
 
-func (e *encrypter) write(data []byte) ([]byte, error) {
+func (e *encrypter) transform(data []byte) ([]byte, error) {
 	_, err := e.writer.Write(data)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (e *encrypter) close() ([]byte, error) {
 	return e.dst.Next(e.dst.Len()), nil
 }
 
-func newStreamEncrypter(args []js.Value) (any, error) {
+func newEncryptingTransformer(args []js.Value) (any, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("supported arguments: public key, secret key or password (required), compress (required)")
 	}
@@ -75,7 +75,7 @@ func newStreamEncrypter(args []js.Value) (any, error) {
 	return id, nil
 }
 
-func writeToEncrypter(args []js.Value) (any, error) {
+func encryptThroughTransformer(args []js.Value) (any, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("supported arguments: id (required), input (required)")
 	}
@@ -90,7 +90,7 @@ func writeToEncrypter(args []js.Value) (any, error) {
 	inputLength := inputJSArray.Get("length").Int()
 	inputData := make([]byte, inputLength)
 	js.CopyBytesToGo(inputData, inputJSArray)
-	outputData, err := enc.write(inputData)
+	outputData, err := enc.transform(inputData)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func writeToEncrypter(args []js.Value) (any, error) {
 	return outputJSArray, nil
 }
 
-func closeEncrypter(args []js.Value) (any, error) {
+func closeEncryptingTransformer(args []js.Value) (any, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("supported arguments: id (required)")
 	}

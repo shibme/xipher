@@ -25,15 +25,15 @@ func main() {
 
 	// Encryption Functions
 	exportJSFunc("xipherEncryptStr", encryptStr)
-	exportJSFunc("xipherNewStreamEncrypter", newStreamEncrypter)
-	exportJSFunc("xipherEncrypterWrite", writeToEncrypter)
-	exportJSFunc("xipherEncrypterClose", closeEncrypter)
+	exportJSFunc("xipherNewEncryptingTransformer", newEncryptingTransformer)
+	exportJSFunc("xipherEncryptThroughTransformer", encryptThroughTransformer)
+	exportJSFunc("xipherCloseEncryptingTransformer", closeEncryptingTransformer)
 
 	// Decryption Functions
 	exportJSFunc("xipherDecryptStr", decryptStr)
-	exportJSFunc("xipherNewStreamDecrypter", newStreamDecrypter)
-	exportJSFunc("xipherDecrypterRead", readFromDecrypter)
-	exportJSFunc("xipherDecrypterClose", closeDecrypter)
+	exportJSFunc("xipherNewDecryptingTransformer", newDecryptingTransformer)
+	exportJSFunc("xipherDecryptThroughTransformer", decryptThroughTransformer)
+	exportJSFunc("xipherCloseDecryptingTransformer", closeDecryptingTransformer)
 
 	<-make(chan struct{})
 }

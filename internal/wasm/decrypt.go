@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ctMinLegthRequired = 128 * 1024
+	ctMinLegthRequired = 128 * 1024 // Arbitrary value based on max key length with generously possible header length
 	readableBlockSize  = 32 * 1024
 )
 
@@ -40,18 +40,21 @@ type decrypter struct {
 	src      *bytes.Buffer
 }
 
-func (d *decrypter) readMax(all bool) ([]byte, error) {
-	if all {
-		return io.ReadAll(d.reader)
+func (d *decrypter) initReaderGracefully() (err error) {
+	if d.reader == nil {
+		d.reader, err = utils.DecryptingReader(d.keyOrPwd, d.src)
+	}
+	return
+}
+
+func (d *decrypter) transform(data []byte) ([]byte, error) {
+	if _, err := d.src.Write(data); err != nil {
+		return nil, err
 	}
 	buf := new(bytes.Buffer)
 	if d.src.Len() >= ctMinLegthRequired {
-		if d.reader == nil {
-			reader, err := utils.DecryptingReader(d.keyOrPwd, d.src)
-			if err != nil {
-				return nil, err
-			}
-			d.reader = reader
+		if err := d.initReaderGracefully(); err != nil {
+			return nil, err
 		}
 		block := make([]byte, readableBlockSize)
 		for d.src.Len() >= ctMinLegthRequired {
@@ -68,18 +71,14 @@ func (d *decrypter) readMax(all bool) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (d *decrypter) read(data []byte) ([]byte, error) {
-	if _, err := d.src.Write(data); err != nil {
+func (d *decrypter) close() ([]byte, error) {
+	if err := d.initReaderGracefully(); err != nil {
 		return nil, err
 	}
-	return d.readMax(false)
+	return io.ReadAll(d.reader)
 }
 
-func (d *decrypter) close() ([]byte, error) {
-	return d.readMax(true)
-}
-
-func newStreamDecrypter(args []js.Value) (any, error) {
+func newDecryptingTransformer(args []js.Value) (any, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("supported arguments: secret key or password (required)")
 	}
@@ -96,7 +95,7 @@ func newStreamDecrypter(args []js.Value) (any, error) {
 	return id, nil
 }
 
-func readFromDecrypter(args []js.Value) (any, error) {
+func decryptThroughTransformer(args []js.Value) (any, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("supported arguments: id (required), input (required)")
 	}
@@ -111,7 +110,7 @@ func readFromDecrypter(args []js.Value) (any, error) {
 	inputLength := inputJSArray.Get("length").Int()
 	inputData := make([]byte, inputLength)
 	js.CopyBytesToGo(inputData, inputJSArray)
-	outputData, err := dec.read(inputData)
+	outputData, err := dec.transform(inputData)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func readFromDecrypter(args []js.Value) (any, error) {
 	return outputJSArray, nil
 }
 
-func closeDecrypter(args []js.Value) (any, error) {
+func closeDecryptingTransformer(args []js.Value) (any, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("supported arguments: id (required)")
 	}
