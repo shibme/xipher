@@ -315,7 +315,7 @@ async function handleFileEncryption(key, file, compress) {
     try {
         filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
     } catch (error) {
-        showActivityErrorInView("File picker not supported on this device.", "Operation Failed!");
+        showActivityErrorInView("File operations not supported on this device.", "Operation Failed!");
         return;
     }
     const outStream = await filePickerHandle.createWritable();
@@ -338,7 +338,13 @@ async function handleFileDecryption(key, file) {
     const outputFileOpts = {
         suggestedName: file.name.replace(/\.xipher$/, ''),
     };
-    const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+    let filePickerHandle;
+    try {
+        filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+    } catch (error) {
+        showActivityErrorInView("File operations not supported on this device.", "Operation Failed!");
+        return;
+    }
     outFileName = filePickerHandle.name;
     const outStream = await filePickerHandle.createWritable();
     const fileSize = file.size;
