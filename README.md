@@ -21,7 +21,7 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 ### Demo
-![Demo](https://xipher.org/demo.gif)
+![Demo](https://xipher.org/assets/demo.gif)
 
 ### Homebrew
 Xipher can be installed with brew using the following command on macOS
@@ -34,21 +34,21 @@ brew install shibme/tap/xipher
 #### Install Latest Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://xipher.org/xipher/install/install.sh | sh
+curl -fsSL https://xipher.org/install/install.sh | sh
 ```
 **With PowerShell (Windows):**
 ```powershell
-irm https://xipher.org/xipher/install/install.ps1 | iex
+irm https://xipher.org/install/install.ps1 | iex
 ```
 
 #### Install Specific Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://xipher.org/xipher/install/install.sh | sh -s v1.1.0
+curl -fsSL https://xipher.org/install/install.sh | sh -s v1.1.0
 ```
 **With PowerShell (Windows):**
 ```powershell
-$v="1.1.0"; irm https://xipher.org/xipher/install/install.ps1 | iex
+$v="1.1.0"; irm https://xipher.org/install/install.ps1 | iex
 ```
 
 ### Docker
