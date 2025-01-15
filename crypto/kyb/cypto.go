@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"dev.shib.me/xipher/crypto/xcp"
 	"github.com/cloudflare/circl/kem/kyber/kyber1024"
+	"xipher.org/xipher/crypto/xcp"
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.

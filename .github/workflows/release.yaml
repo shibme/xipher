@@ -75,5 +75,3 @@ jobs:
     name: Run GitHub Pages Workflow
     needs: release
     uses: ./.github/workflows/pages.yaml
-    with:
-      ref: ${{ github.ref }}

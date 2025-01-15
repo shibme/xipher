@@ -2,3 +2,4 @@
 dist/
 wasm_exec.js
 .ignore/
+web/wasm/

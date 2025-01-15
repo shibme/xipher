@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"dev.shib.me/xipher/utils"
+	"xipher.org/xipher/utils"
 )
 
 func newSecretKey(args []js.Value) (any, error) {

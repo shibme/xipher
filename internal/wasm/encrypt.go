@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall/js"
 
-	"dev.shib.me/xipher/utils"
+	"xipher.org/xipher/utils"
 )
 
 func encryptStr(args []js.Value) (any, error) {

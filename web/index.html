@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="xipher.svg" />
+    <title>Xipher</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <div class="toggle-circle"></div>
+    </div>
+    <div id="loader" class="loader">
+        <div class="spinner"></div>
+        <div id="loader-text">
+            <p>Loading Xipher...</p>
+        </div>
+    </div>
+    <div class="container">
+        <h1 id="form-title">Xipher Encrypt/Decrypt</h1>
+        <div id="link-viewbox" class="link-viewbox" style="display: flex;">
+            <input
+                type="text"
+                id="shareable-link"
+                class="shareable-link"
+                readonly
+                value=""
+            />
+            <button
+                class="icon-button"
+                id="publink-copy-button"
+                onclick="copyPublicKeyLinkToClipboard()"
+                title="Copy"
+            >
+                📋
+            </button>
+            <button
+                class="icon-button"
+                id="publink-share-button"
+                onclick="sharePublicKeyLink()"
+                title="Share"
+            >
+                ➤ 
+            </button>
+        </div>
+        <form id="crypto-form">
+            <div class="input-container">
+                <div id="drop-area" class="text-view" style="position: relative;">
+                    <textarea
+                        id="text"
+                        placeholder="Enter your text or drag/drop a file to encrypt/decrypt"
+                        oninput="updateView()"
+                    ></textarea>
+                    <button
+                        type="button"
+                        class="icon-button"
+                        id="text-copy-button"
+                        onclick="copyTextToClipboard()"
+                        title="Copy"
+                    >
+                        📋
+                    </button>
+                    <button
+                        type="button"
+                        class="icon-button"
+                        id="text-share-button"
+                        onclick="shareText()"
+                        title="Share"
+                    >
+                        ➤
+                    </button>
+                    <div id="file-display" class="file-display" style="display: none;">
+                        <div class="file-details">
+                            <span id="file-name" class="file-name" title=""></span>
+                            <span id="file-size" class="file-size"></span>
+                        </div>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="regular-button select-file-button"
+                    id="text-action-button"
+                    onclick="toggleAttachment()"
+                >
+                    Pick File
+                </button>
+                <input
+                    type="file"
+                    id="file"
+                    onchange="handleFileSelect(event)"
+                    style="display: none;"
+                />
+            </div>
+            <button
+                type="button"
+                id="action-button"
+                class="regular-button"
+                onclick="handleAction()"
+                disabled
+            >
+                Waiting for input
+            </button>
+        </form>
+    </div>
+    <script src="wasm/wasm_exec.js"></script>
+    <script src="xipher.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

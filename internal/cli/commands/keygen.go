@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"dev.shib.me/xipher/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"xipher.org/xipher/utils"
 )
 
 func keygenCommand() *cobra.Command {

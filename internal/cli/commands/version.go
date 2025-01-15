@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"dev.shib.me/xipher"
 	"github.com/spf13/cobra"
+	"xipher.org/xipher"
 )
 
 func showVersionInfo() {

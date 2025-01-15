@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"dev.shib.me/xipher/crypto/xcp"
 	"golang.org/x/crypto/curve25519"
+	"xipher.org/xipher/crypto/xcp"
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.

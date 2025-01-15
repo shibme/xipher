@@ -3,7 +3,7 @@ package xipher
 import (
 	"fmt"
 
-	"dev.shib.me/xipher/crypto/asx"
+	"xipher.org/xipher/crypto/asx"
 )
 
 const (
@@ -57,7 +57,7 @@ var (
 )
 
 const (
-	website     = "https://dev.shib.me/xipher"
+	website     = "https://xipher.org"
 	description = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
 	art         = `
 	__  ___       _               

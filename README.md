@@ -1,6 +1,6 @@
 # Xipher
-[![Go Reference](https://pkg.go.dev/badge/dev.shib.me/xipher.svg)](https://pkg.go.dev/dev.shib.me/xipher)
-[![Go Report Card](https://goreportcard.com/badge/dev.shib.me/xipher)](https://goreportcard.com/report/dev.shib.me/xipher)
+[![Go Reference](https://pkg.go.dev/badge/xipher.org/xipher.svg)](https://pkg.go.dev/xipher.org/xipher)
+[![Go Report Card](https://goreportcard.com/badge/xipher.org/xipher)](https://goreportcard.com/report/xipher.org/xipher)
 [![Test Status](https://github.com/shibme/xipher/actions/workflows/test.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/test.yaml)
 [![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yaml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
@@ -21,7 +21,7 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 ### Demo
-![Demo](https://dev.shib.me/xipher/demo.gif)
+![Demo](https://xipher.org/demo.gif)
 
 ### Homebrew
 Xipher can be installed with brew using the following command on macOS
@@ -34,21 +34,21 @@ brew install shibme/tap/xipher
 #### Install Latest Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://dev.shib.me/xipher/install/install.sh | sh
+curl -fsSL https://xipher.org/xipher/install/install.sh | sh
 ```
 **With PowerShell (Windows):**
 ```powershell
-irm https://dev.shib.me/xipher/install/install.ps1 | iex
+irm https://xipher.org/xipher/install/install.ps1 | iex
 ```
 
 #### Install Specific Version
 **With Shell (MacOs/Linux):**
 ```sh
-curl -fsSL https://dev.shib.me/xipher/install/install.sh | sh -s v1.1.0
+curl -fsSL https://xipher.org/xipher/install/install.sh | sh -s v1.1.0
 ```
 **With PowerShell (Windows):**
 ```powershell
-$v="1.1.0"; irm https://dev.shib.me/xipher/install/install.ps1 | iex
+$v="1.1.0"; irm https://xipher.org/xipher/install/install.ps1 | iex
 ```
 
 ### Docker
@@ -58,7 +58,7 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
 ## Web Interface
-A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://dev.shib.me/xipher).
+A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://xipher.org).
 
 ### How does Xipher Web App work?
 - Receiver opens the Xipher web app on a browser.
@@ -98,7 +98,7 @@ participant SX as Xipher<br>(on Browser)
 ## Using as a Go package
 Install the package
 ```sh
-go get -u dev.shib.me/xipher
+go get -u xipher.org/xipher
 ```
 Use it in your code
 ```go
@@ -108,7 +108,7 @@ import (
 	"encoding/base32"
 	"fmt"
 
-	"dev.shib.me/xipher"
+	"xipher.org/xipher"
 )
 
 func main() {
@@ -153,10 +153,10 @@ To use xipher as a web assembly (wasm) module in a browser app, follow the examp
 <html>
 	<head>
 		<meta charset="utf-8"/>
-		<script src="https://dev.shib.me/xipher/wasm/wasm_exec.js"></script>
+		<script src="https://xipher.org/wasm/wasm_exec.js"></script>
 		<script>
 			const go = new Go();
-			WebAssembly.instantiateStreaming(fetch("https://dev.shib.me/xipher/wasm/xipher.wasm"), go.importObject).then((result) => {
+			WebAssembly.instantiateStreaming(fetch("https://xipher.org/wasm/xipher.wasm"), go.importObject).then((result) => {
 				go.run(result.instance);
 			});
 		</script>

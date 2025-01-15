@@ -3,8 +3,8 @@ package asx
 import (
 	"fmt"
 
-	"dev.shib.me/xipher/crypto/ecc"
-	"dev.shib.me/xipher/crypto/kyb"
+	"xipher.org/xipher/crypto/ecc"
+	"xipher.org/xipher/crypto/kyb"
 )
 
 const (

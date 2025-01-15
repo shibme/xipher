@@ -3,7 +3,7 @@ package utils
 import (
 	"regexp"
 
-	"dev.shib.me/xipher"
+	"xipher.org/xipher"
 )
 
 func pubKeyToStr(pubKey *xipher.PublicKey) (string, error) {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"dev.shib.me/xipher/crypto/asx"
-	"dev.shib.me/xipher/crypto/xcp"
+	"xipher.org/xipher/crypto/asx"
+	"xipher.org/xipher/crypto/xcp"
 )
 
 func newVariableKeySymmCipher(key []byte) (*xcp.SymmetricCipher, error) {

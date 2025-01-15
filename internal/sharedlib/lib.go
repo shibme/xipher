@@ -6,7 +6,7 @@ import (
 import (
 	"unsafe"
 
-	"dev.shib.me/xipher/utils"
+	"xipher.org/xipher/utils"
 )
 
 func xipherNewSecretKey(secretKey **C.char, secretKeyLength *C.int, errMessage **C.char, errLength *C.int) {

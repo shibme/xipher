@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"unicode"
 
-	"dev.shib.me/xipher/utils"
 	"golang.org/x/term"
+	"xipher.org/xipher/utils"
 )
 
 const (

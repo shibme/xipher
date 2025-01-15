@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	"dev.shib.me/xipher/crypto/asx"
-	"dev.shib.me/xipher/crypto/xcp"
+	"xipher.org/xipher/crypto/asx"
+	"xipher.org/xipher/crypto/xcp"
 )
 
 type SecretKey struct {

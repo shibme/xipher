@@ -24,10 +24,10 @@ builds:
       - CGO_ENABLED=0
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
 # Builds for Web Assembly
   - id: xipher-wasm
@@ -39,10 +39,10 @@ builds:
       - CGO_ENABLED=0
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
 # Builds for Shared Library
   - id: xipher-shared-lib-darwin-amd64
@@ -58,10 +58,10 @@ builds:
       - CXX=o64-clang++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
   - id: xipher-shared-lib-darwin-arm64
     binary: xipher
@@ -76,10 +76,10 @@ builds:
       - CXX=oa64-clang++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
   - id: xipher-shared-lib-windows-amd64
     binary: xipher
@@ -94,10 +94,10 @@ builds:
       - CXX=x86_64-w64-mingw32-g++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
   - id: xipher-shared-lib-windows-arm64
     binary: xipher
@@ -112,10 +112,10 @@ builds:
       - CXX=/llvm-mingw/bin/aarch64-w64-mingw32-g++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
   - id: xipher-shared-lib-linux-amd64
     binary: xipher
@@ -130,10 +130,10 @@ builds:
       - CXX=x86_64-linux-gnu-g++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
       - -extldflags "-lc -lrt -lpthread"
 
   - id: xipher-shared-lib-linux-arm64
@@ -149,10 +149,10 @@ builds:
       - CXX=aarch64-linux-gnu-g++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
       - -extldflags "-lc -lrt -lpthread"
 
   - id: xipher-shared-lib-linux-armv7
@@ -170,10 +170,10 @@ builds:
       - CXX=arm-linux-gnueabihf-g++
     flags: "-mod=readonly"
     ldflags:
-      - -X dev.shib.me/xipher.version={{.Version}}
-      - -X dev.shib.me/xipher.commitDate={{.CommitDate}}
-      - -X dev.shib.me/xipher.fullCommit={{.FullCommit}}
-      - -X dev.shib.me/xipher.releaseURL={{.ReleaseURL}}
+      - -X xipher.org/xipher.version={{.Version}}
+      - -X xipher.org/xipher.commitDate={{.CommitDate}}
+      - -X xipher.org/xipher.fullCommit={{.FullCommit}}
+      - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
       - -extldflags "-lc -lrt -lpthread"
 
 archives:
@@ -215,8 +215,8 @@ changelog:
       - '^test:'
 
 nfpms:
-  - vendor: Shibly Meeran
-    homepage: https://shib.me
+  - vendor: Xipher
+    homepage: https://xipher.org
     maintainer: Shibly Meeran <shibme@shib.me>
     formats:
       - apk
@@ -227,7 +227,7 @@ brews:
   - ids:
       - xipher-cli
     name: xipher
-    homepage: "https://dev.shib.me/xipher"
+    homepage: https://xipher.org
     description: "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
     license: "MIT"
     commit_author:

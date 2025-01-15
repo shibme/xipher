@@ -3,7 +3,7 @@ package utils
 import (
 	"io"
 
-	"dev.shib.me/xipher"
+	"xipher.org/xipher"
 )
 
 func getSecretKey(secretKeyOrPwd string) (*xipher.SecretKey, error) {

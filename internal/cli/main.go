@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"dev.shib.me/xipher/internal/cli/commands"
+	"xipher.org/xipher/internal/cli/commands"
 )
 
 func main() {
