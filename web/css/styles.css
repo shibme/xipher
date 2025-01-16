@@ -130,6 +130,20 @@ h1 {
     font-family: monospace, Arial, sans-serif;
 }
 
+#form-title-link {
+    text-decoration: none;
+    color: var(--text-color);
+    display: inline-block;
+    font-size: 24px;
+    font-weight: bold;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#form-title-link:hover {
+    opacity: 0.9;
+    transform: scale(1.1);
+}
+
 .description {
     font-size: 12px;
     color: var(--text-color);
