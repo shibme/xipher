@@ -27,13 +27,16 @@ jobs:
         with:
           latest: true
           fileName: '*wasm*'
-      - name: Add WASM files to build directory
+      - name: Add WASM files to web directory
         run: |
           mkdir -p web/wasm
           unzip xipher_js_wasm.zip -d web/wasm/
+      - name: Downloading StreamSaver.js
+        run: |
+          curl -o web/js/StreamSaver.js https://cdn.jsdelivr.net/npm/streamsaver@latest/StreamSaver.min.js
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact from web/build
+      - name: Upload artifact from web directory
         uses: actions/upload-pages-artifact@v3
         with:
           path: web

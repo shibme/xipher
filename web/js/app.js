@@ -303,46 +303,12 @@ async function decryptStrFromUrlCt(key, urlCT) {
     return await decryptStr(key, ct);
 }
 
-async function createDownloadOutputStream(fileName) {
-    const chunks = [];
-    return new WritableStream({
-        write(chunk) {
-            chunks.push(chunk);
-        },
-        close() {
-            const blob = new Blob(chunks, { type: "application/octet-stream" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-        },
-        abort(err) {
-            console.error("Stream aborted due to an error:", err);
-        },
-    });
-}
-
 async function handleFileEncryption(key, file, compress) {
-    let outFileName = file.name.endsWith('.xipher') ? file.name : file.name + '.xipher';
-    let fileOutStream;
-    try {
-        const outputFileOpts = {
-            suggestedName: outFileName,
-            types: [{
-                description: 'Encrypted Files',
-                accept: {'application/octet-stream': ['.xipher']}
-            }]
-        };
-        const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
-        outFileName = filePickerHandle.name;
-        fileOutStream = await filePickerHandle.createWritable();
-    } catch (error) {
-        fileOutStream = await createDownloadOutputStream(outFileName);
-    }
     const fileSize = file.size;
+    const outFileName = file.name.endsWith('.xipher') ? file.name : file.name + '.xipher';
+    const fileOutStream = streamSaver.createWriteStream(outFileName, {
+        size: fileSize
+    });
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
         if (status === XipherStreamStatus.PROCESSING) {
@@ -358,19 +324,11 @@ async function handleFileEncryption(key, file, compress) {
 }
 
 async function handleFileDecryption(key, file) {
-    let outFileName = file.name.replace(/\.xipher$/, '');
-    let fileOutStream;
-    try {
-        const outputFileOpts = {
-            suggestedName: outFileName,
-        };
-        const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
-        outFileName = filePickerHandle.name;
-        fileOutStream = await filePickerHandle.createWritable();
-    } catch (error) {
-        fileOutStream = await createDownloadOutputStream(outFileName);
-    }
     const fileSize = file.size;
+    const outFileName = file.name.replace(/\.xipher$/, '');
+    const fileOutStream = streamSaver.createWriteStream(outFileName, {
+        size: fileSize
+    });
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
         if (status === XipherStreamStatus.PROCESSING) {
