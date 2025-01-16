@@ -1,3 +1,7 @@
+const burialCache = new Map();
+const xipherSecretStoreId = "xipherSecret";
+const xipherPublicKeyStoreId = "xipherPublicKey";
+
 async function loadXipherWASM() {
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -9,8 +13,6 @@ async function loadXipherWASM() {
     const result = await WebAssembly.instantiateStreaming(fetch("wasm/xipher.wasm"), go.importObject);
     go.run(result.instance);
 }
-
-const burialCache = new Map();
 
 async function bury(id, data) {
     const textEncoder = new TextEncoder();
@@ -47,22 +49,22 @@ async function dig(id) {
     if (cachedData) {
         return cachedData;
     }
-    const storedData = localStorage.getItem(id);
-    if (!storedData) {
-        return null;
-    }
-    const combinedData = Uint8Array.from(storedData.split("").map(char => char.charCodeAt(0)));
-    const iv = combinedData.slice(0, 12);
-    const hash = combinedData.slice(12, 44);
-    const encryptedData = combinedData.slice(44);
-    const key = await crypto.subtle.importKey(
-        "raw",
-        hash,
-        { name: "AES-GCM" },
-        false,
-        ["decrypt"]
-    );
     try {
+        const storedData = localStorage.getItem(id);
+        if (!storedData) {
+            return null;
+        }
+        const combinedData = Uint8Array.from(storedData.split("").map(char => char.charCodeAt(0)));
+        const iv = combinedData.slice(0, 12);
+        const hash = combinedData.slice(12, 44);
+        const encryptedData = combinedData.slice(44);
+        const key = await crypto.subtle.importKey(
+            "raw",
+            hash,
+            { name: "AES-GCM" },
+            false,
+            ["decrypt"]
+        );
         const decryptedDataBuffer = await crypto.subtle.decrypt(
             {
                 name: "AES-GCM",
@@ -76,16 +78,16 @@ async function dig(id) {
         burialCache.set(id, originalData);
         return originalData;
     } catch (error) {
-        console.error("Decryption failed:", error);
+        console.error("Xipher dig failed!");
         return null;
     }
 }
 
 async function setXipherSecret(xipherSecret) {
-    const currentXipherSecret = await dig("xipherSecret");
+    const currentXipherSecret = await dig(xipherSecretStoreId);
     if (currentXipherSecret !== xipherSecret) {
-        await bury("xipherSecret", xipherSecret);
-        localStorage.removeItem("xipherPublicKey");
+        await bury(xipherSecretStoreId, xipherSecret);
+        localStorage.removeItem(xipherPublicKeyStoreId);
     }
 }
 
@@ -100,7 +102,7 @@ async function genXipherKey() {
 }
 
 async function getXipherSecret() {
-    let xipherSecret = await dig("xipherSecret");
+    let xipherSecret = await dig(xipherSecretStoreId);
     if (!xipherSecret) {
         xipherSecret = await genXipherKey();
         await setXipherSecret(xipherSecret);
@@ -110,7 +112,7 @@ async function getXipherSecret() {
 
 async function getXipherPublicKey() {
     const xipherSecret = await getXipherSecret();
-    let xipherPublicKey = localStorage.getItem("xipherPublicKey");
+    let xipherPublicKey = localStorage.getItem(xipherPublicKeyStoreId);
     if (!xipherPublicKey) {
         const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret);
         if (xipherPublicKeyOutput.error) {
@@ -119,7 +121,7 @@ async function getXipherPublicKey() {
             throw new Error("Failed to get public key");
         }
         xipherPublicKey = xipherPublicKeyOutput.result;
-        localStorage.setItem("xipherPublicKey", xipherPublicKey);
+        localStorage.setItem(xipherPublicKeyStoreId, xipherPublicKey);
     }
     return xipherPublicKey;
 }
