@@ -303,22 +303,45 @@ async function decryptStrFromUrlCt(key, urlCT) {
     return await decryptStr(key, ct);
 }
 
+async function createDownloadOutputStream(fileName) {
+    const chunks = [];
+    return new WritableStream({
+        write(chunk) {
+            chunks.push(chunk);
+        },
+        close() {
+            const blob = new Blob(chunks, { type: "application/octet-stream" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        },
+        abort(err) {
+            console.error("Stream aborted due to an error:", err);
+        },
+    });
+}
+
 async function handleFileEncryption(key, file, compress) {
-    const outputFileOpts = {
-        suggestedName: file.name.endsWith('.xipher') ? file.name : file.name + '.xipher',
-        types: [{
-            description: 'Encrypted Files',
-            accept: {'application/octet-stream': ['.xipher']}
-        }]
-    };
-    let filePickerHandle;
+    let outFileName = file.name.endsWith('.xipher') ? file.name : file.name + '.xipher';
+    let fileOutStream;
     try {
-        filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+        const outputFileOpts = {
+            suggestedName: outFileName,
+            types: [{
+                description: 'Encrypted Files',
+                accept: {'application/octet-stream': ['.xipher']}
+            }]
+        };
+        const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+        outFileName = filePickerHandle.name;
+        fileOutStream = await filePickerHandle.createWritable();
     } catch (error) {
-        showActivityErrorInView("File operations not supported on this device.", "Operation Failed!");
-        return;
+        fileOutStream = await createDownloadOutputStream(outFileName);
     }
-    const outStream = await filePickerHandle.createWritable();
     const fileSize = file.size;
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
@@ -330,23 +353,23 @@ async function handleFileEncryption(key, file, compress) {
             showActivityErrorInView("Encryption Failed! Please remove the incomplete file (" + outFileName + ")", "Encryption Failed!");
         }
     };
-    await encryptFile(key, file, compress, outStream, progressCallback);
+    await encryptFile(key, file, compress, fileOutStream, progressCallback);
     actionButton.classList.remove("animate");
 }
 
 async function handleFileDecryption(key, file) {
-    const outputFileOpts = {
-        suggestedName: file.name.replace(/\.xipher$/, ''),
-    };
-    let filePickerHandle;
+    let outFileName = file.name.replace(/\.xipher$/, '');
+    let fileOutStream;
     try {
-        filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+        const outputFileOpts = {
+            suggestedName: outFileName,
+        };
+        const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+        outFileName = filePickerHandle.name;
+        fileOutStream = await filePickerHandle.createWritable();
     } catch (error) {
-        showActivityErrorInView("File operations not supported on this device.", "Operation Failed!");
-        return;
+        fileOutStream = await createDownloadOutputStream(outFileName);
     }
-    outFileName = filePickerHandle.name;
-    const outStream = await filePickerHandle.createWritable();
     const fileSize = file.size;
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
@@ -358,7 +381,7 @@ async function handleFileDecryption(key, file) {
             showActivityErrorInView("Decryption Failed! Please remove the incomplete file (" + outFileName + ")", "Decryption Failed!");
         }
     };
-    await decryptFile(key, file, outStream, progressCallback);
+    await decryptFile(key, file, fileOutStream, progressCallback);
     actionButton.classList.remove("animate");
 }
 
