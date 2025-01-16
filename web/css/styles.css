@@ -134,7 +134,7 @@ h1 {
     text-decoration: none;
     color: var(--text-color);
     display: inline-block;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: bold;
     transition: transform 0.3s ease, opacity 0.3s ease;
 }
@@ -142,6 +142,20 @@ h1 {
 #form-title-link:hover {
     opacity: 0.9;
     transform: scale(1.1);
+}
+
+#form-title-link img {
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 30px;
+    height: auto;
+    margin-bottom: 10px;
+    filter: brightness(0.8);
+    transition: 0.5s ease;
+}
+
+#form-title-link img:hover {
+    filter: brightness(1);
 }
 
 .description {

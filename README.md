@@ -1,3 +1,7 @@
+<p align="center">
+	<img src="https://xipher.org/assets/xipher.svg" width="80">
+</p>
+
 # Xipher
 [![Go Reference](https://pkg.go.dev/badge/xipher.org/xipher.svg)](https://pkg.go.dev/xipher.org/xipher)
 [![Go Report Card](https://goreportcard.com/badge/xipher.org/xipher)](https://goreportcard.com/report/xipher.org/xipher)

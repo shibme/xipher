@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p web/wasm
           unzip xipher_js_wasm.zip -d web/wasm/
-      - name: Downloading StreamSaver.js
+      - name: Downloading StreamSaver.js to web directory
         run: |
           curl -o web/js/StreamSaver.js https://cdn.jsdelivr.net/npm/streamsaver@latest/StreamSaver.min.js
       - name: Setup Pages
