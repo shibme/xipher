@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 16 16">
+    <mask id="keyhole">
+        <rect width="16" height="16" fill="white"/>
+        <circle cx="8" cy="8" r="2" fill="black"/>
+    </mask>
+    <polygon points="0,0 5,0 8,4 11,0 16,0 12,8 16,16 10,16 8,6 6,16 0,16 4,8" fill="white" mask="url(#keyhole)"/>
+</svg>
