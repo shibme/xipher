@@ -1,0 +1,209 @@
+.icon-button {
+    margin-left: 10px;
+    background: var(--action-disabled-bg);
+    color: var(--action-disabled-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 5px 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s, color 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
+}
+
+.icon-button:hover {
+    filter: brightness(0.9);
+}
+
+.icon-button:active {
+    transform: scale(0.95);
+}
+
+.icon-button-fade {
+    transition: opacity 0.5s ease;
+    opacity: 0.5;
+}
+
+#text-copy-button {
+    position: absolute;
+    height: 35px;
+    width: 35px;
+    bottom: 10px;
+    display: none;
+    right: 10px;
+}
+
+#text-share-button {
+    position: absolute;
+    height: 35px;
+    width: 35px;
+    bottom: 10px;
+    display: none;
+    right: 50px;
+}
+
+.regular-button {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    font-size: 16px;
+    border-radius: 6px;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s, color 0.3s;
+    font-family: monospace, Arial, sans-serif;
+}
+
+.regular-button:active {
+    transform: scale(0.99);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes opacityAnimation {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.animate {
+    animation: opacityAnimation 1.5s infinite;
+    transition: opacity 0.3s;
+}
+
+.select-file-button {
+    background: var(--button-select-file-bg);
+    color: var(--button-select-file-text);
+}
+
+.select-file-button:hover {
+    filter: brightness(0.9);
+}
+
+.reset-content-button {
+    background: var(--button-remove-file-bg);
+    color: var(--button-remove-file-text);
+}
+
+.reset-content-button:hover {
+    filter: brightness(0.9);
+}
+
+.encrypt-button {
+    background: var(--button-encrypt-bg);
+    color: var(--button-encrypt-text);
+}
+
+.encrypt-button:hover {
+    filter: brightness(0.9);
+}
+
+.decrypt-button {
+    background: var(--button-decrypt-bg);
+    color: var(--button-decrypt-text);
+}
+
+.decrypt-button:hover {
+    filter: brightness(0.9);
+}
+
+.disabled {
+    background: var(--action-disabled-bg);
+    color: var(--action-disabled-text);
+    cursor: not-allowed;
+}
+
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 15px;
+    background: var(--border-color);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+}
+
+.theme-toggle .toggle-circle {
+    width: 15px;
+    height: 15px;
+    background: var(--text-color);
+    border-radius: 50%;
+    transition: transform 0.3s, background 0.3s;
+}
+
+[data-theme="dark"] .theme-toggle {
+    background: var(--text-color);
+}
+
+[data-theme="dark"] .theme-toggle .toggle-circle {
+    background: var(--bg-color);
+    transform: translateX(25px);
+}
+
+.repo-reference {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.github-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    gap: 5px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.github-link:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.github-icon {
+    width: 30px;
+    height: 30px;
+    filter: brightness(0.7);
+    transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] .github-icon {
+    filter: invert(1) brightness(1.5);
+}
+
+.github-icon:hover {
+    filter: brightness(1);
+}
+
+.repo-slug {
+    font-weight: bold;
+    font-size: 14px;
+    opacity: 0.8;
+    text-align: center;
+    transition: opacity 0.3s ease;
+}
+
+.github-link:hover .repo-slug {
+    opacity: 1;
+    text-decoration: underline;
+}

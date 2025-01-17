@@ -1,7 +1,3 @@
-const burialCache = new Map();
-const xipherSecretStoreId = "xipherSecret";
-const xipherPublicKeyStoreId = "xipherPublicKey";
-
 async function loadXipherWASM() {
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -14,185 +10,29 @@ async function loadXipherWASM() {
     go.run(result.instance);
 }
 
-async function bury(id, data) {
-    const textEncoder = new TextEncoder();
-    const dataBytes = textEncoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", dataBytes);
-    const hash = new Uint8Array(hashBuffer);
-    const key = await crypto.subtle.importKey(
-        "raw",
-        hash,
-        { name: "AES-GCM" },
-        false,
-        ["encrypt"]
-    );
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encryptedDataBuffer = await crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv,
-        },
-        key,
-        dataBytes
-    );
-    const encryptedData = new Uint8Array(encryptedDataBuffer);
-    const combinedData = new Uint8Array(iv.length + hash.length + encryptedData.length);
-    combinedData.set(iv);
-    combinedData.set(hash, iv.length);
-    combinedData.set(encryptedData, iv.length + hash.length);
-    localStorage.setItem(id, String.fromCharCode(...combinedData));
-    burialCache.set(id, data);
-}
-
-async function dig(id) {
-    const cachedData = burialCache.get(id);
-    if (cachedData) {
-        return cachedData;
-    }
-    try {
-        const storedData = localStorage.getItem(id);
-        if (!storedData) {
-            return null;
-        }
-        const combinedData = Uint8Array.from(storedData.split("").map(char => char.charCodeAt(0)));
-        const iv = combinedData.slice(0, 12);
-        const hash = combinedData.slice(12, 44);
-        const encryptedData = combinedData.slice(44);
-        const key = await crypto.subtle.importKey(
-            "raw",
-            hash,
-            { name: "AES-GCM" },
-            false,
-            ["decrypt"]
-        );
-        const decryptedDataBuffer = await crypto.subtle.decrypt(
-            {
-                name: "AES-GCM",
-                iv: iv,
-            },
-            key,
-            encryptedData
-        );
-        const textDecoder = new TextDecoder();
-        const originalData = textDecoder.decode(decryptedDataBuffer);
-        burialCache.set(id, originalData);
-        return originalData;
-    } catch (error) {
-        console.error("Xipher dig failed!");
-        return null;
-    }
-}
-
-async function setXipherSecret(xipherSecret) {
-    const currentXipherSecret = await dig(xipherSecretStoreId);
-    if (currentXipherSecret !== xipherSecret) {
-        await bury(xipherSecretStoreId, xipherSecret);
-        localStorage.removeItem(xipherPublicKeyStoreId);
-    }
-}
-
-async function genXipherKey() {
+async function genXipherSecretKey() {
     const xipherKeyOutput = await window.xipherNewSecretKey();
-    if (xipherKeyOutput.error) {
-        throw new Error(xipherKeyOutput.error);
-    } else if (!xipherKeyOutput.result) {
-        throw new Error("Failed to get secret key");
+    if (xipherKeyOutput.error || !xipherKeyOutput.result) {
+        throw new Error(xipherKeyOutput.error ? xipherKeyOutput.error : "Failed to get secret key");
     }
     return xipherKeyOutput.result;
 }
 
-async function getXipherSecret() {
-    let xipherSecret = await dig(xipherSecretStoreId);
-    if (!xipherSecret) {
-        xipherSecret = await genXipherKey();
-        await setXipherSecret(xipherSecret);
+async function genXipherPublicKey(xipherSecret) {
+    const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret);
+    if (xipherPublicKeyOutput.error || !xipherPublicKeyOutput.result) {
+        throw new Error(xipherPublicKeyOutput.error ? xipherPublicKeyOutput.error : "Failed to get public key");
     }
-    return xipherSecret;
-}
-
-async function getXipherPublicKey() {
-    const xipherSecret = await getXipherSecret();
-    let xipherPublicKey = localStorage.getItem(xipherPublicKeyStoreId);
-    if (!xipherPublicKey) {
-        const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret);
-        if (xipherPublicKeyOutput.error) {
-            throw new Error(xipherPublicKeyOutput.error);
-        } else if (!xipherPublicKeyOutput.result) {
-            throw new Error("Failed to get public key");
-        }
-        xipherPublicKey = xipherPublicKeyOutput.result;
-        localStorage.setItem(xipherPublicKeyStoreId, xipherPublicKey);
-    }
-    return xipherPublicKey;
+    return xipherPublicKeyOutput.result;
 }
 
 const XipherStreamStatus = {
     PROCESSING: "PROCESSING",
     COMPLETED: "COMPLETED",
     FAILED: "FAILED",
+    CANCELLING: "CANCELLING",
     CANCELLED: "CANCELLED",
 };
-
-async function newEncryptingTransformer(keyOrPassword, compress) {
-    const streamEncrypterOutput = await window.xipherNewEncryptingTransformer(keyOrPassword, compress);
-    if (streamEncrypterOutput.error) {
-        throw new Error(streamEncrypterOutput.error);
-    } else if (!streamEncrypterOutput.result) {
-        throw new Error("Failed to create stream encrypter");
-    }
-    return streamEncrypterOutput.result;
-}
-
-async function encryptThroughTransformer(encrypterId, chunkArray) {
-    const writeOutput = await window.xipherEncryptThroughTransformer(encrypterId, chunkArray);
-    if (writeOutput.error) {
-        throw new Error(writeOutput.error);
-    }
-    return writeOutput.result;
-}
-
-async function closeEncryptingTransformer(encrypterId) {
-    const closeOutput = await window.xipherCloseEncryptingTransformer(encrypterId);
-    if (closeOutput.error) {
-        throw new Error(closeOutput.error);
-    }
-    return closeOutput.result;
-}
-
-async function encryptFile(key, file, compress, outStream, progressCallback) {
-    if (!file) {
-        throw new Error("No file provided");
-    }
-    const encrypterId = await newEncryptingTransformer(key, compress);
-    const fileStream = file.stream();
-    let processedSize = 0;
-    const encryptStream = new TransformStream({
-        async transform(chunk, controller) {
-            const chunkArray = new Uint8Array(chunk);
-            const encryptedChunk = await encryptThroughTransformer(encrypterId, chunkArray);
-            if (encryptedChunk && encryptedChunk.length > 0) {
-                controller.enqueue(encryptedChunk);
-                processedSize += chunkArray.length;
-                progressCallback(processedSize, XipherStreamStatus.PROCESSING);
-            }
-        },
-        async flush(controller) {
-            const residualData = await closeEncryptingTransformer(encrypterId);
-            if (residualData && residualData.length > 0) {
-                controller.enqueue(residualData);
-                processedSize += residualData.length;
-                progressCallback(processedSize, XipherStreamStatus.PROCESSING);
-            }
-            controller.terminate();
-        }
-    });
-    try {
-        await fileStream.pipeThrough(encryptStream).pipeTo(outStream);
-        progressCallback(processedSize, XipherStreamStatus.COMPLETED);
-    } catch (error) {
-        progressCallback(processedSize, XipherStreamStatus.FAILED);
-    }
-}
 
 async function encryptStr(key, str) {
     const encryptOutput = await window.xipherEncryptStr(key, str);
@@ -204,67 +44,6 @@ async function encryptStr(key, str) {
     return encryptOutput.result;
 }
 
-async function newDecryptingTransformer(keyOrPassword) {
-    const streamDecrypterOutput = await window.xipherNewDecryptingTransformer(keyOrPassword);
-    if (streamDecrypterOutput.error) {
-        throw new Error(streamDecrypterOutput.error);
-    } else if (!streamDecrypterOutput.result) {
-        throw new Error("Failed to create stream decrypter");
-    }
-    return streamDecrypterOutput.result;
-}
-
-async function decryptThroughTransformer(decrypterId, chunkArray) {
-    const readOutput = await window.xipherDecryptThroughTransformer(decrypterId, chunkArray);
-    if (readOutput.error) {
-        throw new Error(readOutput.error);
-    }
-    return readOutput.result;
-}
-
-async function closeDecryptingTransformer(decrypterId) {
-    const closeOutput = await window.xipherCloseDecryptingTransformer(decrypterId);
-    if (closeOutput.error) {
-        throw new Error(closeOutput.error);
-    }
-    return closeOutput.result;
-}
-
-async function decryptFile(key, file, outStream, progressCallback) {
-    if (!file) {
-        throw new Error("No file provided");
-    }
-    const decrypterId = await newDecryptingTransformer(key);
-    const fileStream = file.stream();
-    let processedSize = 0;
-    const decryptStream = new TransformStream({
-        async transform(chunk, controller) {
-            const chunkArray = new Uint8Array(chunk);
-            const decryptedChunk = await decryptThroughTransformer(decrypterId, chunkArray);
-            if (decryptedChunk && decryptedChunk.length > 0) {
-                controller.enqueue(decryptedChunk);
-                processedSize += chunkArray.length;
-                progressCallback(processedSize, XipherStreamStatus.PROCESSING);
-            }
-        },
-        async flush(controller) {
-            const residualData = await closeDecryptingTransformer(decrypterId);
-            if (residualData && residualData.length > 0) {
-                controller.enqueue(residualData);
-                processedSize += residualData.length;
-                progressCallback(processedSize, XipherStreamStatus.PROCESSING);
-            }
-            controller.terminate();
-        }
-    });
-    try {
-        await fileStream.pipeThrough(decryptStream).pipeTo(outStream);
-        progressCallback(processedSize, XipherStreamStatus.COMPLETED);
-    } catch (error) {
-        progressCallback(processedSize, XipherStreamStatus.FAILED);
-    }
-}
-
 async function decryptStr(key, ct) {
     const decryptOutput = await window.xipherDecryptStr(key, ct);
     if (decryptOutput.error) {
@@ -273,4 +52,186 @@ async function decryptStr(key, ct) {
         throw new Error("Failed to decrypt string");
     }
     return decryptOutput.result;
+}
+
+class FileEncrypter {
+    
+    constructor(keyOrPassword, inputFile, outputStream, compress, progressCallback) {
+        this.keyOrPassword = keyOrPassword;
+        this.inputFile = inputFile;
+        this.outputStream = outputStream;
+        this.compress = compress;
+        this.progressCallback = progressCallback;
+        this.processedSize = 0;
+        this.cancelled = false;
+        this.controllerAborted = false;
+        this.ended = false;
+    }
+
+    async start() {
+        self = this;
+        const streamEncrypterOutput = await window.xipherNewEncryptingTransformer(self.keyOrPassword, self.compress);
+        if (streamEncrypterOutput.error || !streamEncrypterOutput.result) {
+            throw new Error(streamEncrypterOutput.error ? streamEncrypterOutput.error : "Failed to initialize encrypter");
+        }
+        const encrypterId = streamEncrypterOutput.result;
+        const fileStream = self.inputFile.stream();
+        const encryptStream = new TransformStream({
+            async transform(chunk, controller) {
+                if (self.cancelled) {
+                    if (!self.controllerAborted) {
+                        controller.abort();
+                        self.controllerAborted = true;
+                    }
+                    return;
+                }
+                const chunkArray = new Uint8Array(chunk);
+                const transformedOutput = await window.xipherEncryptThroughTransformer(encrypterId, chunkArray);
+                if (transformedOutput.error) {
+                    throw new Error(transformedOutput.error);
+                }
+                const encryptedChunk = transformedOutput.result;
+                if (encryptedChunk && encryptedChunk.length > 0) {
+                    controller.enqueue(encryptedChunk);
+                    self.processedSize += chunkArray.length;
+                    if (self.progressCallback) {
+                        self.progressCallback(self.processedSize, XipherStreamStatus.PROCESSING);
+                    }
+                }
+            },
+            async flush(controller) {
+                const closedOutput = await window.xipherCloseEncryptingTransformer(encrypterId);
+                if (closedOutput.error) {
+                    throw new Error(closedOutput.error);
+                }
+                const residualData = closedOutput.result;
+                if (residualData && residualData.length > 0) {
+                    controller.enqueue(residualData);
+                    self.processedSize += residualData.length;
+                    if (self.progressCallback) {
+                        self.progressCallback(self.processedSize, XipherStreamStatus.PROCESSING);
+                    }
+                }
+                controller.terminate();
+            }
+        });
+        let finalStatus = XipherStreamStatus.COMPLETED;
+        try {
+            await fileStream.pipeThrough(encryptStream).pipeTo(self.outputStream);
+        } catch (error) {
+            finalStatus = XipherStreamStatus.FAILED;
+        }
+        if (self.cancelled) {
+            finalStatus = XipherStreamStatus.CANCELLED;
+        }
+        if (self.progressCallback) {
+            self.progressCallback(self.processedSize, finalStatus);
+        }
+        this.ended = true;
+    }
+
+    isEnded() {
+        return this.ended;
+    }
+
+    async cancel() {
+        if (self.progressCallback && !self.cancelled) {
+            self.progressCallback(self.processedSize, XipherStreamStatus.CANCELLING);
+        }
+        this.cancelled = true;
+    }
+}
+
+class FileDecrypter {
+
+    constructor(keyOrPassword, inputFile, outputStream, progressCallback) {
+        this.keyOrPassword = keyOrPassword;
+        this.inputFile = inputFile;
+        this.outputStream = outputStream;
+        this.progressCallback = progressCallback;
+        this.processedSize = 0;
+        this.cancelled = false;
+        this.controllerAborted = false;
+        this.ended = false;
+    }
+
+    async start() {
+        self = this;
+        const streamDecrypterOutput = await window.xipherNewDecryptingTransformer(self.keyOrPassword);
+        if (streamDecrypterOutput.error || !streamDecrypterOutput.result) {
+            throw new Error(streamDecrypterOutput.error ? streamDecrypterOutput.error : "Failed to initialize decrypter");
+        }
+        const decrypterId = streamDecrypterOutput.result;
+        const fileStream = self.inputFile.stream();
+        const decryptStream = new TransformStream({
+            async transform(chunk, controller) {
+                if (self.cancelled) {
+                    if (!self.controllerAborted) {
+                        controller.abort();
+                        self.controllerAborted = true;
+                    }
+                    return;
+                }
+                const chunkArray = new Uint8Array(chunk);
+                const transformedOutput = await window.xipherDecryptThroughTransformer(decrypterId, chunkArray);
+                if (transformedOutput.error) {
+                    throw new Error(transformedOutput.error);
+                }
+                const decryptedChunk = transformedOutput.result;
+                if (decryptedChunk && decryptedChunk.length > 0) {
+                    controller.enqueue(decryptedChunk);
+                    self.processedSize += chunkArray.length;
+                    if (self.progressCallback) {
+                        self.progressCallback(self.processedSize, XipherStreamStatus.PROCESSING);
+                    }
+                }
+            },
+            async flush(controller) {
+                if (self.cancelled) {
+                    if (!self.controllerAborted) {
+                        controller.abort();
+                        self.controllerAborted = true;
+                    }
+                    return;
+                }
+                const closedOutput = await window.xipherCloseDecryptingTransformer(decrypterId);
+                if (closedOutput.error) {
+                    throw new Error(closedOutput.error);
+                }
+                const residualData = closedOutput.result;
+                if (residualData && residualData.length > 0) {
+                    controller.enqueue(residualData);
+                    self.processedSize += residualData.length;
+                    if (self.progressCallback) {
+                        self.progressCallback(self.processedSize, XipherStreamStatus.PROCESSING);
+                    }
+                }
+                controller.terminate();
+            }
+        });
+        let finalStatus = XipherStreamStatus.COMPLETED;
+        try {
+            await fileStream.pipeThrough(decryptStream).pipeTo(self.outputStream);
+        } catch (error) {
+            finalStatus = XipherStreamStatus.FAILED;
+        }
+        if (self.cancelled) {
+            finalStatus = XipherStreamStatus.CANCELLED;
+        }
+        if (self.progressCallback) {
+            self.progressCallback(self.processedSize, finalStatus);
+        }
+        this.ended = true;
+    }
+
+    isEnded() {
+        return this.ended;
+    }
+
+    async cancel() {
+        if (self.progressCallback) {
+            self.progressCallback(self.processedSize, XipherStreamStatus.CANCELLING);
+        }
+        this.cancelled = true;
+    }
 }

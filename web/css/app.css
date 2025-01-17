@@ -1,0 +1,193 @@
+.app-frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.app-container {
+    background: var(--input-bg-color);
+    padding: 20px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    transition: background 0.3s;
+}
+
+h1 {
+    font-size: 20px;
+    text-align: center;
+    font-family: Arial;
+    font-weight: bold;
+}
+
+.app-title-logo {
+    text-decoration: none;
+    background: linear-gradient(135deg, #00ddff, #0044ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    font-size: 18px;
+    font-weight: bold;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.app-title-logo:hover {
+    opacity: 0.9;
+    transform: scale(1.1);
+}
+
+.app-title-logo img {
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 40px;
+    height: auto;
+    filter: brightness(0.8);
+    transition: 0.5s ease;
+}
+
+.app-title-logo:hover {
+    filter: brightness(1);
+    animation: logo-animation 1.5s infinite;
+}
+
+.description {
+    font-size: 12px;
+    color: var(--text-color);
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    opacity: 0.8;
+}
+
+.input-container {
+    margin-bottom: 15px;
+}
+
+.input-container label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-family: monospace, Arial, sans-serif;
+}
+
+.link-viewbox {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--input-bg-color);
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-family: monospace, Arial, sans-serif;
+}
+
+.shareable-link {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--action-disabled-text);
+    font-family: monospace, Arial, sans-serif;
+    font-size: 14px;
+    outline: none;
+    padding: 5px;
+    filter: opacity(0.7);
+}
+
+.text-view {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--input-bg-color);
+    transition: border-color 0.3s;
+    height: 150px;
+    max-height: 150px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.text-view.dragover {
+    border-color: var(--button-select-file-bg);
+}
+
+textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-family: monospace, inherit;
+    background: transparent;
+    resize: none;
+    overflow-y: auto;
+    color: var(--text-color);
+}
+
+textarea:disabled {
+    background: var(--action-disabled-bg);
+    color: var(--action-disabled-text);
+    cursor: not-allowed;
+}
+
+textarea::placeholder {
+    color: var(--action-disabled-text);
+    opacity: 0.5;
+    text-align: center;
+    font-style: italic;
+}
+
+textarea:focus::placeholder {
+    opacity: 0;
+}
+
+.text-success {
+    color: #008e05;
+    font-size: 14px;
+    font-family: monospace, Arial, sans-serif;
+    text-align: center;
+}
+
+.text-error {
+    color: #f44336;
+    font-size: 14px;
+    font-family: monospace, Arial, sans-serif;
+    text-align: center;
+}
+
+.file-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--file-bg);
+    border: 1px solid var(--file-border);
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.file-name {
+    font-weight: bold;
+    color: var(--file-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 200px;
+    font-family: monospace, Arial, sans-serif;
+}
+
+.file-size {
+    font-size: 12px;
+    color: var(--file-text);
+    font-family: monospace, Arial, sans-serif;
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 20 20">
+    <defs>
+        <linearGradient id="xipher-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="25%" style="stop-color:#00ddff;stop-opacity:1" />
+            <stop offset="75%" style="stop-color:#0044ff;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <mask id="xipher-keyhole">
+        <rect width="20" height="20" fill="white"/>
+        <circle cx="10" cy="10" r="2" fill="black"/>
+    </mask>
+    <polygon points="2,2 7,2 10,7 13,2 18,2 14,10 18,18 12,18 10,8 8,18 2,18 6,10" fill="url(#xipher-gradient)" mask="url(#xipher-keyhole)"/>
+</svg>

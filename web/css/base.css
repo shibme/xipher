@@ -1,0 +1,135 @@
+:root {
+    --bg-color: #f4f7f9;
+    --text-color: #333;
+    --border-color: #ccc;
+    --input-bg-color: #fff;
+
+    --button-encrypt-bg: #4caf50;
+    --button-encrypt-text: #fff;
+
+    --button-decrypt-bg: #ff9800;
+    --button-decrypt-text: #fff;
+
+    --button-select-file-bg: #2196f3;
+    --button-select-file-text: #fff;
+
+    --button-remove-file-bg: #f44336;
+    --button-remove-file-text: #fff;
+
+    --action-disabled-bg: #ccc;
+    --action-disabled-text: #666;
+
+    --file-bg: #fff;
+    --file-border: #ddd;
+    --file-text: #555;
+}
+
+[data-theme="dark"] {
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --border-color: #444;
+    --input-bg-color: #1d1d1d;
+
+    --button-encrypt-bg: #81c784;
+    --button-encrypt-text: #000;
+
+    --button-decrypt-bg: #ffa726;
+    --button-decrypt-text: #000;
+
+    --button-select-file-bg: #64b5f6;
+    --button-select-file-text: #000;
+
+    --button-remove-file-bg: #e57373;
+    --button-remove-file-text: #000;
+
+    --action-disabled-bg: #555;
+    --action-disabled-text: #bbb;
+
+    --file-bg: #1d1d1d;
+    --file-border: #444;
+    --file-text: #e0e0e0;
+}
+
+body {
+    font-family: monospace, Arial, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    transition: background 0.3s, color 0.3s;
+}
+
+.loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color);
+    color: linear-gradient(135deg, #00ddff, #0044ff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    visibility: visible;
+    opacity: 1;
+}
+
+.loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.spinner-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner-logo {
+    position: absolute;
+    width: 30px;
+    height: auto;
+    animation: logo-animation 1.5s infinite;
+}
+
+@keyframes logo-animation {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.spinner {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 5px solid var(--border-color);
+    border-top: 5px solid var(--text-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    background: none;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

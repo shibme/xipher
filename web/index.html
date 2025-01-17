@@ -2,31 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="assets/xipher.svg" />
+    <link rel="icon" href="assets/images/logo.svg" />
     <title>Xipher</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/app.css" defer>
+    <link rel="stylesheet" href="css/objects.css" defer>
 </head>
 <body>
-    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-        <div class="toggle-circle"></div>
-    </div>
     <div id="loader" class="loader">
         <div class="spinner-wrapper">
-            <img src="assets/xipher.svg" alt="Logo" class="spinner-logo">
+            <img src="assets/images/logo.svg" alt="Logo" class="spinner-logo">
             <div class="spinner"></div>
         </div>
         <div id="loader-text">
-            <p>Loading Xipher...</p>
+            <p>Loading Xipher</p>
         </div>
     </div>
-    <div class="app-wrapper">
-        <div class="container">
-            <h1 id="form-title">
-                <a href="./" id="form-title-link">
-                    <img src="assets/xipher.svg" alt="Xipher Logo"">
-                    <br>
-                    XIPHER
+    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <div class="toggle-circle"></div>
+    </div>
+    <div class="app-frame">
+        <div class="app-container">
+            <h1 id="app-title-container">
+                <a href="./" id="app-title-logo" class="app-title-logo">
+                    <img src="assets/images/logo.svg" alt="Xipher Logo">
+                    <p>XIPHER</p>
                 </a>
             </h1>
             <p class="description">Xipher Web is a browser-based, serverless encryption tool for securely sharing sensitive data.</p>
@@ -117,14 +119,17 @@
         </div>
         <div class="repo-reference">
             <a href="https://github.com/shibme/xipher" target="_blank" title="View on GitHub" class="github-link">
-                <img src="assets/github.svg" alt="GitHub" class="github-icon">
+                <img src="assets/images/github.svg" alt="GitHub" class="github-icon">
                 <span class="repo-slug">shibme/xipher</span>
             </a>
         </div>
     </div>
-    <script src="wasm/wasm_exec.js"></script>
-    <script src="js/StreamSaver.js"></script>
-    <script src="js/xipher.js"></script>
-    <script src="js/app.js"></script>
+    <script src="wasm/wasm_exec.js" defer></script>
+    <script src="js/xipher.js" defer></script>
+    <script src="js/keystore.js" defer></script>
+    <script src="js/StreamSaver.js" defer></script>
+    <script src="js/ui.js" defer></script>
+    <script src="js/service-worker.js" defer></script>
+    <script src="js/main.js" defer></script>
 </body>
 </html>

@@ -34,6 +34,9 @@ jobs:
       - name: Downloading StreamSaver.js to web directory
         run: |
           curl -o web/js/StreamSaver.js https://cdn.jsdelivr.net/npm/streamsaver@latest/StreamSaver.min.js
+      - name: Setting commit sha in service-worker.js
+        run: |
+          sed -i "s/xipher-cache/xipher-${{ github.sha }}/g" web/js/service-worker.js
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact from web directory

@@ -6,7 +6,6 @@ const textActionButton = document.getElementById("text-action-button");
 const fileDisplay = document.getElementById("file-display");
 const fileNameElement = document.getElementById("file-name");
 const fileSizeElement = document.getElementById("file-size");
-const dropArea = document.getElementById("drop-area");
 const actionButton = document.getElementById("action-button");
 const formTitle = document.getElementById("form-title");
 const urlParams = new URLSearchParams(window.location.search);
@@ -17,28 +16,6 @@ const shareableLink = document.getElementById("shareable-link");
 const textCopyButton = document.getElementById("text-copy-button");
 const textShareButton = document.getElementById("text-share-button");
 const publinkCopyButton = document.getElementById("publink-copy-button");
-
-// Toggle theme
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    const newTheme = currentTheme === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", newTheme);
-    localStorage.setItem("theme", newTheme);
-
-    const toggleCircle = document.querySelector(".theme-toggle .toggle-circle");
-    if (newTheme === "dark") {
-        toggleCircle.setAttribute("title", "Switch to Light Mode");
-    } else {
-        toggleCircle.setAttribute("title", "Switch to Dark Mode");
-    }
-}
-
-// Load persisted theme
-function loadTheme() {
-    const storedTheme = localStorage.getItem("theme");
-    const theme = storedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    document.documentElement.setAttribute("data-theme", theme);
-}
 
 function getEncryptionTarget() {
     if (!xk) {
@@ -85,7 +62,6 @@ function humanReadableFileSize(size) {
     return `${formattedValue} ${units[i]}`;
 }
 
-// Utility: Truncate file name
 function truncateFileName(name, length) {
     if (name.length > length) {
         return name.substring(0, length) + "...";
@@ -126,20 +102,16 @@ function handleFileSelect() {
     if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const fileSize = humanReadableFileSize(file.size);
-
         textInput.value = "";
         textInput.setAttribute("readonly", true);
         textInput.placeholder = "Click to switch to text mode";
-
         const truncatedName = truncateFileName(file.name, 25);
         fileNameElement.textContent = truncatedName;
         fileNameElement.title = file.name;
         fileSizeElement.textContent = fileSize;
-
         fileDisplay.style.display = "flex";
         textActionButton.textContent = "Reset";
         textActionButton.className = "regular-button reset-content-button";
-
         updateView();
     }
 }
@@ -230,26 +202,6 @@ function updateView() {
     }
 }
 
-// Handle drag-and-drop functionality
-dropArea.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    dropArea.classList.add("dragover");
-});
-
-dropArea.addEventListener("dragleave", () => {
-    dropArea.classList.remove("dragover");
-});
-
-dropArea.addEventListener("drop", (event) => {
-    event.preventDefault();
-    dropArea.classList.remove("dragover");
-    const droppedFiles = event.dataTransfer.files;
-    if (droppedFiles.length > 0) {
-        fileInput.files = droppedFiles;
-        handleFileSelect();
-    }
-});
-
 function copyTextToClipboard() {
     const text = textInput.value.trim();
     if (!text) {
@@ -304,6 +256,18 @@ async function decryptStrFromUrlCt(key, urlCT) {
     return await decryptStr(key, ct);
 }
 
+let currentProcessor = null;
+
+async function cancelCurrentStreamProcessing() {
+    if (currentProcessor) {
+        currentProcessor.cancel();
+        while (!currentProcessor.isEnded()) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+    }
+    console.log("Processing cancelled!");
+}
+
 async function handleFileEncryption(key, file, compress) {
     const fileSize = file.size;
     const outFileName = file.name.endsWith('.xipher') ? file.name : file.name + '.xipher';
@@ -318,10 +282,19 @@ async function handleFileEncryption(key, file, compress) {
             showActivitySuccessInView("Encrypted as: " + outFileName, "Encryption Complete");
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Encryption Failed!", "Encryption Failed!");
+        } else if (status === XipherStreamStatus.CANCELLING) {
+            showActivityErrorInView("Canceling Encryption...", "Encryption Canceling...");
+        } else if (status === XipherStreamStatus.CANCELLED) {
+            showActivityErrorInView("Encryption Cancelled!", "Encryption Cancelled!");
+        } else {
+            console.error("Unknown status: ", status);
         }
     };
-    await encryptFile(key, file, compress, fileOutStream, progressCallback);
+    const encrypter = new FileEncrypter(key, file, fileOutStream, compress, progressCallback);
+    currentProcessor = encrypter;
+    await encrypter.start();
     actionButton.classList.remove("animate");
+    return encrypter;
 }
 
 async function handleFileDecryption(key, file) {
@@ -338,10 +311,19 @@ async function handleFileDecryption(key, file) {
             showActivitySuccessInView("Decrypted as: " + outFileName, "Decryption Complete");
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Decryption Failed!", "Decryption Failed!");
+        } else if (status === XipherStreamStatus.CANCELLING) {
+            showActivityErrorInView("Canceling Decryption...", "Decryption Canceling...");
+        } else if (status === XipherStreamStatus.CANCELLED) {
+            showActivityErrorInView("Decryption Cancelled!", "Decryption Cancelled!");
+        } else {
+            console.error("Unknown status: ", status);
         }
     };
-    await decryptFile(key, file, fileOutStream, progressCallback);
+    const decrypter = new FileDecrypter(key, file, fileOutStream, progressCallback);
+    currentProcessor = decrypter;
+    await decrypter.start();
     actionButton.classList.remove("animate");
+    return decrypter;
 }
 
 async function handleAction() {
@@ -378,7 +360,7 @@ async function handleAction() {
 
 async function getXipherPublicKeyUrl() {
     const url = window.location.href.split("?")[0];
-    const publicKey = await getXipherPublicKey();
+    const publicKey = await getPublicKey();
     return `${url}?xk=${publicKey}`;
 }
 
@@ -402,5 +384,23 @@ async function main() {
     initApp();
     loader.remove();
 }
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/js/service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registered: ', registration);
+        })
+        .catch(error => {
+          console.log('ServiceWorker registration failed: ', error);
+        });
+    });
+}
+
+window.addEventListener("beforeunload", function (e) {
+    if (currentProcessor && !currentProcessor.isEnded()) {
+        e.preventDefault();
+    }
+});
 
 main();

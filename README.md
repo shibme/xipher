@@ -1,6 +1,6 @@
-<p align="center">
-	<img src="https://xipher.org/assets/xipher.svg" width="80">
-</p>
+<div align="center">
+	<img src="https://xipher.org/assets/images/logo.svg" width="128" alt="">
+</div>
 
 # Xipher
 [![Go Reference](https://pkg.go.dev/badge/xipher.org/xipher.svg)](https://pkg.go.dev/xipher.org/xipher)
@@ -25,7 +25,7 @@ Xipher is a curated collection of cryptographic primitives put together to perfo
 Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
 
 ### Demo
-![Demo](https://xipher.org/assets/demo.gif)
+![Demo](https://xipher.org/assets/previews/demo.gif)
 
 ### Homebrew
 Xipher can be installed with brew using the following command on macOS
