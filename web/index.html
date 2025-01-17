@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none'; 
+        script-src 'self' 'unsafe-eval' 'unsafe-inline'; 
+        style-src 'self'; 
+        img-src 'self'; 
+        font-src 'self'; 
+        connect-src 'self'; 
+        frame-src 'none'; 
+        object-src 'none'; 
+        manifest-src 'self';
+        base-uri 'self'; 
+        form-action 'self'; 
+        upgrade-insecure-requests; 
+        block-all-mixed-content;
+        ">
     <meta charset="UTF-8">
     <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +26,7 @@
     <link rel="stylesheet" href="css/app.css" defer>
     <link rel="stylesheet" href="css/objects.css" defer>
 </head>
+
 <body>
     <div id="preloader" class="preloader">
         <div class="preloader-container">
@@ -29,88 +46,46 @@
                     <p>XIPHER</p>
                 </a>
             </h1>
-            <p class="description">Xipher Web is a browser-based, serverless encryption tool for securely sharing sensitive data.</p>
+            <p class="description">Xipher is a stand-alone, server-less encryption tool for securely sharing sensitive
+                data.</p>
             <p class="description">Share this URL with someone to receive a secret 👇</p>
-            <div id="link-viewbox" class="link-viewbox" style="display: flex;">
-                <input
-                    type="text"
-                    id="shareable-link"
-                    class="shareable-link"
-                    readonly
-                    value=""
-                />
-                <button
-                    class="icon-button"
-                    id="publink-copy-button"
-                    onclick="copyPublicKeyLinkToClipboard()"
-                    title="Copy"
-                >
+            <div id="link-viewbox" class="link-viewbox">
+                <input type="text" id="shareable-link" class="shareable-link" readonly value="" />
+                <button class="icon-button" id="publink-copy-button" onclick="copyPublicKeyLinkToClipboard()"
+                    title="Copy">
                     📋
                 </button>
-                <button
-                    class="icon-button"
-                    id="publink-share-button"
-                    onclick="sharePublicKeyLink()"
-                    title="Share"
-                >
-                    ➤ 
+                <button class="icon-button" id="publink-share-button" onclick="sharePublicKeyLink()" title="Share">
+                    ➤
                 </button>
             </div>
             <form id="crypto-form">
                 <div class="input-container">
-                    <div id="drop-area" class="text-view" style="position: relative;">
-                        <textarea
-                            id="text"
-                            placeholder="Enter your text or drag/drop a file to encrypt/decrypt"
-                            oninput="updateView()"
-                        ></textarea>
-                        <button
-                            type="button"
-                            class="icon-button"
-                            id="text-copy-button"
-                            onclick="copyTextToClipboard()"
-                            title="Copy"
-                        >
+                    <div id="drop-area" class="text-view">
+                        <textarea id="text" placeholder="Enter your text or drag/drop a file to encrypt/decrypt"
+                            oninput="updateView()"></textarea>
+                        <button type="button" class="icon-button" id="text-copy-button" onclick="copyTextToClipboard()"
+                            title="Copy">
                             📋
                         </button>
-                        <button
-                            type="button"
-                            class="icon-button"
-                            id="text-share-button"
-                            onclick="shareText()"
-                            title="Share"
-                        >
+                        <button type="button" class="icon-button" id="text-share-button" onclick="shareText()"
+                            title="Share">
                             ➤
                         </button>
-                        <div id="file-display" class="file-display" style="display: none;">
+                        <div id="file-display" class="file-display">
                             <div class="file-details">
                                 <span id="file-name" class="file-name" title=""></span>
                                 <span id="file-size" class="file-size"></span>
                             </div>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        class="app-button select-file-button"
-                        id="text-action-button"
-                        onclick="toggleAttachment()"
-                    >
+                    <button type="button" class="app-button select-file-button" id="text-action-button"
+                        onclick="toggleAttachment()">
                         Pick File
                     </button>
-                    <input
-                        type="file"
-                        id="file"
-                        onchange="handleFileSelect(event)"
-                        style="display: none;"
-                    />
+                    <input type="file" id="file" onchange="handleFileSelect(event)"/>
                 </div>
-                <button
-                    type="button"
-                    id="action-button"
-                    class="app-button"
-                    onclick="handleAction()"
-                    disabled
-                >
+                <button type="button" id="action-button" class="app-button" onclick="handleAction()" disabled>
                     Waiting for input
                 </button>
             </form>
@@ -130,4 +105,5 @@
     <script src="js/service-worker.js" defer></script>
     <script src="js/main.js" defer></script>
 </body>
+
 </html>

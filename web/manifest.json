@@ -1,6 +1,7 @@
 {
     "name": "Xipher",
     "short_name": "Xipher",
+    "description": "Xipher is a stand-alone, server-less encryption tool for securely sharing sensitive data.",
     "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#ffffff",
