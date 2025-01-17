@@ -11,17 +11,15 @@
     <link rel="stylesheet" href="css/objects.css" defer>
 </head>
 <body>
-    <div id="loader" class="loader">
-        <div class="spinner-wrapper">
-            <img src="assets/images/logo.svg" alt="Logo" class="spinner-logo">
-            <div class="spinner"></div>
+    <div id="preloader" class="preloader">
+        <div class="preloader-container">
+            <img src="assets/images/logo.svg" alt="Logo" class="preloader-logo">
+            <div class="preloader-spinner"></div>
         </div>
-        <div id="loader-text">
-            <p>Loading Xipher</p>
-        </div>
+        <p>Loading Xipher</p>
     </div>
     <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-        <div class="toggle-circle"></div>
+        <div class="theme-toggle-circle"></div>
     </div>
     <div class="app-frame">
         <div class="app-container">
@@ -93,7 +91,7 @@
                     </div>
                     <button
                         type="button"
-                        class="regular-button select-file-button"
+                        class="app-button select-file-button"
                         id="text-action-button"
                         onclick="toggleAttachment()"
                     >
@@ -109,7 +107,7 @@
                 <button
                     type="button"
                     id="action-button"
-                    class="regular-button"
+                    class="app-button"
                     onclick="handleAction()"
                     disabled
                 >

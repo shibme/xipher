@@ -1,3 +1,52 @@
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 15px;
+    background: var(--border-color);
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+}
+
+.theme-toggle .theme-toggle-circle {
+    width: 15px;
+    height: 15px;
+    background: var(--text-color);
+    border-radius: 50%;
+    transition: transform 0.3s, background 0.3s;
+}
+
+[data-theme="dark"] .theme-toggle .theme-toggle-circle {
+    transform: translateX(25px);
+}
+
+.app-button {
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    font-size: 16px;
+    border-radius: 6px;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s, color 0.3s;
+    font-family: monospace, Arial, sans-serif;
+}
+
+.app-button:active {
+    transform: scale(0.99);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+
 .icon-button {
     margin-left: 10px;
     background: var(--action-disabled-bg);
@@ -45,25 +94,6 @@
     bottom: 10px;
     display: none;
     right: 50px;
-}
-
-.regular-button {
-    margin-top: 10px;
-    padding: 10px;
-    width: 100%;
-    font-size: 16px;
-    border-radius: 6px;
-    text-align: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: background 0.3s, color 0.3s;
-    font-family: monospace, Arial, sans-serif;
-}
-
-.regular-button:active {
-    transform: scale(0.99);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes opacityAnimation {
@@ -123,40 +153,6 @@
     background: var(--action-disabled-bg);
     color: var(--action-disabled-text);
     cursor: not-allowed;
-}
-
-.theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 15px;
-    background: var(--border-color);
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    transition: background 0.3s, transform 0.3s;
-}
-
-.theme-toggle .toggle-circle {
-    width: 15px;
-    height: 15px;
-    background: var(--text-color);
-    border-radius: 50%;
-    transition: transform 0.3s, background 0.3s;
-}
-
-[data-theme="dark"] .theme-toggle {
-    background: var(--text-color);
-}
-
-[data-theme="dark"] .theme-toggle .toggle-circle {
-    background: var(--bg-color);
-    transform: translateX(25px);
 }
 
 .repo-reference {

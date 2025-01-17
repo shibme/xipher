@@ -63,7 +63,7 @@ body {
     transition: background 0.3s, color 0.3s;
 }
 
-.loader {
+.preloader {
     position: fixed;
     top: 0;
     left: 0;
@@ -81,12 +81,12 @@ body {
     opacity: 1;
 }
 
-.loader.hidden {
+.preloader.hidden {
     opacity: 0;
     visibility: hidden;
 }
 
-.spinner-wrapper {
+.preloader-container {
     position: relative;
     width: 80px;
     height: 80px;
@@ -95,7 +95,7 @@ body {
     justify-content: center;
 }
 
-.spinner-logo {
+.preloader-logo {
     position: absolute;
     width: 30px;
     height: auto;
@@ -114,7 +114,7 @@ body {
     }
 }
 
-.spinner {
+.preloader-spinner {
     position: absolute;
     width: 60px;
     height: 60px;

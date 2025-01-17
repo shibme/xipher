@@ -1,5 +1,4 @@
-const loader = document.getElementById("loader");
-const loaderText = document.getElementById("loader-text");
+const preLoader = document.getElementById("preloader");
 const textInput = document.getElementById("text");
 const fileInput = document.getElementById("file");
 const textActionButton = document.getElementById("text-action-button");
@@ -32,14 +31,14 @@ function getEncryptionTarget() {
 function disableActionButton(placeholderText) {
     actionButton.disabled = true;
     actionButton.textContent = placeholderText;
-    actionButton.className = "regular-button grey-button";
+    actionButton.className = "app-button grey-button";
 }
 
 // Enable the button with appropriate styles
 function enableActionButton(isDecryptMode) {
     actionButton.disabled = false;
     actionButton.textContent = isDecryptMode ? "Decrypt with Your Key" : "Encrypt (" + getEncryptionTarget() + ")";
-    actionButton.className = `regular-button ${isDecryptMode ? "decrypt-button" : "encrypt-button"}`;
+    actionButton.className = `app-button ${isDecryptMode ? "decrypt-button" : "encrypt-button"}`;
     actionButton.hidden = false;
 }
 
@@ -111,7 +110,7 @@ function handleFileSelect() {
         fileSizeElement.textContent = fileSize;
         fileDisplay.style.display = "flex";
         textActionButton.textContent = "Reset";
-        textActionButton.className = "regular-button reset-content-button";
+        textActionButton.className = "app-button reset-content-button";
         updateView();
     }
 }
@@ -125,7 +124,7 @@ function resetView() {
     textInput.removeAttribute("readonly");
     textInput.placeholder = "Type your text here or drag/drop a file";
     textActionButton.textContent = "Pick File";
-    textActionButton.className = "regular-button select-file-button";
+    textActionButton.className = "app-button select-file-button";
     fileDisplay.style.display = "none";
     updateView();
 }
@@ -140,7 +139,7 @@ function setReadableTextView(text, enableShareButton, disabledActionButtonLabel)
             textShareButton.style.display = "block";
         }
         textActionButton.textContent = "Reset";
-        textActionButton.className = "regular-button reset-content-button";
+        textActionButton.className = "app-button reset-content-button";
         disableActionButton(disabledActionButtonLabel);
     }
 }
@@ -151,7 +150,7 @@ function showActivityErrorInView(error, disabledActionButtonLabel) {
     textInput.classList.add("text-error");
     textInput.setAttribute("readonly", true);
     textActionButton.textContent = "Reset";
-    textActionButton.className = "regular-button reset-content-button";
+    textActionButton.className = "app-button reset-content-button";
     disableActionButton(disabledActionButtonLabel);
 }
 
@@ -161,7 +160,7 @@ function showActivitySuccessInView(error, disabledActionButtonLabel) {
     textInput.classList.add("text-success");
     textInput.setAttribute("readonly", true);
     textActionButton.textContent = "Reset";
-    textActionButton.className = "regular-button reset-content-button";
+    textActionButton.className = "app-button reset-content-button";
     disableActionButton(disabledActionButtonLabel);
 }
 
@@ -382,7 +381,7 @@ async function main() {
     const pubKeyUrl = await getXipherPublicKeyUrl();
     setPublicLink(pubKeyUrl);
     initApp();
-    loader.remove();
+    preLoader.remove();
 }
 
 if ('serviceWorker' in navigator) {
