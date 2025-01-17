@@ -175,6 +175,7 @@ function setReadableTextView(text, enableShareButton, disabledActionButtonLabel)
 
 function showActivityErrorInView(error, disabledActionButtonLabel) {
     textInput.value = error;
+    textInput.classList.remove("text-success");
     textInput.classList.add("text-error");
     textInput.setAttribute("readonly", true);
     textActionButton.textContent = "Reset";
@@ -184,6 +185,7 @@ function showActivityErrorInView(error, disabledActionButtonLabel) {
 
 function showActivitySuccessInView(error, disabledActionButtonLabel) {
     textInput.value = error;
+    textInput.classList.remove("text-error");
     textInput.classList.add("text-success");
     textInput.setAttribute("readonly", true);
     textActionButton.textContent = "Reset";
@@ -241,7 +243,6 @@ dropArea.addEventListener("dragleave", () => {
 dropArea.addEventListener("drop", (event) => {
     event.preventDefault();
     dropArea.classList.remove("dragover");
-
     const droppedFiles = event.dataTransfer.files;
     if (droppedFiles.length > 0) {
         fileInput.files = droppedFiles;
@@ -316,7 +317,7 @@ async function handleFileEncryption(key, file, compress) {
         } else if (status === XipherStreamStatus.COMPLETED) {
             showActivitySuccessInView("Encrypted as: " + outFileName, "Encryption Complete");
         } else if (status === XipherStreamStatus.FAILED) {
-            showActivityErrorInView("Encryption Failed! Please remove the incomplete file (" + outFileName + ")", "Encryption Failed!");
+            showActivityErrorInView("Encryption Failed!", "Encryption Failed!");
         }
     };
     await encryptFile(key, file, compress, fileOutStream, progressCallback);
@@ -336,7 +337,7 @@ async function handleFileDecryption(key, file) {
         } else if (status === XipherStreamStatus.COMPLETED) {
             showActivitySuccessInView("Decrypted as: " + outFileName, "Decryption Complete");
         } else if (status === XipherStreamStatus.FAILED) {
-            showActivityErrorInView("Decryption Failed! Please remove the incomplete file (" + outFileName + ")", "Decryption Failed!");
+            showActivityErrorInView("Decryption Failed!", "Decryption Failed!");
         }
     };
     await decryptFile(key, file, fileOutStream, progressCallback);

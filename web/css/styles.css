@@ -127,12 +127,16 @@ h1 {
     font-size: 20px;
     margin-bottom: 15px;
     text-align: center;
-    font-family: monospace, Arial, sans-serif;
+    font-family: Arial;
+    font-weight: bold;
 }
 
 #form-title-link {
     text-decoration: none;
-    color: var(--text-color);
+    background: linear-gradient(135deg, #00ddff, #0044ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     display: inline-block;
     font-size: 18px;
     font-weight: bold;
