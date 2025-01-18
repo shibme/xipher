@@ -9,7 +9,7 @@
         img-src 'self'; 
         font-src 'self'; 
         connect-src 'self'; 
-        frame-src 'none'; 
+        frame-src 'self'; 
         object-src 'none'; 
         manifest-src 'self';
         base-uri 'self'; 
@@ -100,10 +100,10 @@
     <script src="wasm/wasm_exec.js" defer></script>
     <script src="js/xipher.js" defer></script>
     <script src="js/keystore.js" defer></script>
-    <script src="js/StreamSaver.js" defer></script>
     <script src="js/ui.js" defer></script>
     <script src="js/service-worker.js" defer></script>
     <script src="js/main.js" defer></script>
+    <script src="lib/StreamSaver/StreamSaver.js" defer></script>
 </body>
 
 </html>

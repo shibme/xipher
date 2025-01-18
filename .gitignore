@@ -3,4 +3,3 @@ dist/
 wasm_exec.js
 .ignore/
 web/wasm/
-web/js/StreamSaver.js

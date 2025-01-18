@@ -199,3 +199,10 @@ participant SX as Xipher
 
 ## Disclaimer
 This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.
+
+## Credits
+This project would not have been possible without the following libraries & inspirations:
+- [Retriever](https://retriever.corgea.io/) - For inspiring the web-based encryption concept that served as the foundation for expanding it into a fully developed CLI and browser tool with cross-compatibility.
+- [CIRCL](https://github.com/cloudflare/circl) by Cloudflare - For providing library support for post-quantum cryptography (CRYSTALS-Kyber).
+- [StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js) - For the ingenious approach to saving files directly from the browser in frontend-only applications.
+- [age](https://github.com/FiloSottile/age) - For the inspiration drawn from its use of smaller Curve25519 keys and XChaCha20-Poly1305 stream cipher.
