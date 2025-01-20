@@ -38,7 +38,7 @@ let scope = ''
 
 function registerWorker() {
   return navigator.serviceWorker.getRegistration('./').then(swReg => {
-    return swReg || navigator.serviceWorker.register('./lib/StreamSaver/sw.js', { scope: './lib/StreamSaver/' })
+    return swReg || navigator.serviceWorker.register('sw.js', { scope: './' })
   }).then(swReg => {
     const swRegTmp = swReg.installing || swReg.waiting
 
