@@ -15,6 +15,7 @@ const shareableLink = document.getElementById("shareable-link");
 const textCopyButton = document.getElementById("text-copy-button");
 const textShareButton = document.getElementById("text-share-button");
 const publinkCopyButton = document.getElementById("publink-copy-button");
+const publinkShareButton = document.getElementById("publink-share-button");
 
 function getEncryptionTarget() {
     if (!xk) {
@@ -52,6 +53,8 @@ function toggleAttachment() {
     }
 }
 
+textActionButton.addEventListener("click", toggleAttachment);
+
 // Utility: Convert file size to human-readable format
 function humanReadableFileSize(size) {
     const i = Math.floor(Math.log(size) / Math.log(1024));
@@ -85,6 +88,8 @@ function copyPublicKeyLinkToClipboard() {
     });
 }
 
+publinkCopyButton.addEventListener("click", copyPublicKeyLinkToClipboard);
+
 function sharePublicKeyLink() {
     if (navigator.share) {
         navigator
@@ -96,6 +101,8 @@ function sharePublicKeyLink() {
         alert("Sharing is not supported in this browser.");
     }
 }
+
+publinkShareButton.addEventListener("click", sharePublicKeyLink);
 
 function handleFileSelect() {
     if (fileInput.files.length > 0) {
@@ -114,6 +121,8 @@ function handleFileSelect() {
         updateView();
     }
 }
+
+fileInput.addEventListener("change", handleFileSelect);
 
 function resetView() {
     textCopyButton.style.display = "none";
@@ -201,6 +210,8 @@ function updateView() {
     }
 }
 
+textInput.addEventListener("input", updateView);
+
 function copyTextToClipboard() {
     const text = textInput.value.trim();
     if (!text) {
@@ -218,6 +229,8 @@ function copyTextToClipboard() {
     });
 }
 
+textCopyButton.addEventListener("click", copyTextToClipboard);
+
 function shareText() {
     const text = textInput.value.trim();
     if (!text) {
@@ -234,6 +247,8 @@ function shareText() {
         alert("Sharing is not supported in this browser.");
     }
 }
+
+textShareButton.addEventListener("click", shareText);
 
 async function encryptStrToUrlCT(key, str) {
     const ct = await encryptStr(key, str);
@@ -286,6 +301,7 @@ async function handleFileEncryption(key, file, compress) {
     try {
         fileOutStream = await getFilePickHandlerOutStream(outFileName);
     } catch (error) {
+        console.log("File picker not supported: Switching to StreamSaver as an alternative.");
         fileOutStream = streamSaver.createWriteStream(outFileName, {
             size: fileSize
         });
@@ -320,6 +336,7 @@ async function handleFileDecryption(key, file) {
     try {
         fileOutStream = await getFilePickHandlerOutStream(outFileName);
     } catch (error) {
+        console.log("File picker not supported: Switching to StreamSaver as an alternative.");
         fileOutStream = streamSaver.createWriteStream(outFileName, {
             size: fileSize
         });
@@ -378,6 +395,8 @@ async function handleAction() {
         }
     }
 }
+
+actionButton.addEventListener("click", handleAction);
 
 async function getXipherPublicKeyUrl() {
     const url = window.location.href.split("?")[0];
