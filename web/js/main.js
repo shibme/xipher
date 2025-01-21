@@ -267,12 +267,29 @@ async function cancelCurrentStreamProcessing() {
     console.log("Processing cancelled!");
 }
 
+async function getFilePickHandlerOutStream(fileName) {
+    const outputFileOpts = {
+        suggestedName: fileName,
+        types: [{
+            description: 'Encrypted Files',
+            accept: {'application/octet-stream': ['.xipher']}
+        }]
+    };
+    const filePickerHandle = await window.showSaveFilePicker(outputFileOpts);
+    return await filePickerHandle.createWritable();
+}
+
 async function handleFileEncryption(key, file, compress) {
     const fileSize = file.size;
     const outFileName = file.name.endsWith('.xipher') ? file.name : file.name + '.xipher';
-    const fileOutStream = streamSaver.createWriteStream(outFileName, {
-        size: fileSize
-    });
+    let fileOutStream = null;
+    try {
+        fileOutStream = await getFilePickHandlerOutStream(outFileName);
+    } catch (error) {
+        fileOutStream = streamSaver.createWriteStream(outFileName, {
+            size: fileSize
+        });
+    }
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
         if (status === XipherStreamStatus.PROCESSING) {
@@ -299,9 +316,14 @@ async function handleFileEncryption(key, file, compress) {
 async function handleFileDecryption(key, file) {
     const fileSize = file.size;
     const outFileName = file.name.replace(/\.xipher$/, '');
-    const fileOutStream = streamSaver.createWriteStream(outFileName, {
-        size: fileSize
-    });
+    let fileOutStream = null;
+    try {
+        fileOutStream = await getFilePickHandlerOutStream(outFileName);
+    } catch (error) {
+        fileOutStream = streamSaver.createWriteStream(outFileName, {
+            size: fileSize
+        });
+    }
     actionButton.classList.add("animate");
     const progressCallback = (processedSize, status) => {
         if (status === XipherStreamStatus.PROCESSING) {
