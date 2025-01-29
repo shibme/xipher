@@ -1,6 +1,10 @@
 package utils
 
-import "errors"
+import (
+	"errors"
+
+	"xipher.org/xipher"
+)
 
 const (
 	appNameLowerCase      = "xipher"
@@ -13,6 +17,8 @@ const (
 )
 
 var (
+	pwdSecretKeyMap = make(map[string]*xipher.SecretKey)
+
 	errInvalidXipherPubKey    = errors.New("invalid xipher public key")
 	errInvalidXipherSecretKey = errors.New("invalid xipher secret key")
 	errInvalidCipherText      = errors.New("invalid cipher text")

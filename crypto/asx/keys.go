@@ -149,29 +149,3 @@ func ParsePublicKey(key []byte) (*PublicKey, error) {
 		return nil, errInvalidPublicKey
 	}
 }
-
-// func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
-// 	if publicKey.encrypter == nil {
-// 		ephPrivKey := make([]byte, KeyLength)
-// 		if _, err := rand.Read(ephPrivKey); err != nil {
-// 			return nil, err
-// 		}
-// 		ephPubKey, err := curve25519.X25519(ephPrivKey, curve25519.Basepoint)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		sharedKey, err := curve25519.X25519(ephPrivKey, *publicKey.key)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		cipher, err := xcp.New(sharedKey)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		publicKey.encrypter = &encrypter{
-// 			ephPubKey: ephPubKey,
-// 			cipher:    cipher,
-// 		}
-// 	}
-// 	return publicKey.encrypter, nil
-// }

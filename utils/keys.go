@@ -44,8 +44,15 @@ func secretKeyFromStr(secretKeyStr string) (*xipher.SecretKey, error) {
 	return xipher.ParseSecretKey(keyBytes)
 }
 
-func secretKeyFromPwd(pwd string) (*xipher.SecretKey, error) {
-	return xipher.NewSecretKeyForPassword([]byte(pwd))
+func secretKeyFromPwd(pwd string) (xsk *xipher.SecretKey, err error) {
+	xsk = pwdSecretKeyMap[pwd]
+	if xsk == nil {
+		if xsk, err = xipher.NewSecretKeyForPassword([]byte(pwd)); err != nil {
+			return nil, err
+		}
+		pwdSecretKeyMap[pwd] = xsk
+	}
+	return
 }
 
 func secretKeyFromSecret(secretKeyOrPwd string) (*xipher.SecretKey, error) {
