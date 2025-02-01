@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	pwdSecretKeyMap = make(map[string]*xipher.SecretKey)
+	pwdSecretKeyMap         = make(map[string]*xipher.SecretKey)
+	preferredKeyQueryParams = []string{"xk", "xpw", "pw", "xw"}
 
 	errInvalidXipherPubKey    = errors.New("invalid xipher public key")
 	errInvalidXipherSecretKey = errors.New("invalid xipher secret key")

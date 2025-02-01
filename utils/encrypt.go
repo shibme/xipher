@@ -11,6 +11,7 @@ func ctToStr(ct []byte) string {
 }
 
 func EncryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
+	keyOrPwd = getSanitisedValue(keyOrPwd, preferredKeyQueryParams, IsPubKeyStr, IsSecretKeyStr)
 	if IsPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {
@@ -45,6 +46,7 @@ func EncryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
 }
 
 func EncryptingWriter(keyOrPwd string, dst io.Writer, compress bool) (io.WriteCloser, error) {
+	keyOrPwd = getSanitisedValue(keyOrPwd, preferredKeyQueryParams, IsPubKeyStr, IsSecretKeyStr)
 	if IsPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {

@@ -14,17 +14,29 @@ func getSecretKey(secretKeyOrPwd string) (*xipher.SecretKey, error) {
 	}
 }
 
+func isCTStr(str string) bool {
+	return len(str) >= len(xipherTxtPrefix) && str[:len(xipherTxtPrefix)] == xipherTxtPrefix
+}
+
+func getCTFromStr(ctStr string) ([]byte, error) {
+	sanitisedCTStr := getSanitisedValue(ctStr, nil, isCTStr)
+	if isCTStr(sanitisedCTStr) {
+		return decode(sanitisedCTStr[len(xipherTxtPrefix):])
+	}
+	return nil, errInvalidCipherText
+}
+
 func DecryptData(secretKeyOrPwd string, ctStr string) ([]byte, error) {
+	ct, err := getCTFromStr(ctStr)
+	if err != nil {
+		return nil, errInvalidCipherText
+	}
 	secretKey, err := getSecretKey(secretKeyOrPwd)
 	if err != nil {
 		return nil, err
 	}
 	if len(ctStr) < len(xipherTxtPrefix) || ctStr[:len(xipherTxtPrefix)] != xipherTxtPrefix {
 		return nil, errInvalidCipherText
-	}
-	ct, err := decode(ctStr[len(xipherTxtPrefix):])
-	if err != nil {
-		return nil, err
 	}
 	data, err := secretKey.Decrypt(ct)
 	if err != nil {
