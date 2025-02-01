@@ -7,7 +7,7 @@ const urlsToCache = [
   '/css/base.css',
   '/css/objects.css',
   '/index.html',
-  '/js/keystore.js',
+  '/js/datastore.js',
   '/js/main.js',
   '/lib/StreamSaver/mitm.html',
   '/lib/StreamSaver/StreamSaver.js',
