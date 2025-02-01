@@ -179,19 +179,19 @@ builds:
 archives:
   - id: xipher-cli
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
-    format: zip
+    formats: [ 'zip' ]
     builds:
       - xipher-cli
   - id: xipher-wasm
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
-    format: zip
+    formats: [ 'zip' ]
     files:
       - wasm_exec.js
     builds:
       - xipher-wasm
   - id: xipher-shared-lib
     name_template: "xipher-shared-lib_{{ .Os }}_{{ .Arch }}"
-    format: zip
+    formats: [ 'zip' ]
     builds:
       - xipher-shared-lib-darwin-amd64
       - xipher-shared-lib-darwin-arm64
