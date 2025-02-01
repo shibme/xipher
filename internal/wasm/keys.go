@@ -27,9 +27,9 @@ func getPublicKey(args []js.Value) (any, error) {
 	if len(args) == 2 {
 		quantumSafe = args[1].Bool()
 	}
-	pk, err := utils.GetPublicKey(secret, quantumSafe)
+	pkStr, _, err := utils.GetPublicKey(secret, quantumSafe)
 	if err != nil {
 		return nil, err
 	}
-	return pk, nil
+	return pkStr, nil
 }

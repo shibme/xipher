@@ -36,7 +36,7 @@ func keygenCommand() *cobra.Command {
 				}
 				secret = string(password)
 			}
-			pubKeyStr, err := utils.GetPublicKey(secret, quantumSafe)
+			pubKeyStr, pubKeyUrl, err := utils.GetPublicKey(secret, quantumSafe)
 			if err != nil {
 				exitOnError(err)
 			}
@@ -50,6 +50,9 @@ func keygenCommand() *cobra.Command {
 				fmt.Println("Public Key saved to:", color.GreenString(publicKeyFilePath))
 			} else {
 				fmt.Println("Public Key:", color.GreenString(pubKeyStr))
+			}
+			if pubKeyUrl != "" {
+				fmt.Println("Public Key URL:", color.HiCyanString(pubKeyUrl))
 			}
 			fmt.Println("It is completely safe to share this public key with anyone.")
 		},

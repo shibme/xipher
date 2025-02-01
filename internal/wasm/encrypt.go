@@ -16,7 +16,7 @@ func encryptStr(args []js.Value) (any, error) {
 	}
 	keyOrPwd := args[0].String()
 	message := args[1].String()
-	ciphertext, err := utils.EncryptData(keyOrPwd, []byte(message), true)
+	ciphertext, _, err := utils.EncryptData(keyOrPwd, []byte(message), true)
 	if err != nil {
 		return nil, err
 	}

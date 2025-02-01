@@ -19,7 +19,7 @@ func isCTStr(str string) bool {
 }
 
 func getCTFromStr(ctStr string) ([]byte, error) {
-	sanitisedCTStr := getSanitisedValue(ctStr, nil, isCTStr)
+	sanitisedCTStr := getSanitisedValue(ctStr, isCTStr)
 	if isCTStr(sanitisedCTStr) {
 		return decode(sanitisedCTStr[len(xipherTxtPrefix):])
 	}
@@ -29,14 +29,11 @@ func getCTFromStr(ctStr string) ([]byte, error) {
 func DecryptData(secretKeyOrPwd string, ctStr string) ([]byte, error) {
 	ct, err := getCTFromStr(ctStr)
 	if err != nil {
-		return nil, errInvalidCipherText
+		return nil, err
 	}
 	secretKey, err := getSecretKey(secretKeyOrPwd)
 	if err != nil {
 		return nil, err
-	}
-	if len(ctStr) < len(xipherTxtPrefix) || ctStr[:len(xipherTxtPrefix)] != xipherTxtPrefix {
-		return nil, errInvalidCipherText
 	}
 	data, err := secretKey.Decrypt(ct)
 	if err != nil {

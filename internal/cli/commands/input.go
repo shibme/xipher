@@ -17,7 +17,7 @@ const (
 	pwdLength       = 10
 )
 
-var errInvalidPassword = fmt.Errorf("%s: please set a decent password with at least %d characters, including at least one uppercase letter, one lowercase letter, one number, and one of the following special characters: %s", "xipher", pwdLength, pwdSpecialChars)
+var errInvalidPassword = fmt.Errorf("%s: password must be at least %d characters long and include an uppercase letter, a lowercase letter, a number, and one of: %s", "xipher", pwdLength, pwdSpecialChars)
 
 func pwdCheck(password string) error {
 	var (

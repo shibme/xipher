@@ -23,7 +23,7 @@ func secretKeyToStr(secretKey *xipher.SecretKey) (string, error) {
 }
 
 func pubKeyFromStr(pubKeyStr string) (*xipher.PublicKey, error) {
-	if !IsPubKeyStr(pubKeyStr) {
+	if !isPubKeyStr(pubKeyStr) {
 		return nil, errInvalidXipherPubKey
 	}
 	keyBytes, err := decode(pubKeyStr[len(xipherPublicKeyPrefix):])
@@ -74,19 +74,31 @@ func NewSecretKey() (sk string, err error) {
 	return secretKeyToStr(secretKey)
 }
 
-func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (string, error) {
+func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (pubKeyStr, pubKeyUrl string, err error) {
 	secretKey, err := secretKeyFromSecret(secretKeyOrPwd)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	pubKey, err := secretKey.PublicKey(quantumSafe)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return pubKeyToStr(pubKey)
+	if pubKeyStr, err = pubKeyToStr(pubKey); err != nil {
+		return "", "", err
+	}
+	pubKeyUrl = xipherWebURL + "?" + xipherWebKeyParamName + "=" + pubKeyStr
+	if len(pubKeyUrl) > urlMaxLenth {
+		pubKeyUrl = ""
+	}
+	return
 }
 
-func IsPubKeyStr(pubKeyStr string) bool {
+func GetSanitisedKeyOrPwd(keyPwdStr string) (sanitisedKey string, isKey bool) {
+	keyPwdStr = getSanitisedValue(keyPwdStr, isPubKeyStr)
+	return keyPwdStr, isPubKeyStr(keyPwdStr) || IsSecretKeyStr(keyPwdStr)
+}
+
+func isPubKeyStr(pubKeyStr string) bool {
 	return len(pubKeyStr) > len(xipherPublicKeyPrefix) && pubKeyStr[:len(xipherPublicKeyPrefix)] == xipherPublicKeyPrefix
 }
 

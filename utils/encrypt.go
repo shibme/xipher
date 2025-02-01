@@ -10,9 +10,19 @@ func ctToStr(ct []byte) string {
 	return xipherTxtPrefix + encode(ct)
 }
 
-func EncryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
-	keyOrPwd = getSanitisedValue(keyOrPwd, preferredKeyQueryParams, IsPubKeyStr, IsSecretKeyStr)
-	if IsPubKeyStr(keyOrPwd) {
+func EncryptData(keyOrPwd string, data []byte, compress bool) (ctStr string, ctUrl string, err error) {
+	if ctStr, err = encryptData(keyOrPwd, data, compress); err == nil {
+		ctUrl = xipherWebURL + "?" + xipherWebCTParamName + "=" + ctStr
+		if len(ctUrl) > urlMaxLenth {
+			ctUrl = ""
+		}
+	}
+	return
+}
+
+func encryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
+	keyOrPwd = getSanitisedValue(keyOrPwd, isPubKeyStr)
+	if isPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {
 			return "", err
@@ -46,8 +56,8 @@ func EncryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
 }
 
 func EncryptingWriter(keyOrPwd string, dst io.Writer, compress bool) (io.WriteCloser, error) {
-	keyOrPwd = getSanitisedValue(keyOrPwd, preferredKeyQueryParams, IsPubKeyStr, IsSecretKeyStr)
-	if IsPubKeyStr(keyOrPwd) {
+	keyOrPwd = getSanitisedValue(keyOrPwd, isPubKeyStr)
+	if isPubKeyStr(keyOrPwd) {
 		pubKey, err := pubKeyFromStr(keyOrPwd)
 		if err != nil {
 			return nil, err

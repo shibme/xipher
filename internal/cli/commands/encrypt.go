@@ -37,7 +37,9 @@ func getKeyPwdStr(cmd *cobra.Command) (string, error) {
 		}
 		keyPwdStr = string(keyPwdInput)
 	}
-	if !utils.IsPubKeyStr(keyPwdStr) && !utils.IsSecretKeyStr(keyPwdStr) {
+	var isKey bool
+	keyPwdStr, isKey = utils.GetSanitisedKeyOrPwd(keyPwdStr)
+	if !isKey {
 		ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
 		if !ignoreFlag {
 			if err := pwdCheck(keyPwdStr); err != nil {
@@ -80,11 +82,14 @@ func encryptTextCommand() *cobra.Command {
 			if err != nil {
 				exitOnError(err)
 			}
-			ct, err := utils.EncryptData(keyPwdStr, input, true)
+			ctStr, ctUrl, err := utils.EncryptData(keyPwdStr, input, true)
 			if err != nil {
 				exitOnError(err)
 			}
-			fmt.Println(color.GreenString(ct))
+			fmt.Println("Encrypted text:", color.GreenString(ctStr))
+			if ctUrl != "" {
+				fmt.Println("Encrypted text URL:", color.HiCyanString(ctUrl))
+			}
 			fmt.Println("It is completely safe to share this encrypted text over any medium.")
 			safeExit()
 		},
