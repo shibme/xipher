@@ -51,7 +51,7 @@ type strFlag struct {
 	value string
 }
 
-func (f *strFlag) flagFields() (string, string, string, string) {
+func (f *strFlag) fields() (string, string, string, string) {
 	return f.name, f.shorthand, f.value, f.usage
 }
 
@@ -60,7 +60,7 @@ type boolFlag struct {
 	value bool
 }
 
-func (f *boolFlag) flagFields() (string, string, bool, string) {
+func (f *boolFlag) fields() (string, string, bool, string) {
 	return f.name, f.shorthand, f.value, f.usage
 }
 
@@ -161,6 +161,23 @@ var (
 			name:      "compress",
 			shorthand: "c",
 			usage:     "Enable compression as the data is encrypted",
+		},
+	}
+
+	// Format Flag
+	jsonFlag = boolFlag{
+		flagDef: flagDef{
+			name:      "json",
+			shorthand: "j",
+			usage:     "Console output in JSON format",
+		},
+	}
+
+	// Force Flag
+	overwriteFlag = boolFlag{
+		flagDef: flagDef{
+			name:  "overwrite",
+			usage: "Overwrite the file if it exists",
 		},
 	}
 )

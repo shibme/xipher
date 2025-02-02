@@ -18,6 +18,8 @@ func keygenCommand() *cobra.Command {
 		Use:   "keygen",
 		Short: "Generate a new random key pair or a public key based on a given password or secret key",
 		Run: func(cmd *cobra.Command, args []string) {
+			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
+			resultMap := make(map[string]interface{})
 			publicKeyFilePath := cmd.Flag(publicKeyFileFlag.name).Value.String()
 			ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
 			autoGen, _ := cmd.Flags().GetBool(autoGenerateSecretKey.name)
@@ -26,40 +28,60 @@ func keygenCommand() *cobra.Command {
 			var err error
 			if autoGen {
 				if secret, err = utils.NewSecretKey(); err != nil {
-					exitOnError(err)
+					exitOnError(err, jsonFormat)
 				}
-				fmt.Println("Secret Key:", color.HiBlackString(secret))
+				if jsonFormat {
+					resultMap["secretKey"] = secret
+				} else {
+					fmt.Println("Secret Key:", color.HiBlackString(secret))
+				}
 			} else {
 				password, err := getPasswordOrSecretKeyFromUser(true, ignoreFlag)
 				if err != nil {
-					exitOnError(err)
+					exitOnError(err, jsonFormat)
 				}
 				secret = string(password)
 			}
 			pubKeyStr, pubKeyUrl, err := utils.GetPublicKey(secret, quantumSafe)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			if publicKeyFilePath != "" {
 				if !strings.HasSuffix(publicKeyFilePath, xipherPubKeyFileExt) {
 					publicKeyFilePath += xipherPubKeyFileExt
 				}
 				if err := os.WriteFile(publicKeyFilePath, []byte(pubKeyStr), 0600); err != nil {
-					exitOnError(err)
+					exitOnError(err, jsonFormat)
 				}
-				fmt.Println("Public Key saved to:", color.GreenString(publicKeyFilePath))
+				if jsonFormat {
+					resultMap["publicKeyFile"] = publicKeyFilePath
+				} else {
+					fmt.Println("Public Key saved to:", color.GreenString(publicKeyFilePath))
+				}
 			} else {
-				fmt.Println("Public Key:", color.GreenString(pubKeyStr))
+				if jsonFormat {
+					resultMap["publicKey"] = pubKeyStr
+				} else {
+					fmt.Println("Public Key:", color.GreenString(pubKeyStr))
+				}
 			}
 			if pubKeyUrl != "" {
-				fmt.Println("Public Key URL:", color.HiCyanString(pubKeyUrl))
+				if jsonFormat {
+					resultMap["publicKeyUrl"] = pubKeyUrl
+				} else {
+					fmt.Println("Public Key URL:", color.HiCyanString(pubKeyUrl))
+				}
 			}
-			fmt.Println("It is completely safe to share this public key with anyone.")
+			if jsonFormat {
+				fmt.Println(toJsonString(resultMap))
+			} else {
+				fmt.Println("It is completely safe to share this public key with anyone.")
+			}
 		},
 	}
-	keygenCmd.Flags().BoolP(ignorePasswordCheckFlag.flagFields())
-	keygenCmd.Flags().StringP(publicKeyFileFlag.flagFields())
-	keygenCmd.Flags().BoolP(autoGenerateSecretKey.flagFields())
-	keygenCmd.Flags().BoolP(quantumSafeFlag.flagFields())
+	keygenCmd.Flags().BoolP(ignorePasswordCheckFlag.fields())
+	keygenCmd.Flags().StringP(publicKeyFileFlag.fields())
+	keygenCmd.Flags().BoolP(autoGenerateSecretKey.fields())
+	keygenCmd.Flags().BoolP(quantumSafeFlag.fields())
 	return keygenCmd
 }

@@ -21,8 +21,8 @@ func encryptCommand() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.flagFields())
-	encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.flagFields())
+	encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.fields())
+	encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.fields())
 	encryptCmd.AddCommand(encryptTextCommand())
 	encryptCmd.AddCommand(encryptFileCommand())
 	return encryptCmd
@@ -66,9 +66,10 @@ func encryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Encrypts a given text",
 		Run: func(cmd *cobra.Command, args []string) {
+			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 			keyPwdStr, err := getKeyPwdStr(cmd)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			text, _ := cmd.Flags().GetString(textFlag.name)
 			var input []byte
@@ -80,21 +81,29 @@ func encryptTextCommand() *cobra.Command {
 				input = []byte(text)
 			}
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			ctStr, ctUrl, err := utils.EncryptData(keyPwdStr, input, true)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
-			fmt.Println("Encrypted text:", color.GreenString(ctStr))
-			if ctUrl != "" {
-				fmt.Println("Encrypted text URL:", color.HiCyanString(ctUrl))
+			if jsonFormat {
+				resultMap := make(map[string]interface{})
+				resultMap["encryptedText"] = ctStr
+				if ctUrl != "" {
+					resultMap["encryptedTextUrl"] = ctUrl
+				}
+				fmt.Println(toJsonString(resultMap))
+			} else {
+				fmt.Println("Encrypted text:", color.GreenString(ctStr))
+				if ctUrl != "" {
+					fmt.Println("Encrypted text URL:", color.HiCyanString(ctUrl))
+				}
+				fmt.Println("It is completely safe to share this encrypted text over any medium.")
 			}
-			fmt.Println("It is completely safe to share this encrypted text over any medium.")
-			safeExit()
 		},
 	}
-	encryptTxtCmd.Flags().StringP(textFlag.flagFields())
+	encryptTxtCmd.Flags().StringP(textFlag.fields())
 	return encryptTxtCmd
 }
 
@@ -107,10 +116,12 @@ func encryptFileCommand() *cobra.Command {
 		Aliases: []string{"f"},
 		Short:   "Encrypts a given file",
 		Run: func(cmd *cobra.Command, args []string) {
+			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
+			overwrite, _ := cmd.Flags().GetBool(overwriteFlag.name)
 			srcPath := cmd.Flag(fileFlag.name).Value.String()
 			src, err := os.Open(srcPath)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			dstPath := cmd.Flag(outFlag.name).Value.String()
 			if dstPath == "" {
@@ -120,34 +131,42 @@ func encryptFileCommand() *cobra.Command {
 				if _, err = os.Stat(dstPath); os.IsNotExist(err) {
 					break
 				}
+				if overwrite {
+					fmt.Println("Overwriting file:", color.YellowString(dstPath))
+					break
+				}
 				fmt.Println("File already exists:", color.YellowString(dstPath))
-				dstPath, err = getVisibleInput("Enter a new file path ending with .xipher: ")
-				if err != nil {
-					exitOnError(err)
+				if dstPath, err = getVisibleInput("Provide a new destination file ending with .xipher: "); err != nil {
+					exitOnError(err, jsonFormat)
 				}
 			}
 			dst, err := os.Create(dstPath)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			keyPwdStr, err := getKeyPwdStr(cmd)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			compress, _ := cmd.Flags().GetBool(compressFlag.name)
 			if err = utils.EncryptStream(keyPwdStr, dst, src, compress); err != nil {
 				dst.Close()
 				os.Remove(dstPath)
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
-			fmt.Println("Encrypted file:", color.GreenString(dstPath))
-			fmt.Println("It is completely safe to share this encrypted file over any medium.")
-			safeExit()
+			if jsonFormat {
+				resultMap := make(map[string]interface{})
+				resultMap["encryptedFile"] = dstPath
+			} else {
+				fmt.Println("Encrypted file:", color.GreenString(dstPath))
+				fmt.Println("It is completely safe to share this encrypted file over any medium.")
+			}
 		},
 	}
-	encryptFileCmd.Flags().StringP(fileFlag.flagFields())
-	encryptFileCmd.Flags().StringP(outFlag.flagFields())
-	encryptFileCmd.Flags().BoolP(compressFlag.flagFields())
+	encryptFileCmd.Flags().BoolP(overwriteFlag.fields())
+	encryptFileCmd.Flags().StringP(fileFlag.fields())
+	encryptFileCmd.Flags().StringP(outFlag.fields())
+	encryptFileCmd.Flags().BoolP(compressFlag.fields())
 	encryptFileCmd.MarkFlagRequired(fileFlag.name)
 	return encryptFileCmd
 }

@@ -50,20 +50,26 @@ func decryptTextCommand() *cobra.Command {
 		Aliases: []string{"txt", "t", "string", "str", "s"},
 		Short:   "Decrypts a xipher encrypted text",
 		Run: func(cmd *cobra.Command, args []string) {
+			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 			xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
 			secretKeyOrPwd, err := getSecretKeyOrPwd()
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
-			text, err := utils.DecryptData(secretKeyOrPwd, xipherText)
+			data, err := utils.DecryptData(secretKeyOrPwd, xipherText)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
-			fmt.Println(color.GreenString(string(text)))
-			safeExit()
+			if jsonFormat {
+				resultMap := make(map[string]string)
+				resultMap["decryptedText"] = string(data)
+				fmt.Println(toJsonString(resultMap))
+			} else {
+				fmt.Println(color.GreenString(string(data)))
+			}
 		},
 	}
-	decryptTxtCmd.Flags().StringP(ciphertextFlag.flagFields())
+	decryptTxtCmd.Flags().StringP(ciphertextFlag.fields())
 	decryptTxtCmd.MarkFlagRequired(ciphertextFlag.name)
 	return decryptTxtCmd
 }
@@ -77,6 +83,8 @@ func decryptFileCommand() *cobra.Command {
 		Aliases: []string{"f"},
 		Short:   "Decrypts a xipher encrypted file",
 		Run: func(cmd *cobra.Command, args []string) {
+			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
+			overwrite, _ := cmd.Flags().GetBool(overwriteFlag.name)
 			srcPath := cmd.Flag(fileFlag.name).Value.String()
 			dstPath := cmd.Flag(outFlag.name).Value.String()
 			if dstPath == "" {
@@ -91,35 +99,44 @@ func decryptFileCommand() *cobra.Command {
 				if _, err = os.Stat(dstPath); os.IsNotExist(err) {
 					break
 				}
+				if overwrite {
+					fmt.Println("Overwriting file:", color.YellowString(dstPath))
+					break
+				}
 				fmt.Println("File already exists:", color.YellowString(dstPath))
-				dstPath, err = getVisibleInput("Enter a new file path for the decrypted file: ")
-				if err != nil {
-					exitOnError(err)
+				if dstPath, err = getVisibleInput("Enter a new file path for the decrypted file: "); err != nil {
+					exitOnError(err, jsonFormat)
 				}
 			}
 			src, err := os.Open(srcPath)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			dst, err := os.Create(dstPath)
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			secretKeyOrPwd, err := getSecretKeyOrPwd()
 			if err != nil {
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
 			if err = utils.DecryptStream(secretKeyOrPwd, dst, src); err != nil {
 				dst.Close()
 				os.Remove(dstPath)
-				exitOnError(err)
+				exitOnError(err, jsonFormat)
 			}
-			fmt.Println("Decrypted file:", color.GreenString(dstPath))
-			safeExit()
+			if jsonFormat {
+				resultMap := make(map[string]interface{})
+				resultMap["decryptedFile"] = dstPath
+				fmt.Println(toJsonString(resultMap))
+			} else {
+				fmt.Println("Decrypted file:", color.GreenString(dstPath))
+			}
 		},
 	}
-	decryptFileCmd.Flags().StringP(fileFlag.flagFields())
-	decryptFileCmd.Flags().StringP(outFlag.flagFields())
+	decryptFileCmd.Flags().BoolP(overwriteFlag.fields())
+	decryptFileCmd.Flags().StringP(fileFlag.fields())
+	decryptFileCmd.Flags().StringP(outFlag.fields())
 	decryptFileCmd.MarkFlagRequired(fileFlag.name)
 	return decryptFileCmd
 }

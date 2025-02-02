@@ -2,6 +2,7 @@ package xipher
 
 import (
 	"fmt"
+	"runtime"
 
 	"xipher.org/xipher/crypto/asx"
 )
@@ -48,22 +49,48 @@ var (
 	errDecryptionFailedKeyRequired = fmt.Errorf("%s: decryption failed, key required", "xipher")
 )
 
-var (
-	version    = ""
-	commitDate = ""
-	fullCommit = ""
-	releaseURL = ""
-	appInfo    *string
-)
-
 const (
-	website     = "https://xipher.org"
-	description = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
-	art         = `
+	appName          = "Xipher"
+	appNameLowerCase = "xipher"
+	website          = "https://xipher.org"
+	description      = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
+	art              = `
 	__  ___       _               
 	\ \/ (_)_ __ | |__   ___ _ __ 
 	 \  /| | '_ \| '_ \ / _ \ '__|
 	 /  \| | |_) | | | |  __/ |   
 	/_/\_\_| .__/|_| |_|\___|_|   
 	       |_|                    `
+)
+
+var (
+	version    = ""
+	commitDate = ""
+	fullCommit = ""
+	releaseURL = ""
+	Info       = struct {
+		AppName     string `json:"appName"`
+		AppNameLC   string `json:"appNameLC"`
+		Art         string `json:"art"`
+		Description string `json:"description"`
+		Version     string `json:"version"`
+		BuiltAt     string `json:"builtAt"`
+		ReleaseURL  string `json:"releaseURL"`
+		FullCommit  string `json:"fullCommit"`
+		Web         string `json:"web"`
+		Platform    string `json:"platform"`
+		GoVersion   string `json:"goVersion"`
+	}{
+		AppName:     appName,
+		AppNameLC:   appNameLowerCase,
+		Art:         art,
+		Description: description,
+		Version:     version,
+		BuiltAt:     commitDate,
+		ReleaseURL:  releaseURL,
+		FullCommit:  fullCommit,
+		Web:         website,
+		Platform:    runtime.GOOS + "/" + runtime.GOARCH,
+		GoVersion:   runtime.Version(),
+	}
 )
