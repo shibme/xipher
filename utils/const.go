@@ -14,13 +14,13 @@ const (
 	xipherPubKeyFileExt   = ".xpk"
 	xipherFileExt         = "." + appNameLowerCase
 	secretKeyStrRegex     = "^" + xipherSecretKeyPrefix + "[A-Z2-7]{106}$"
-	xipherWebURL          = "https://xipher.org"
 	xipherWebKeyParamName = "xk"
 	xipherWebCTParamName  = "xt"
 	urlMaxLenth           = 65536
 )
 
 var (
+	xipherWebURL    = xipher.Info.Web
 	pwdSecretKeyMap = make(map[string]*xipher.SecretKey)
 
 	errInvalidXipherPubKey    = errors.New("invalid xipher public key")

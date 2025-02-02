@@ -52,15 +52,21 @@ var (
 const (
 	appName          = "Xipher"
 	appNameLowerCase = "xipher"
-	website          = "https://xipher.org"
+	web              = "https://xipher.org"
 	description      = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
 	art              = `
-	__  ___       _               
-	\ \/ (_)_ __ | |__   ___ _ __ 
-	 \  /| | '_ \| '_ \ / _ \ '__|
-	 /  \| | |_) | | | |  __/ |   
-	/_/\_\_| .__/|_| |_|\___|_|   
-	       |_|                    `
+  xxxxxxxxx      xxxxxxxxx  
+   xxxxxxxxx    xxxxxxxxx   
+    xxxxxxxxx  xxxxxxxxx    
+     xxxxxxxxxxxxxxxxxx     
+      xxxxxxx  xxxxxxx      
+       xxxx      xxxx       
+      xxxxxxx  xxxxxxx      
+     xxxxxxx    xxxxxxx     
+    xxxxxxx      xxxxxxx    
+   xxxxxxx        xxxxxxx   
+  xxxxxxx          xxxxxxx  
+                             `
 )
 
 var (
@@ -89,7 +95,7 @@ var (
 		BuiltAt:     commitDate,
 		ReleaseURL:  releaseURL,
 		FullCommit:  fullCommit,
-		Web:         website,
+		Web:         web,
 		Platform:    runtime.GOOS + "/" + runtime.GOARCH,
 		GoVersion:   runtime.Version(),
 	}

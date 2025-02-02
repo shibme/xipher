@@ -118,12 +118,12 @@ func encryptFileCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 			overwrite, _ := cmd.Flags().GetBool(overwriteFlag.name)
-			srcPath := cmd.Flag(fileFlag.name).Value.String()
+			srcPath := cmd.Flag(sourceFileFlag.name).Value.String()
 			src, err := os.Open(srcPath)
 			if err != nil {
 				exitOnError(err, jsonFormat)
 			}
-			dstPath := cmd.Flag(outFlag.name).Value.String()
+			dstPath := cmd.Flag(outputFileFlag.name).Value.String()
 			if dstPath == "" {
 				dstPath = srcPath + xipherFileExt
 			}
@@ -164,9 +164,9 @@ func encryptFileCommand() *cobra.Command {
 		},
 	}
 	encryptFileCmd.Flags().BoolP(overwriteFlag.fields())
-	encryptFileCmd.Flags().StringP(fileFlag.fields())
-	encryptFileCmd.Flags().StringP(outFlag.fields())
+	encryptFileCmd.Flags().StringP(sourceFileFlag.fields())
+	encryptFileCmd.Flags().StringP(outputFileFlag.fields())
 	encryptFileCmd.Flags().BoolP(compressFlag.fields())
-	encryptFileCmd.MarkFlagRequired(fileFlag.name)
+	encryptFileCmd.MarkFlagRequired(sourceFileFlag.name)
 	return encryptFileCmd
 }

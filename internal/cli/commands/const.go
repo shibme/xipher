@@ -137,8 +137,8 @@ var (
 		},
 	}
 
-	// File Flag
-	fileFlag = strFlag{
+	// Source File Flag
+	sourceFileFlag = strFlag{
 		flagDef: flagDef{
 			name:      "file",
 			shorthand: "f",
@@ -146,8 +146,8 @@ var (
 		},
 	}
 
-	// Out Flag
-	outFlag = strFlag{
+	// Output File Flag
+	outputFileFlag = strFlag{
 		flagDef: flagDef{
 			name:      "out",
 			shorthand: "o",
