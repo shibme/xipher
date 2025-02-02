@@ -20,26 +20,20 @@ jobs:
       group: "pages"
       cancel-in-progress: true
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Download wasm files from latest release
         uses: robinraju/release-downloader@v1.11
         with:
           latest: true
-          fileName: '*wasm*'
-      - name: Add WASM files to web directory
+          fileName: 'xipher-web.zip'
+      - name: Extracting Xipher Web
         run: |
-          mkdir -p web/wasm
-          unzip xipher_js_wasm.zip -d web/wasm/
-      - name: Setting commit sha in service-worker.js
-        run: |
-          sed -i "s/xipher-cache/xipher-${{ github.sha }}/g" web/js/service-worker.js
+          unzip xipher-web.zip -d xipher-web
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact from web directory
         uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: xipher-web
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

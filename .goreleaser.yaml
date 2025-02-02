@@ -8,7 +8,7 @@ env:
 
 builds:
 
-# Builds for CLI
+# Builds CLI
   - id: xipher-cli
     binary: xipher
     main: ./internal/cli
@@ -29,9 +29,9 @@ builds:
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
       - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
-# Builds for Web Assembly
+# Builds Web Assembly
   - id: xipher-wasm
-    binary: xipher
+    binary: wasm/xipher
     main: ./internal/wasm
     targets:
       - js_wasm
@@ -44,7 +44,7 @@ builds:
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
       - -X xipher.org/xipher.releaseURL={{.ReleaseURL}}
 
-# Builds for Shared Library
+# Builds Shared Libraries
   - id: xipher-shared-lib-darwin-amd64
     binary: xipher
     main: ./internal/sharedlib
@@ -184,9 +184,21 @@ archives:
       - xipher-cli
   - id: xipher-wasm
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    strip_binary_directory: true
     formats: [ 'zip' ]
     files:
-      - wasm_exec.js
+      - src: .ignore/wasm_exec.js
+        dst: wasm_exec.js
+    builds:
+      - xipher-wasm
+  - id: xipher-web
+    name_template: xipher-web
+    formats: [ 'zip' ]
+    files:
+      - src: .ignore/wasm_exec.js
+        dst: wasm/wasm_exec.js
+      - src: .ignore/web/*
+        dst: .
     builds:
       - xipher-wasm
   - id: xipher-shared-lib

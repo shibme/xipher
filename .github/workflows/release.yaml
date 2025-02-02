@@ -28,7 +28,12 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Copy wasm_exec.js to project root
+    - name: Preparing Xipher Web assets
+      run: |
+        mkdir -p .ignore
+        cp -r web .ignore
+        sed -i "s/xipher-cache/xipher-v${{ env.XIPHER_VERSION }}/g" .ignore/web/js/service-worker.js
+    - name: Copying wasm_exec.js to .ignore directory
       run: |
         docker run --rm \
         -w /workspace \
@@ -37,7 +42,7 @@ jobs:
         -e HOMEBREW_SSH_KEY \
         --entrypoint sh \
         ghcr.io/goreleaser/goreleaser-cross:latest \
-        -c "cp \$(go env GOROOT)/misc/wasm/wasm_exec.js ./"
+        -c "cp \$(go env GOROOT)/misc/wasm/wasm_exec.js .ignore"
     - name: GoReleaser - Release Xipher
       run: |
         docker run --rm \
@@ -68,8 +73,10 @@ jobs:
         tags: |
           ${{ github.repository }}:latest
           ${{ github.repository }}:${{ env.XIPHER_VERSION }}
+          ${{ github.repository }}:v${{ env.XIPHER_VERSION }}
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ env.XIPHER_VERSION }}
+          ghcr.io/${{ github.repository }}:v${{ env.XIPHER_VERSION }}
 
   pages:
     name: Run GitHub Pages Workflow
