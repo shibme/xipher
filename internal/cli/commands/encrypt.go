@@ -117,6 +117,7 @@ func encryptFileCommand() *cobra.Command {
 			Short:   "Encrypts a given file",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
+				toXipherTxt, _ := cmd.Flags().GetBool(toXipherTxtFlag.name)
 				overwrite, _ := cmd.Flags().GetBool(overwriteFlag.name)
 				srcPath := cmd.Flag(sourceFileFlag.name).Value.String()
 				src, err := os.Open(srcPath)
@@ -149,7 +150,7 @@ func encryptFileCommand() *cobra.Command {
 					exitOnError(err, jsonFormat)
 				}
 				compress, _ := cmd.Flags().GetBool(compressFlag.name)
-				if err = utils.EncryptStream(keyPwdStr, dst, src, compress); err != nil {
+				if err = utils.EncryptStream(keyPwdStr, dst, src, compress, toXipherTxt); err != nil {
 					dst.Close()
 					os.Remove(dstPath)
 					exitOnError(err, jsonFormat)
@@ -164,6 +165,7 @@ func encryptFileCommand() *cobra.Command {
 			},
 		}
 		encryptFileCmd.Flags().BoolP(overwriteFlag.fields())
+		encryptFileCmd.Flags().BoolP(toXipherTxtFlag.fields())
 		encryptFileCmd.Flags().StringP(sourceFileFlag.fields())
 		encryptFileCmd.Flags().StringP(outputFileFlag.fields())
 		encryptFileCmd.Flags().BoolP(compressFlag.fields())
@@ -179,6 +181,7 @@ func encryptStreamCommand() *cobra.Command {
 			Short: "Encryts data from the standard input stream and writes to the standard output stream",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
+				toXipherTxt, _ := cmd.Flags().GetBool(toXipherTxtFlag.name)
 				keyPwdStr := cmd.Flag(keyOrPwdFlag.name).Value.String()
 				if keyPwdStr == "" {
 					if keyPwdStr, _ = getSecretKeyOrPwd(false); keyPwdStr == "" {
@@ -188,12 +191,13 @@ func encryptStreamCommand() *cobra.Command {
 					}
 				}
 				compress, _ := cmd.Flags().GetBool(compressFlag.name)
-				if err := utils.EncryptStream(keyPwdStr, os.Stdout, os.Stdin, compress); err != nil {
+				if err := utils.EncryptStream(keyPwdStr, os.Stdout, os.Stdin, compress, toXipherTxt); err != nil {
 					exitOnError(err, jsonFormat)
 				}
 			},
 		}
 		encryptStreamCmd.Flags().BoolP(compressFlag.fields())
+		encryptStreamCmd.Flags().BoolP(toXipherTxtFlag.fields())
 	}
 	return encryptStreamCmd
 }

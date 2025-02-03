@@ -64,7 +64,7 @@ func newEncryptingTransformer(args []js.Value) (any, error) {
 	enc := &encrypter{
 		dst: new(bytes.Buffer),
 	}
-	writer, err := utils.EncryptingWriter(keyOrPwd, enc.dst, compress)
+	writer, err := utils.EncryptingWriter(keyOrPwd, enc.dst, compress, false)
 	if err != nil {
 		return nil, err
 	}

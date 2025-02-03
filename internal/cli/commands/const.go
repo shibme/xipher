@@ -186,4 +186,12 @@ var (
 			usage: "Overwrite the file if it exists",
 		},
 	}
+
+	// To Xipher text Flag
+	toXipherTxtFlag = boolFlag{
+		flagDef: flagDef{
+			name:  "xiphertext",
+			usage: "Encode the output in xipher text format",
+		},
+	}
 )
