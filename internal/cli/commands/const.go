@@ -30,11 +30,17 @@ var (
 	// Encrypt File Command
 	encryptFileCmd *cobra.Command
 
+	// Encrypt Stream Command
+	encryptStreamCmd *cobra.Command
+
 	// Decrypt Command
 	decryptCmd *cobra.Command
 
 	// Decrypt String Command
 	decryptTxtCmd *cobra.Command
+
+	// Decrypt Stream Command
+	decryptStreamCmd *cobra.Command
 
 	// Decrypt File Command
 	decryptFileCmd *cobra.Command
