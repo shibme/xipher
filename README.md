@@ -64,6 +64,19 @@ docker run --rm -v $PWD:/data -it shibme/xipher help
 ## Web Interface
 A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://xipher.org).
 
+You can also host it on your own GitHub Pages by setting up a workflow file like the one below. Make sure to enable Actions as the source for GitHub Pages under your repository settings.
+```yaml
+name: Publish Xipher Web
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pages:
+    name: Run GitHub Pages Workflow
+    uses: shibme/xipher/.github/workflows/pages.yaml@main
+```
+
 ### How does Xipher Web App work?
 - Receiver opens the Xipher web app on a browser.
 - Xipher generates a key pair and stores them in the browser local storage.
