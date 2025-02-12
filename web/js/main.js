@@ -81,7 +81,6 @@ function copyPublicKeyLinkToClipboard() {
         publinkCopyButton.classList.add("icon-button-fade");
         setTimeout(() => {
             publinkCopyButton.classList.remove("icon-button-fade");
-            setTimeout(() => (copyMessage.hidden = true), 300);
         }, 2000);
     }).catch((err) => {
         console.error("Failed to copy Public Key URL: ", err);
@@ -222,7 +221,6 @@ function copyTextToClipboard() {
         textCopyButton.classList.add("icon-button-fade");
         setTimeout(() => {
             textCopyButton.classList.remove("icon-button-fade");
-            setTimeout(() => (copyMessage.hidden = true), 300);
         }, 2000);
     }).catch((err) => {
         console.error("Failed to copy text: ", err);
@@ -279,7 +277,6 @@ async function cancelCurrentStreamProcessing() {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
-    console.log("Processing cancelled!");
 }
 
 async function getFilePickHandlerOutStream(fileName) {
@@ -301,7 +298,6 @@ async function handleFileEncryption(key, file, compress) {
     try {
         fileOutStream = await getFilePickHandlerOutStream(outFileName);
     } catch (error) {
-        console.log("File picker not supported: Switching to StreamSaver as an alternative.");
         fileOutStream = streamSaver.createWriteStream(outFileName, {
             size: fileSize
         });
@@ -315,7 +311,7 @@ async function handleFileEncryption(key, file, compress) {
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Encryption Failed!", "Encryption Failed!");
         } else if (status === XipherStreamStatus.CANCELLING) {
-            showActivityErrorInView("Canceling Encryption...", "Encryption Canceling...");
+            showActivityErrorInView("Canceling Encryption...", "Canceling Encryption...");
         } else if (status === XipherStreamStatus.CANCELLED) {
             showActivityErrorInView("Encryption Cancelled!", "Encryption Cancelled!");
         } else {
@@ -336,7 +332,6 @@ async function handleFileDecryption(key, file) {
     try {
         fileOutStream = await getFilePickHandlerOutStream(outFileName);
     } catch (error) {
-        console.log("File picker not supported: Switching to StreamSaver as an alternative.");
         fileOutStream = streamSaver.createWriteStream(outFileName, {
             size: fileSize
         });
@@ -350,7 +345,7 @@ async function handleFileDecryption(key, file) {
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Decryption Failed!", "Decryption Failed!");
         } else if (status === XipherStreamStatus.CANCELLING) {
-            showActivityErrorInView("Canceling Decryption...", "Decryption Canceling...");
+            showActivityErrorInView("Canceling Decryption...", "Canceling Decryption...");
         } else if (status === XipherStreamStatus.CANCELLED) {
             showActivityErrorInView("Decryption Cancelled!", "Decryption Cancelled!");
         } else {
