@@ -23,6 +23,7 @@ jobs:
       - name: Download wasm files from latest release
         uses: robinraju/release-downloader@v1.11
         with:
+          repository: 'shibme/xipher'
           latest: true
           fileName: 'xipher-web.zip'
       - name: Extracting Xipher Web
