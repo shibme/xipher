@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"strings"
@@ -22,13 +21,16 @@ func DecryptingReader(secretKeyOrPwd string, src io.Reader) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := bufio.NewReader(src)
-	ctPrefix, _ := reader.Peek(len(xipherTxtPrefix))
-	if string(ctPrefix) != xipherTxtPrefix {
-		return secretKey.NewDecryptingReader(reader)
+	pr := &peekableReader{
+		r:   src,
+		buf: bytes.Buffer{},
 	}
-	reader.Discard(len(xipherTxtPrefix))
-	return secretKey.NewDecryptingReader(decodingReader(reader))
+	ctPrefix, _ := pr.Peek(len(xipherTxtPrefix))
+	if string(ctPrefix) != xipherTxtPrefix {
+		return secretKey.NewDecryptingReader(pr)
+	}
+	pr.Discard(len(xipherTxtPrefix))
+	return secretKey.NewDecryptingReader(decodingReader(pr))
 }
 
 func DecryptStream(secretKeyOrPwd string, dst io.Writer, src io.Reader) error {
