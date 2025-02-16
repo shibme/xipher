@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"xipher.org/xipher/crypto/asx"
-	"xipher.org/xipher/crypto/xcp"
+	"xipher.org/xipher/internal/crypto/asx"
+	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 func newVariableKeySymmCipher(key []byte) (*xcp.SymmetricCipher, error) {
@@ -18,7 +18,19 @@ func newVariableKeySymmCipher(key []byte) (*xcp.SymmetricCipher, error) {
 	return xcp.New(key)
 }
 
-func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compress bool) (writer io.WriteCloser, err error) {
+// IsCTStr returns true if the given string is a valid ciphertext.
+func IsCTStr(str string) bool {
+	return len(str) >= len(xipherTxtPrefix) && str[:len(xipherTxtPrefix)] == xipherTxtPrefix
+}
+
+// NewEncryptingWriter returns a new io.WriteCloser that encrypts data with the secret key and writes to dst.
+func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compress, encode bool) (writer io.WriteCloser, err error) {
+	var encodeWriteCloser io.WriteCloser
+	if encode {
+		dst.Write([]byte(xipherTxtPrefix))
+		encodeWriteCloser = encoder(dst)
+		dst = encodeWriteCloser
+	}
 	if isPwdBased(secretKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to write ciphertext type", "xipher")
@@ -36,12 +48,19 @@ func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compress bool) (w
 			return nil, err
 		}
 	}
-	return secretKey.symmCipher.NewEncryptingWriter(dst, compress)
+	encryptingWriteCloser, err := secretKey.symmCipher.NewEncryptingWriter(dst, compress)
+	if err != nil {
+		return nil, err
+	}
+	if encodeWriteCloser != nil {
+		return &dualWriteCloser{encryptingWriteCloser, encodeWriteCloser}, nil
+	}
+	return encryptingWriteCloser, nil
 }
 
 // EncryptStream encrypts src with the secret key treating it as a symmetric key and writes to dst.
-func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compress bool) (err error) {
-	encryptedWriter, err := secretKey.NewEncryptingWriter(dst, compress)
+func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compress, encode bool) (err error) {
+	encryptedWriter, err := secretKey.NewEncryptingWriter(dst, compress, encode)
 	if err != nil {
 		return err
 	}
@@ -52,15 +71,22 @@ func (secretKey *SecretKey) EncryptStream(dst io.Writer, src io.Reader, compress
 }
 
 // Encrypt encrypts data with the secret key treating it as a symmetric key.
-func (secretKey *SecretKey) Encrypt(data []byte, compress bool) (ciphertext []byte, err error) {
+func (secretKey *SecretKey) Encrypt(data []byte, compress, encode bool) (ciphertext []byte, err error) {
 	var buf bytes.Buffer
-	if err = secretKey.EncryptStream(&buf, bytes.NewReader(data), compress); err != nil {
+	if err = secretKey.EncryptStream(&buf, bytes.NewReader(data), compress, encode); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (writer io.WriteCloser, err error) {
+// NewEncryptingWriter returns a new io.WriteCloser that encrypts data with the public key and writes to dst.
+func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress, encode bool) (writer io.WriteCloser, err error) {
+	var encodeWriteCloser io.WriteCloser
+	if encode {
+		dst.Write([]byte(xipherTxtPrefix))
+		encodeWriteCloser = encoder(dst)
+		dst = encodeWriteCloser
+	}
 	if isPwdBased(publicKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdAsymmetric}); err != nil {
 			return nil, err
@@ -73,12 +99,19 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (w
 			return nil, err
 		}
 	}
-	return publicKey.publicKey.NewEncryptingWriter(dst, compress)
+	encryptingWriteCloser, err := publicKey.publicKey.NewEncryptingWriter(dst, compress)
+	if err != nil {
+		return nil, err
+	}
+	if encodeWriteCloser != nil {
+		return &dualWriteCloser{encryptingWriteCloser, encodeWriteCloser}, nil
+	}
+	return encryptingWriteCloser, nil
 }
 
 // EncryptStream encrypts src with the public key and writes to dst.
-func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compress bool) (err error) {
-	encryptedWriter, err := publicKey.NewEncryptingWriter(dst, compress)
+func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compress, encode bool) (err error) {
+	encryptedWriter, err := publicKey.NewEncryptingWriter(dst, compress, encode)
 	if err != nil {
 		return err
 	}
@@ -89,15 +122,15 @@ func (publicKey *PublicKey) EncryptStream(dst io.Writer, src io.Reader, compress
 }
 
 // Encrypt encrypts data with the public key.
-func (publicKey *PublicKey) Encrypt(data []byte, compress bool) (ciphertext []byte, err error) {
+func (publicKey *PublicKey) Encrypt(data []byte, compress, encode bool) (ciphertext []byte, err error) {
 	var buf bytes.Buffer
-	if err = publicKey.EncryptStream(&buf, bytes.NewReader(data), compress); err != nil {
+	if err = publicKey.EncryptStream(&buf, bytes.NewReader(data), compress, encode); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func (secretKey *SecretKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
+func (secretKey *SecretKey) newPlainDecryptingReader(src io.Reader) (io.Reader, error) {
 	ctTypeBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, ctTypeBytes); err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to read ciphertext type", "xipher")
@@ -140,6 +173,23 @@ func (secretKey *SecretKey) NewDecryptingReader(src io.Reader) (io.Reader, error
 		return symmCipher.NewDecryptingReader(src)
 	}
 	return nil, errInvalidCiphertext
+}
+
+// NewDecryptingReader returns a new io.Reader that decrypts src with the secret key.
+func (secretKey *SecretKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
+	pr := &peekableReader{
+		r:   src,
+		buf: bytes.Buffer{},
+	}
+	ctPrefix, err := pr.Peek(len(xipherTxtPrefix))
+	if err != nil {
+		return nil, err
+	}
+	if string(ctPrefix) != xipherTxtPrefix {
+		return secretKey.newPlainDecryptingReader(pr)
+	}
+	pr.Discard(len(xipherTxtPrefix))
+	return secretKey.newPlainDecryptingReader(decoder(pr))
 }
 
 // DecryptStream decrypts src and writes to dst.

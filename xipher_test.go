@@ -25,7 +25,6 @@ func getTestData() []byte {
 		panic(err)
 	}
 	return data
-
 }
 
 func getTestPassword() []byte {
@@ -36,7 +35,8 @@ func getTestPassword() []byte {
 	return password
 }
 
-func symmetricKeyTest(t *testing.T, compress bool) {
+func symmetricKeyTest(t *testing.T, compress, encode bool) {
+	t.Logf("Testing symmetric key with compress=%v, encode=%v", compress, encode)
 	data := getTestData()
 	privKey, err := NewSecretKey()
 	if err != nil {
@@ -46,7 +46,7 @@ func symmetricKeyTest(t *testing.T, compress bool) {
 	if err != nil {
 		t.Error("Error converting private key to bytes", err)
 	}
-	ciphertext, err := privKey.Encrypt(data, compress)
+	ciphertext, err := privKey.Encrypt(data, compress, encode)
 	if err != nil {
 		t.Error("Error encrypting data", err)
 	}
@@ -59,19 +59,20 @@ func symmetricKeyTest(t *testing.T, compress bool) {
 		t.Error("Error decrypting data", err)
 	}
 	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+		t.Error("Plaintext does not match with original data")
 	}
 	t.Log(getMemoryStats())
 }
 
-func symmetricPwdTest(t *testing.T, compress bool) {
+func symmetricPwdTest(t *testing.T, compress, encode bool) {
+	t.Logf("Testing symmetric password with compress=%v, encode=%v", compress, encode)
 	password := getTestPassword()
 	data := getTestData()
 	privKey, err := NewSecretKeyForPassword(password)
 	if err != nil {
 		t.Error("Error generating private key", err)
 	}
-	ciphertext, err := privKey.Encrypt(data, compress)
+	ciphertext, err := privKey.Encrypt(data, compress, encode)
 	if err != nil {
 		t.Error("Error encrypting data", err)
 	}
@@ -84,12 +85,13 @@ func symmetricPwdTest(t *testing.T, compress bool) {
 		t.Error("Error decrypting data", err)
 	}
 	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+		t.Error("Plaintext does not match with original data")
 	}
 	t.Log(getMemoryStats())
 }
 
-func asymmetricKeyTest(t *testing.T, compress, pq bool) {
+func asymmetricKeyTest(t *testing.T, compress, encode, pq bool) {
+	t.Logf("Testing asymmetric key with compress=%v, encode=%v, pq=%v", compress, encode, pq)
 	data := getTestData()
 	privKey, err := NewSecretKey()
 	if err != nil {
@@ -103,7 +105,7 @@ func asymmetricKeyTest(t *testing.T, compress, pq bool) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	ciphertext, err := publicKey.Encrypt(data, compress)
+	ciphertext, err := publicKey.Encrypt(data, compress, encode)
 	if err != nil {
 		t.Error("Error encrypting data", err)
 	}
@@ -116,12 +118,13 @@ func asymmetricKeyTest(t *testing.T, compress, pq bool) {
 		t.Error("Error decrypting data", err)
 	}
 	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+		t.Error("Plaintext does not match with original data")
 	}
 	t.Log(getMemoryStats())
 }
 
-func asymmetricPwdTest(t *testing.T, compress, pq bool) {
+func asymmetricPwdTest(t *testing.T, compress, encode, pq bool) {
+	t.Logf("Testing asymmetric password with compress=%v, encode=%v, pq=%v", compress, encode, pq)
 	password := getTestPassword()
 	data := getTestData()
 	privKey, err := NewSecretKeyForPassword(password)
@@ -132,7 +135,7 @@ func asymmetricPwdTest(t *testing.T, compress, pq bool) {
 	if err != nil {
 		t.Error("Error generating public key", err)
 	}
-	ciphertext, err := publicKey.Encrypt(data, compress)
+	ciphertext, err := publicKey.Encrypt(data, compress, encode)
 	if err != nil {
 		t.Error("Error encrypting data", err)
 	}
@@ -145,44 +148,89 @@ func asymmetricPwdTest(t *testing.T, compress, pq bool) {
 		t.Error("Error decrypting data", err)
 	}
 	if string(plaintext) != string(data) {
-		t.Errorf("Plaintext was incorrect, got: %s, want: %s.", string(plaintext), string(data))
+		t.Error("Plaintext does not match with original data")
 	}
 	t.Log(getMemoryStats())
 }
 
-func TestSymmetricKeyCompress(t *testing.T) {
-	symmetricKeyTest(t, true)
+// Testing with Symmetric Key
+func TestSymmetricKey(t *testing.T) {
+	tests := []struct {
+		compress bool
+		encode   bool
+	}{
+		{false, false},
+		{false, true},
+		{true, false},
+		{true, true},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("compress=%v/encode=%v", tt.compress, tt.encode), func(t *testing.T) {
+			symmetricKeyTest(t, tt.compress, tt.encode)
+		})
+	}
 }
-func TestSymmetricKeyNoCompress(t *testing.T) {
-	symmetricKeyTest(t, false)
+
+// Testing with Symmetric Password
+func TestSymmetricPassword(t *testing.T) {
+	tests := []struct {
+		compress bool
+		encode   bool
+	}{
+		{false, false},
+		{false, true},
+		{true, false},
+		{true, true},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("compress=%v/encode=%v", tt.compress, tt.encode), func(t *testing.T) {
+			symmetricPwdTest(t, tt.compress, tt.encode)
+		})
+	}
 }
-func TestSymmetricPasswordCompress(t *testing.T) {
-	symmetricPwdTest(t, true)
+
+// Testing with Asymmetric Key
+func TestAsymmetricKey(t *testing.T) {
+	tests := []struct {
+		compress bool
+		encode   bool
+		pq       bool
+	}{
+		{false, false, false},
+		{false, false, true},
+		{false, true, false},
+		{false, true, true},
+		{true, false, false},
+		{true, false, true},
+		{true, true, false},
+		{true, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("compress=%v/encode=%v/pq=%v", tt.compress, tt.encode, tt.pq), func(t *testing.T) {
+			asymmetricKeyTest(t, tt.compress, tt.encode, tt.pq)
+		})
+	}
 }
-func TestSymmetricPasswordNoCompress(t *testing.T) {
-	symmetricPwdTest(t, false)
-}
-func TestAsymmetricKeyCompressPQ(t *testing.T) {
-	asymmetricKeyTest(t, true, true)
-}
-func TestAsymmetricKeyNoCompressPQ(t *testing.T) {
-	asymmetricKeyTest(t, false, true)
-}
-func TestAsymmetricKeyCompressNoPQ(t *testing.T) {
-	asymmetricKeyTest(t, true, false)
-}
-func TestAsymmetricKeyNoCompressNoPQ(t *testing.T) {
-	asymmetricKeyTest(t, false, false)
-}
-func TestAsymmetricPasswordCompressPQ(t *testing.T) {
-	asymmetricPwdTest(t, true, true)
-}
-func TestAsymmetricPasswordNoCompressPQ(t *testing.T) {
-	asymmetricPwdTest(t, false, true)
-}
-func TestAsymmetricPasswordCompressNoPQ(t *testing.T) {
-	asymmetricPwdTest(t, true, false)
-}
-func TestAsymmetricPasswordNoCompressNoPQ(t *testing.T) {
-	asymmetricPwdTest(t, false, false)
+
+// Testing with Asymmetric Password
+func TestAsymmetricPassword(t *testing.T) {
+	tests := []struct {
+		compress bool
+		encode   bool
+		pq       bool
+	}{
+		{false, false, false},
+		{false, false, true},
+		{false, true, false},
+		{false, true, true},
+		{true, false, false},
+		{true, false, true},
+		{true, true, false},
+		{true, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("compress=%v/encode=%v/pq=%v", tt.compress, tt.encode, tt.pq), func(t *testing.T) {
+			asymmetricPwdTest(t, tt.compress, tt.encode, tt.pq)
+		})
+	}
 }

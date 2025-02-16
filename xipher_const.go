@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"runtime"
 
-	"xipher.org/xipher/crypto/asx"
+	"xipher.org/xipher/internal/crypto/asx"
 )
 
 const (
+	xipherPublicKeyPrefix = "XPK_"
+	xipherSecretKeyPrefix = "XSK_"
+	xipherTxtPrefix       = "XCT_"
+	secretKeyStrRegex     = "^" + xipherSecretKeyPrefix + "[A-Z2-7]{106}$"
 
 	// secretKeyBaseLength is the length of a secret key when being generated.
 	secretKeyBaseLength = asx.PrivateKeyLength
@@ -44,6 +48,7 @@ var (
 	errInvalidCiphertext           = fmt.Errorf("%s: invalid ciphertext", "xipher")
 	errSecretKeyUnavailableForPwd  = fmt.Errorf("%s: can't derive secret key for passwords", "xipher")
 	errInvalidPublicKey            = fmt.Errorf("%s: invalid public key", "xipher")
+	errInvalidSecretKey            = fmt.Errorf("%s: invalid secret key", "xipher")
 	errInvalidKDFSpec              = fmt.Errorf("%s: invalid kdf spec", "xipher")
 	errDecryptionFailedPwdRequired = fmt.Errorf("%s: decryption failed, password required", "xipher")
 	errDecryptionFailedKeyRequired = fmt.Errorf("%s: decryption failed, key required", "xipher")

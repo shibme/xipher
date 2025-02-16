@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/circl/kem/kyber/kyber1024"
-	"xipher.org/xipher/crypto/xcp"
+	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 const (

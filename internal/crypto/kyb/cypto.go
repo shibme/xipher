@@ -1,11 +1,11 @@
-package ecc
+package kyb
 
 import (
 	"fmt"
 	"io"
 
-	"golang.org/x/crypto/curve25519"
-	"xipher.org/xipher/crypto/xcp"
+	"github.com/cloudflare/circl/kem/kyber/kyber1024"
+	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 // NewEncryptingWriter returns a new WriteCloser that encrypts data with the public key and writes to dst.
@@ -14,19 +14,19 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 	if err != nil {
 		return nil, err
 	}
-	if _, err = dst.Write(encrypter.ephPubKey); err != nil {
-		return nil, fmt.Errorf("%s: encrypter failed to write ephemeral public key", "xipher")
+	if _, err = dst.Write(encrypter.keyEnc); err != nil {
+		return nil, fmt.Errorf("%s: encrypter failed to write encapsulated key", "xipher")
 	}
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compress)
 }
 
 // NewDecryptingReader returns a new Reader that reads and decrypts data with the private key from src.
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
-	ephPubKey := make([]byte, KeyLength)
-	if _, err := io.ReadFull(src, ephPubKey); err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to read ephemeral public key", "xipher")
+	keyEnc := make([]byte, ctLength)
+	if _, err := io.ReadFull(src, keyEnc); err != nil {
+		return nil, fmt.Errorf("%s: decrypter failed to read encapsulated key", "xipher")
 	}
-	sharedKey, err := curve25519.X25519(*privateKey.key, ephPubKey)
+	sharedKey, err := kyber1024.Scheme().Decapsulate(privateKey.sk, keyEnc)
 	if err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to generate shared key", "xipher")
 	}

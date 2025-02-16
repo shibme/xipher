@@ -6,11 +6,20 @@ import (
 import (
 	"unsafe"
 
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher"
+	"xipher.org/xipher/internal/utils"
 )
 
+func newSecretKeyStr() (string, error) {
+	sk, err := xipher.NewSecretKey()
+	if err != nil {
+		return "", err
+	}
+	return sk.String()
+}
+
 func xipherNewSecretKey(secretKey **C.char, secretKeyLength *C.int, errMessage **C.char, errLength *C.int) {
-	if sk, err := utils.NewSecretKey(); err != nil {
+	if sk, err := newSecretKeyStr(); err != nil {
 		*secretKey = nil
 		*secretKeyLength = 0
 		*errMessage = C.CString(err.Error())

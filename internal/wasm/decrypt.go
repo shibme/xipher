@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall/js"
 
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher/internal/utils"
 )
 
 const (
@@ -42,7 +42,7 @@ type decrypter struct {
 
 func (d *decrypter) initReaderGracefully() (err error) {
 	if d.reader == nil {
-		d.reader, err = utils.DecryptingReader(d.keyOrPwd, d.src)
+		d.reader, err = utils.NewDecryptingReader(d.keyOrPwd, d.src)
 	}
 	return
 }

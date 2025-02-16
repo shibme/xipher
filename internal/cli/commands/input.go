@@ -9,7 +9,7 @@ import (
 	"unicode"
 
 	"golang.org/x/term"
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher"
 )
 
 const (
@@ -70,7 +70,7 @@ func getPasswordOrSecretKeyFromUser(confirm, ignorePolicyCheck bool) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	if utils.IsSecretKeyStr(string(passwordOrSecretKey)) {
+	if xipher.IsSecretKeyStr(string(passwordOrSecretKey)) {
 		return passwordOrSecretKey, nil
 	}
 	if !ignorePolicyCheck {

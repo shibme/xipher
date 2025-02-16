@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher/internal/utils"
 )
 
 func encryptCommand() *cobra.Command {

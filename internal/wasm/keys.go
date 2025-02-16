@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher"
+	"xipher.org/xipher/internal/utils"
 )
 
 func newSecretKey(args []js.Value) (any, error) {
 	if len(args) > 0 {
 		return nil, fmt.Errorf("no arguments required for new secret key generation")
 	}
-	sk, err := utils.NewSecretKey()
+	sk, err := xipher.NewSecretKey()
 	if err != nil {
 		return nil, err
 	}
-	return sk, nil
+	return sk.String()
 }
 
 func getPublicKey(args []js.Value) (any, error) {

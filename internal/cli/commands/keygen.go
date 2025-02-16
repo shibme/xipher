@@ -7,7 +7,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher"
+	"xipher.org/xipher/internal/utils"
 )
 
 func keygenCommand() *cobra.Command {
@@ -25,7 +26,11 @@ func keygenCommand() *cobra.Command {
 				var secret string
 				var err error
 				if autoGen {
-					if secret, err = utils.NewSecretKey(); err != nil {
+					var sk *xipher.SecretKey
+					if sk, err = xipher.NewSecretKey(); err != nil {
+						exitOnError(err, jsonFormat)
+					}
+					if secret, err = sk.String(); err != nil {
 						exitOnError(err, jsonFormat)
 					}
 					if jsonFormat {

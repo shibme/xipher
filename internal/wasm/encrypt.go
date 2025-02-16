@@ -7,7 +7,7 @@ import (
 	"sync"
 	"syscall/js"
 
-	"xipher.org/xipher/utils"
+	"xipher.org/xipher/internal/utils"
 )
 
 func encryptStr(args []js.Value) (any, error) {
@@ -64,7 +64,7 @@ func newEncryptingTransformer(args []js.Value) (any, error) {
 	enc := &encrypter{
 		dst: new(bytes.Buffer),
 	}
-	writer, err := utils.EncryptingWriter(keyOrPwd, enc.dst, compress, false)
+	writer, err := utils.NewEncryptingWriter(keyOrPwd, enc.dst, compress, false)
 	if err != nil {
 		return nil, err
 	}

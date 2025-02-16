@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"golang.org/x/crypto/curve25519"
-	"xipher.org/xipher/crypto/xcp"
+	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 // KeyLength is the length of the ECC key.

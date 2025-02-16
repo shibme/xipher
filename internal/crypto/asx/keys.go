@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"xipher.org/xipher/crypto/ecc"
-	"xipher.org/xipher/crypto/kyb"
+	"xipher.org/xipher/internal/crypto/ecc"
+	"xipher.org/xipher/internal/crypto/kyb"
 )
 
 // PrivateKey represents a private key.

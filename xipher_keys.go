@@ -3,9 +3,10 @@ package xipher
 import (
 	"crypto/rand"
 	"fmt"
+	"regexp"
 
-	"xipher.org/xipher/crypto/asx"
-	"xipher.org/xipher/crypto/xcp"
+	"xipher.org/xipher/internal/crypto/asx"
+	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 type SecretKey struct {
@@ -72,6 +73,23 @@ func ParseSecretKey(key []byte) (*SecretKey, error) {
 	}, nil
 }
 
+// IsSecretKeyStr returns true if the given string is a valid secret key string.
+func IsSecretKeyStr(secretKeyStr string) bool {
+	return regexp.MustCompile(secretKeyStrRegex).MatchString(secretKeyStr)
+}
+
+// ParseSecretKeyStr parses the given secret key string and returns a corresponding secret key.
+func ParseSecretKeyStr(secretKeyStr string) (*SecretKey, error) {
+	if !IsSecretKeyStr(secretKeyStr) {
+		return nil, errInvalidSecretKey
+	}
+	keyBytes, err := decode(secretKeyStr[len(xipherSecretKeyPrefix):])
+	if err != nil {
+		return nil, err
+	}
+	return ParseSecretKey(keyBytes)
+}
+
 func isPwdBased(keyType uint8) bool {
 	return keyType%2 == 1
 }
@@ -92,6 +110,15 @@ func (secretKey *SecretKey) Bytes() ([]byte, error) {
 		return nil, errSecretKeyUnavailableForPwd
 	}
 	return append([]byte{secretKey.version, secretKey.keyType}, secretKey.key...), nil
+}
+
+// String returns the private key as a string.
+func (secretKey *SecretKey) String() (string, error) {
+	secretKeyBytes, err := secretKey.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return xipherSecretKeyPrefix + encode(secretKeyBytes), nil
 }
 
 type PublicKey struct {
@@ -138,6 +165,15 @@ func (publicKey *PublicKey) Bytes() ([]byte, error) {
 	}
 }
 
+// String returns the public key as a string.
+func (publicKey *PublicKey) String() (string, error) {
+	pubKeyBytes, err := publicKey.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return xipherPublicKeyPrefix + encode(pubKeyBytes), nil
+}
+
 // ParsePublicKey parses the given bytes and returns a corresponding public key.
 func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 	if len(pubKeyBytes) < publicKeyMinLength {
@@ -168,4 +204,21 @@ func ParsePublicKey(pubKeyBytes []byte) (*PublicKey, error) {
 		publicKey: asxPubKey,
 		spec:      spec,
 	}, nil
+}
+
+// IsPubKeyStr returns true if the given string is a valid public key string.
+func IsPubKeyStr(pubKeyStr string) bool {
+	return len(pubKeyStr) > len(xipherPublicKeyPrefix) && pubKeyStr[:len(xipherPublicKeyPrefix)] == xipherPublicKeyPrefix
+}
+
+// ParsePublicKeyStr parses the given public key string and returns a corresponding public key.
+func ParsePublicKeyStr(pubKeyStr string) (*PublicKey, error) {
+	if !IsPubKeyStr(pubKeyStr) {
+		return nil, errInvalidPublicKey
+	}
+	keyBytes, err := decode(pubKeyStr[len(xipherPublicKeyPrefix):])
+	if err != nil {
+		return nil, err
+	}
+	return ParsePublicKey(keyBytes)
 }

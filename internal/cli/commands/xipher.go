@@ -8,7 +8,7 @@ import (
 func XipherCommand() *cobra.Command {
 	if xipherCmd == nil {
 		xipherCmd = &cobra.Command{
-			Use:   appNameLowerCase,
+			Use:   xipher.Info.AppNameLC,
 			Short: xipher.Info.Description,
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)

@@ -1,15 +1,19 @@
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"xipher.org/xipher"
+)
 
 const (
-	appNameLowerCase    = "xipher"
 	xipherPubKeyFileExt = ".xpk"
-	xipherFileExt       = "." + appNameLowerCase
 	envar_XIPHER_SECRET = "XIPHER_SECRET"
 )
 
-var secret *string
+var (
+	secret        *string
+	xipherFileExt = "." + xipher.Info.AppNameLC
+)
 
 var (
 	// Xipher Command
