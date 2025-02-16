@@ -46,7 +46,7 @@ jobs:
         -e HOMEBREW_SSH_KEY \
         --entrypoint sh \
         ghcr.io/goreleaser/goreleaser-cross:latest \
-        -c "cp \$(go env GOROOT)/misc/wasm/wasm_exec.js .ignore"
+        -c "cp \$(go env GOROOT)/lib/wasm/wasm_exec.js .ignore"
     - name: GoReleaser - Release Xipher
       run: |
         docker run --rm \
