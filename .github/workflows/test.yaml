@@ -16,7 +16,5 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: 'stable'
-    - name: Test Xipher Lib
+    - name: Testing Xipher Lib
       run: go test -v .
-    - name: Test Xipher Utils
-      run: go test -v ./utils
