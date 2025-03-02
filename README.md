@@ -61,6 +61,24 @@ You can also run Xipher without installing using Docker:
 docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
+### GitHub Actions
+You can also use Xipher in your GitHub Actions workflow:
+```yaml
+steps:
+- name: Setup Xipher
+  uses: shibme/xipher@main
+```
+
+A specific version of Xipher CLI can also be installed:
+
+```yaml
+steps:
+- name: Setup Xipher
+  uses: shibme/xipher@main
+  with:
+    version: 1.11.0
+```
+
 ## Web Interface
 A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://xipher.org).
 
