@@ -8,7 +8,9 @@ on:
   workflow_call:
 
 jobs:
-  test:
+
+  go-test:
+    name: Unit Test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -18,3 +20,41 @@ jobs:
         go-version: 'stable'
     - name: Testing Xipher Lib
       run: go test -v .
+  
+  action-test:
+    name: Action Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        version: [1.7.0, 1.13.0]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Xipher
+      uses: ./
+      with:
+        version: ${{ matrix.version }}
+
+    - name: Capture Xipher Version Installed
+      run: |
+        VERSION_INSTALLED=$(xipher --version | grep -m1 "Version" | awk '{print $4}')
+        if [[ ! "${VERSION_INSTALLED}" =~ ^v ]]; then
+          VERSION_INSTALLED="v${VERSION_INSTALLED}"
+        fi
+        echo "XIPHER_VERSION_INSTALLED=${VERSION_INSTALLED}" >> $GITHUB_ENV
+
+    - name: Verify Xipher Version
+      shell: python
+      env:
+        XIPHER_VERSION_EXPECTED: ${{ matrix.version }}
+      run: |
+        import sys, os
+        version_expected = os.environ["XIPHER_VERSION_EXPECTED"]
+        if not version_expected.startswith("v"):
+            version_expected = "v" + version_expected
+        version_installed = os.environ["XIPHER_VERSION_INSTALLED"]
+        sys.exit(
+            int(version_expected != version_installed)
+        )
