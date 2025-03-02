@@ -11,8 +11,8 @@ inputs:
     required: false
     default: ${{ github.token }}
 branding:
-  icon: 'unlock'
-  color: 'white'
+  icon: 'lock'
+  color: 'blue'
 runs:
   using: node20
   main: action/dist/index.js
