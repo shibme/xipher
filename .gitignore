@@ -1,4 +1,4 @@
-.vscode
-dist/
-.ignore/
-web/wasm/
+.vscode/*
+dist/*
+.ignore/*
+web/wasm/*

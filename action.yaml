@@ -1,26 +1,18 @@
-name: Xipher
+name: Xipher Action
 description: Sets up the Xipher CLI in a GitHub Actions workflow
 author: Shibly Meeran
 inputs:
   version:
-    description: "Xipher version to install"
+    description: Version of SLV to install
     required: false
-    default: "latest"
+    default: latest
+  github-token:
+    description: GitHub token to use for downloading SLV (To avoid rate-limits)
+    required: false
+    default: ${{ github.token }}
+branding:
+  icon: 'unlock'
+  color: 'white'
 runs:
-  using: "composite"
-  steps:
-    - name: Install Xipher
-      shell: bash
-      run: |
-        set -e
-        export VERSION="${{ inputs.version }}"
-        if [ "${{ inputs.version }}" == "latest" ]; then
-          curl -fsSL https://xipher.org/install/install.sh | sh
-        else
-          if [[ ! "${VERSION}" =~ ^v ]]; then
-            VERSION="v${VERSION}"
-          fi
-          curl -fsSL https://xipher.org/install/install.sh | sh -s "${VERSION}"
-        fi
-        sudo mv $HOME/.xipher/bin/xipher /usr/local/bin/
-        xipher --version
+  using: node20
+  main: action/dist/index.js
