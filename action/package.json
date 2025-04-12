@@ -1,7 +1,7 @@
 {
   "name": "xipher-action",
   "description": "This action downloads and sets up the Xipher CLI into GitHub Actions workflows",
-  "main": "action.js",
+  "main": "index.js",
   "scripts": {
     "lint": "eslint .",
     "prepare": "ncc build index.js -o dist --source-map --license licenses.txt",
@@ -22,15 +22,15 @@
     "url": "git+https://github.com/shibme/xipher.git"
   },
   "dependencies": {
-    "@actions/core": "^1.10.1",
+    "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
-    "@actions/tool-cache": "^2.0.1",
-    "@octokit/auth-token": "^5.1.1",
-    "@octokit/rest": "^21.0.2"
+    "@actions/tool-cache": "^2.0.2",
+    "@octokit/auth-token": "^5.1.2",
+    "@octokit/rest": "^21.1.1"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.1",
-    "eslint": "^9.10.0",
+    "@vercel/ncc": "^0.38.3",
+    "eslint": "^9.24.0",
     "jest": "^29.7.0"
   }
 }
