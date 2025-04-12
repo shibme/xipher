@@ -33,7 +33,7 @@ func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (pubKeyStr, pubKeyUrl
 	if pubKeyStr, err = pubKey.String(); err != nil {
 		return "", "", err
 	}
-	pubKeyUrl = xipherWebURL + "?" + xipherWebKeyParamName + "=" + pubKeyStr
+	pubKeyUrl = xipherWebURL + "#" + pubKeyStr
 	if len(pubKeyUrl) > urlMaxLenth {
 		pubKeyUrl = ""
 	}

@@ -7,15 +7,31 @@ const fileNameElement = document.getElementById("file-name");
 const fileSizeElement = document.getElementById("file-size");
 const actionButton = document.getElementById("action-button");
 const formTitle = document.getElementById("form-title");
-const urlParams = new URLSearchParams(window.location.search);
-const xk = urlParams.get("xk");
-const xt = urlParams.get("xt");
 const linkViewbox = document.getElementById("link-viewbox");
 const shareableLink = document.getElementById("shareable-link");
 const textCopyButton = document.getElementById("text-copy-button");
 const textShareButton = document.getElementById("text-share-button");
 const publinkCopyButton = document.getElementById("publink-copy-button");
 const publinkShareButton = document.getElementById("publink-share-button");
+const {xk, xt} = initParams();
+
+function initParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const xk = urlParams.get("xk");
+    const xt = urlParams.get("xt");
+    if (xk || xt) {
+        return {xk, xt};
+    }
+    const fragment = window.location.hash.substring(1);
+    if (fragment) {
+        if (fragment.startsWith("XCT_")) {
+            return {xk: null, xt: fragment};
+        } else if (fragment.startsWith("XPK_") || fragment.startsWith("XSK_")) {
+            return {xk: fragment, xt: null};
+        }
+    }
+    return {xk: null, xt: null};
+}
 
 function getEncryptionTarget() {
     if (!xk) {
@@ -187,7 +203,7 @@ function isCT(possibleCt) {
     if (ct.startsWith("http")) {
         try {
             const url = new URL(ct);
-            ct = url.searchParams.get("xt") || possibleCt;
+            ct = url.searchParams.get("xt") || url.hash.substring(1) || possibleCt;
         } catch (error) {
             console.error("Failed to parse url: ", error);
         }
@@ -251,21 +267,13 @@ textShareButton.addEventListener("click", shareText);
 async function encryptStrToUrlCT(key, str) {
     const ct = await encryptStr(key, str);
     const url = window.location.href.split("?")[0];
-    const urlCT = `${url}?xt=${ct}`;
+    const urlWithoutFragment = url.split("#")[0];
+    const urlCT = `${urlWithoutFragment}#${ct}`;
     if (urlCT.length < 2000) {
         return urlCT;
     } else {
         return ct;
     }
-}
-
-async function decryptStrFromUrlCt(key, urlCT) {
-    let ct = urlCT;
-    if (ct.startsWith("http")) {
-        const url = new URL(urlCT);
-        ct = url.searchParams.get("xt") || urlCT;
-    }
-    return await decryptStr(key, ct);
 }
 
 let currentProcessor = null;
@@ -374,7 +382,7 @@ async function handleAction() {
         if (isCT(text)) {
             try {
                 const key = await getXipherSecret();
-                const pt = await decryptStrFromUrlCt(key, text);
+                const pt = await decryptStr(key, text);
                 setReadableTextView(pt, false, "Decrypted with your Key");
             } catch (error) {
                 showActivityErrorInView("Decryption Failed!", "Decryption Failed!");
@@ -395,8 +403,9 @@ actionButton.addEventListener("click", handleAction);
 
 async function getXipherPublicKeyUrl() {
     const url = window.location.href.split("?")[0];
+    const urlWithoutFragment = url.split("#")[0];
     const publicKey = await getPublicKey();
-    return `${url}?xk=${publicKey}`;
+    return `${urlWithoutFragment}#${publicKey}`;
 }
 
 function initApp() {

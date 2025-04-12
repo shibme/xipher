@@ -7,9 +7,7 @@ import (
 )
 
 const (
-	xipherWebKeyParamName = "xk"
-	xipherWebCTParamName  = "xt"
-	urlMaxLenth           = 65536
+	urlMaxLenth = 65536
 )
 
 var (

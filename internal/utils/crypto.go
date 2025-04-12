@@ -11,6 +11,12 @@ import (
 
 func getSanitisedValue(strOrUrl string, patternVerifier func(string) bool) string {
 	if u, err := url.Parse(strOrUrl); err == nil {
+		if fragment := u.Fragment; fragment != "" {
+			trimmedFragment := strings.TrimSpace(fragment)
+			if patternVerifier(trimmedFragment) {
+				return trimmedFragment
+			}
+		}
 		for _, values := range u.Query() {
 			for _, value := range values {
 				trimmedValue := strings.TrimSpace(value)
@@ -67,7 +73,7 @@ func encryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
 
 func EncryptData(keyOrPwd string, data []byte, compress bool) (ctStr string, ctUrl string, err error) {
 	if ctStr, err = encryptData(keyOrPwd, data, compress); err == nil {
-		ctUrl = xipherWebURL + "?" + xipherWebCTParamName + "=" + ctStr
+		ctUrl = xipherWebURL + "#" + ctStr
 		if len(ctUrl) > urlMaxLenth {
 			ctUrl = ""
 		}
