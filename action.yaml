@@ -3,11 +3,11 @@ description: Sets up the Xipher CLI in a GitHub Actions workflow
 author: Shibly Meeran
 inputs:
   version:
-    description: Version of SLV to install
+    description: Xipher CLI version to be installed
     required: false
     default: latest
   github-token:
-    description: GitHub token to use for downloading SLV (To avoid rate-limits)
+    description: GitHub token (used to avoid rate limits when downloading Xipher CLI)
     required: false
     default: ${{ github.token }}
 branding:
