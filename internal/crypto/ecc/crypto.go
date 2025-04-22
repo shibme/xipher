@@ -26,7 +26,7 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, err
 	if _, err := io.ReadFull(src, ephPubKey); err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to read ephemeral public key", "xipher")
 	}
-	sharedKey, err := curve25519.X25519(*privateKey.key, ephPubKey)
+	sharedKey, err := curve25519.X25519(privateKey.key, ephPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("%s: decrypter failed to generate shared key", "xipher")
 	}

@@ -15,13 +15,13 @@ var errInvalidKeyLength = fmt.Errorf("%s: invalid key lengths [please use %d byt
 
 // PrivateKey represents a private key.
 type PrivateKey struct {
-	key       *[]byte
+	key       []byte
 	publicKey *PublicKey
 }
 
 // PublicKey represents a public key.
 type PublicKey struct {
-	key       *[]byte
+	key       []byte
 	encrypter *encrypter
 }
 
@@ -32,7 +32,7 @@ type encrypter struct {
 
 // Bytes returns the bytes of the private key.
 func (privateKey *PrivateKey) Bytes() []byte {
-	return *privateKey.key
+	return privateKey.key
 }
 
 // NewPrivateKey generates a new random private key.
@@ -50,19 +50,19 @@ func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 		return nil, errInvalidKeyLength
 	}
 	return &PrivateKey{
-		key: &key,
+		key: key,
 	}, nil
 }
 
 // PublicKey returns the public key corresponding to the private key. The public key is derived from the private key.
 func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 	if privateKey.publicKey == nil {
-		key, err := curve25519.X25519(*privateKey.key, curve25519.Basepoint)
+		key, err := curve25519.X25519(privateKey.key, curve25519.Basepoint)
 		if err != nil {
 			return nil, fmt.Errorf("%s: failed to generate public key", "xipher")
 		}
 		privateKey.publicKey = &PublicKey{
-			key: &key,
+			key: key,
 		}
 	}
 	return privateKey.publicKey, nil
@@ -74,13 +74,13 @@ func ParsePublicKey(key []byte) (*PublicKey, error) {
 		return nil, errInvalidKeyLength
 	}
 	return &PublicKey{
-		key: &key,
+		key: key,
 	}, nil
 }
 
 // Bytes returns the bytes of the public key.
 func (publicKey *PublicKey) Bytes() []byte {
-	return *publicKey.key
+	return publicKey.key
 }
 
 func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
@@ -93,7 +93,7 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to generate ephemeral public key", "xipher")
 		}
-		sharedKey, err := curve25519.X25519(ephPrivKey, *publicKey.key)
+		sharedKey, err := curve25519.X25519(ephPrivKey, publicKey.key)
 		if err != nil {
 			return nil, fmt.Errorf("%s: encrypter failed to generate shared key", "xipher")
 		}

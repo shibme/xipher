@@ -12,7 +12,7 @@ import (
 type SecretKey struct {
 	version    uint8
 	keyType    uint8
-	password   *[]byte
+	password   []byte
 	spec       *kdfSpec
 	key        []byte
 	symmCipher *xcp.SymmetricCipher
@@ -40,7 +40,7 @@ func newSecretKeyForPwdAndSpec(password []byte, spec *kdfSpec) (secretKey *Secre
 	secretKey = &SecretKey{
 		version:    keyVersion,
 		keyType:    keyTypePwd,
-		password:   &password,
+		password:   password,
 		spec:       spec,
 		specKeyMap: make(map[string][]byte),
 	}
@@ -98,7 +98,7 @@ func (secretKey *SecretKey) getKeyForPwdSpec(spec kdfSpec) (key []byte) {
 	specBytes := spec.bytes()
 	key = secretKey.specKeyMap[string(specBytes)]
 	if len(key) == 0 {
-		key = spec.getCipherKey(*secretKey.password)
+		key = spec.getCipherKey(secretKey.password)
 		secretKey.specKeyMap[string(specBytes)] = key
 	}
 	return key

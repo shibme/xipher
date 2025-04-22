@@ -11,7 +11,7 @@ import (
 
 // PrivateKey represents a private key.
 type PrivateKey struct {
-	key        *[]byte
+	key        []byte
 	eccPrivKey *ecc.PrivateKey
 	kybPrivKey *kyb.PrivateKey
 	pubKeyECC  *PublicKey
@@ -26,7 +26,7 @@ type PublicKey struct {
 
 // Bytes returns the bytes of the private key.
 func (privateKey *PrivateKey) Bytes() []byte {
-	return *privateKey.key
+	return privateKey.key
 }
 
 // NewPrivateKey generates a new random private key.
@@ -44,13 +44,13 @@ func ParsePrivateKey(key []byte) (*PrivateKey, error) {
 		return nil, errInvalidPrivateKeyLength
 	}
 	return &PrivateKey{
-		key: &key,
+		key: key,
 	}, nil
 }
 
 func (privateKey *PrivateKey) getEccPrivKey() (*ecc.PrivateKey, error) {
 	if privateKey.eccPrivKey == nil {
-		eccPrivKeyBytes := sha256.Sum256(*privateKey.key)
+		eccPrivKeyBytes := sha256.Sum256(privateKey.key)
 		eccPrivKey, err := ecc.ParsePrivateKey(eccPrivKeyBytes[:])
 		if err != nil {
 			return nil, err
@@ -62,7 +62,7 @@ func (privateKey *PrivateKey) getEccPrivKey() (*ecc.PrivateKey, error) {
 
 func (privateKey *PrivateKey) getKybPrivKey() (*kyb.PrivateKey, error) {
 	if privateKey.kybPrivKey == nil {
-		kybPrivKey, err := kyb.NewPrivateKeyForSeed(*privateKey.key)
+		kybPrivKey, err := kyb.NewPrivateKeyForSeed(privateKey.key)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func (privateKey *PrivateKey) getKybPrivKey() (*kyb.PrivateKey, error) {
 // PublicKey returns the ecc public key corresponding to the private key. The public key is derived from the private key.
 func (privateKey *PrivateKey) PublicKeyECC() (*PublicKey, error) {
 	if privateKey.pubKeyECC == nil {
-		eccPrivKeyBytes := sha256.Sum256(*privateKey.key)
+		eccPrivKeyBytes := sha256.Sum256(privateKey.key)
 		eccPrivKey, err := ecc.ParsePrivateKey(eccPrivKeyBytes[:])
 		if err != nil {
 			return nil, err
@@ -93,7 +93,7 @@ func (privateKey *PrivateKey) PublicKeyECC() (*PublicKey, error) {
 // PublicKey returns the kyber public key corresponding to the private key. The public key is derived from the private key.
 func (privateKey *PrivateKey) PublicKeyKyber() (*PublicKey, error) {
 	if privateKey.pubKeyKyb == nil {
-		kybPrivKey, err := kyb.NewPrivateKeyForSeed(*privateKey.key)
+		kybPrivKey, err := kyb.NewPrivateKeyForSeed(privateKey.key)
 		if err != nil {
 			return nil, err
 		}

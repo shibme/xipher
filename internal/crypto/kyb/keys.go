@@ -23,7 +23,7 @@ var (
 
 // PrivateKey represents a private key.
 type PrivateKey struct {
-	seed      *[]byte
+	seed      []byte
 	sk        *kyber1024.PrivateKey
 	publicKey *PublicKey
 }
@@ -41,7 +41,7 @@ type encrypter struct {
 
 // Bytes returns the bytes of the private key.
 func (privateKey *PrivateKey) Bytes() []byte {
-	return *privateKey.seed
+	return privateKey.seed
 }
 
 // NewPrivateKey generates a new random private key.
@@ -60,7 +60,7 @@ func NewPrivateKeyForSeed(keySeed []byte) (*PrivateKey, error) {
 	}
 	pk, sk := kyber1024.NewKeyFromSeed(keySeed)
 	return &PrivateKey{
-		seed: &keySeed,
+		seed: keySeed,
 		sk:   sk,
 		publicKey: &PublicKey{
 			pk: pk,
