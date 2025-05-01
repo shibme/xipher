@@ -15,7 +15,7 @@ const (
 
 	// secretKeyBaseLength is the length of a secret key when being generated.
 	secretKeyBaseLength = asx.PrivateKeyLength
-	// secretKeyLength is the length of a private key when being exported.
+	// secretKeyLength is the length of a secret key when being exported.
 	secretKeyLength = secretKeyBaseLength + 2
 	// publicKeyMinLength is the minimum length of a public key.
 	publicKeyMinLength = asx.MinPublicKeyLength + 1 // +1 for the key type

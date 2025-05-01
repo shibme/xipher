@@ -40,11 +40,11 @@ func symmetricKeyTest(t *testing.T, compress, encode bool) {
 	data := getTestData()
 	privKey, err := NewSecretKey()
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	privKeyBytes, err := privKey.Bytes()
 	if err != nil {
-		t.Error("Error converting private key to bytes", err)
+		t.Error("Error converting secret key to bytes", err)
 	}
 	ciphertext, err := privKey.Encrypt(data, compress, encode)
 	if err != nil {
@@ -52,7 +52,7 @@ func symmetricKeyTest(t *testing.T, compress, encode bool) {
 	}
 	privKeyFromBytes, err := ParseSecretKey(privKeyBytes)
 	if err != nil {
-		t.Error("Error parsing private key", err)
+		t.Error("Error parsing secret key", err)
 	}
 	plaintext, err := privKeyFromBytes.Decrypt(ciphertext)
 	if err != nil {
@@ -70,7 +70,7 @@ func symmetricPwdTest(t *testing.T, compress, encode bool) {
 	data := getTestData()
 	privKey, err := NewSecretKeyForPassword(password)
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	ciphertext, err := privKey.Encrypt(data, compress, encode)
 	if err != nil {
@@ -78,7 +78,7 @@ func symmetricPwdTest(t *testing.T, compress, encode bool) {
 	}
 	privKeyRecreated, err := NewSecretKeyForPassword(password)
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	plaintext, err := privKeyRecreated.Decrypt(ciphertext)
 	if err != nil {
@@ -95,11 +95,11 @@ func asymmetricKeyTest(t *testing.T, compress, encode, pq bool) {
 	data := getTestData()
 	privKey, err := NewSecretKey()
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	privKeyBytes, err := privKey.Bytes()
 	if err != nil {
-		t.Error("Error converting private key to bytes", err)
+		t.Error("Error converting secret key to bytes", err)
 	}
 	publicKey, err := privKey.PublicKey(pq)
 	if err != nil {
@@ -111,7 +111,7 @@ func asymmetricKeyTest(t *testing.T, compress, encode, pq bool) {
 	}
 	privKeyFromBytes, err := ParseSecretKey(privKeyBytes)
 	if err != nil {
-		t.Error("Error parsing private key", err)
+		t.Error("Error parsing secret key", err)
 	}
 	plaintext, err := privKeyFromBytes.Decrypt(ciphertext)
 	if err != nil {
@@ -129,7 +129,7 @@ func asymmetricPwdTest(t *testing.T, compress, encode, pq bool) {
 	data := getTestData()
 	privKey, err := NewSecretKeyForPassword(password)
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	publicKey, err := privKey.PublicKey(pq)
 	if err != nil {
@@ -141,7 +141,7 @@ func asymmetricPwdTest(t *testing.T, compress, encode, pq bool) {
 	}
 	privKeyRecreated, err := NewSecretKeyForPassword(password)
 	if err != nil {
-		t.Error("Error generating private key", err)
+		t.Error("Error generating secret key", err)
 	}
 	plaintext, err := privKeyRecreated.Decrypt(ciphertext)
 	if err != nil {

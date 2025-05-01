@@ -19,12 +19,12 @@ type SecretKey struct {
 	specKeyMap map[string][]byte
 }
 
-// NewSecretKeyForPassword creates a new private key for the given password.
+// NewSecretKeyForPassword creates a new secret key for the given password.
 func NewSecretKeyForPassword(password []byte) (*SecretKey, error) {
 	return NewSecretKeyForPasswordAndSpec(password, defaultKdfIterations, defaultKdfMemory, defaultKdfThreads)
 }
 
-// NewSecretKeyForPasswordAndSpec creates a new private key for the given password and kdf spec.
+// NewSecretKeyForPasswordAndSpec creates a new secret key for the given password and kdf spec.
 func NewSecretKeyForPasswordAndSpec(password []byte, iterations, memory, threads uint8) (*SecretKey, error) {
 	spec, err := newSpec(iterations, memory, threads)
 	if err != nil {
@@ -48,7 +48,7 @@ func newSecretKeyForPwdAndSpec(password []byte, spec *kdfSpec) (secretKey *Secre
 	return secretKey, nil
 }
 
-// NewSecretKey creates a new random private key.
+// NewSecretKey creates a new random secret key.
 func NewSecretKey() (*SecretKey, error) {
 	key := make([]byte, secretKeyBaseLength)
 	if _, err := rand.Read(key); err != nil {
@@ -61,10 +61,24 @@ func NewSecretKey() (*SecretKey, error) {
 	}, nil
 }
 
-// ParseSecretKey parses the given bytes and returns a corresponding private key.
+// SecretKeyFromSeed creates a new secret key for the given 64-byte seed.
+func SecretKeyFromSeed(seed []byte) (*SecretKey, error) {
+	if len(seed) != secretKeyBaseLength {
+		return nil, fmt.Errorf("%s: invalid seed length: expected %d, got %d", "xipher", secretKeyBaseLength, len(seed))
+	}
+	key := make([]byte, secretKeyBaseLength)
+	copy(key, seed)
+	return &SecretKey{
+		version: keyVersion,
+		keyType: keyTypeDirect,
+		key:     key,
+	}, nil
+}
+
+// ParseSecretKey parses the given bytes and returns a corresponding secret key.
 func ParseSecretKey(key []byte) (*SecretKey, error) {
 	if len(key) != secretKeyLength || key[1] != keyTypeDirect {
-		return nil, fmt.Errorf("%s: invalid private key length: expected %d, got %d", "xipher", secretKeyLength, len(key))
+		return nil, fmt.Errorf("%s: invalid secret key length: expected %d, got %d", "xipher", secretKeyLength, len(key))
 	}
 	return &SecretKey{
 		version: key[0],
@@ -104,7 +118,7 @@ func (secretKey *SecretKey) getKeyForPwdSpec(spec kdfSpec) (key []byte) {
 	return key
 }
 
-// Bytes returns the private key as bytes only if it is not password based.
+// Bytes returns the secret key as bytes only if it is not password based.
 func (secretKey *SecretKey) Bytes() ([]byte, error) {
 	if isPwdBased(secretKey.keyType) {
 		return nil, errSecretKeyUnavailableForPwd
@@ -112,7 +126,7 @@ func (secretKey *SecretKey) Bytes() ([]byte, error) {
 	return append([]byte{secretKey.version, secretKey.keyType}, secretKey.key...), nil
 }
 
-// String returns the private key as a string.
+// String returns the secret key as a string.
 func (secretKey *SecretKey) String() (string, error) {
 	secretKeyBytes, err := secretKey.Bytes()
 	if err != nil {
@@ -128,7 +142,7 @@ type PublicKey struct {
 	spec      *kdfSpec
 }
 
-// PublicKey returns the public key corresponding to the private key.
+// PublicKey returns the public key corresponding to the secret key.
 func (secretKey *SecretKey) PublicKey(pq bool) (*PublicKey, error) {
 	asxPrivKey, err := asx.ParsePrivateKey(secretKey.key)
 	if err != nil {
