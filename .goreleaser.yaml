@@ -239,6 +239,9 @@ brews:
   - ids:
       - xipher-cli
     name: xipher
+    install: |
+      bin.install "{{ .Binary }}"
+      generate_completions_from_executable(bin/"{{ .Binary }}","completion")
     homepage: https://xipher.org
     description: "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
     license: "MIT"
