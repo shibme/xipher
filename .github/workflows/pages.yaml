@@ -7,10 +7,7 @@ on:
 jobs:
 
   pages:
-    name: Deploy Xipher Web to GitHub Pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    name: Deploy Xipher Web
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,12 +26,9 @@ jobs:
       - name: Extracting Xipher Web
         run: |
           unzip xipher-web.zip -d xipher-web
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact from web directory
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: xipher-web
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy xipher-web --project-name=xipher --branch=main
