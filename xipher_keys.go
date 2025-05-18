@@ -50,28 +50,19 @@ func newSecretKeyForPwdAndSpec(password []byte, spec *kdfSpec) (secretKey *Secre
 
 // NewSecretKey creates a new random secret key.
 func NewSecretKey() (*SecretKey, error) {
-	key := make([]byte, secretKeyBaseLength)
-	if _, err := rand.Read(key); err != nil {
+	var seed [secretKeyBaseLength]byte
+	if _, err := rand.Read(seed[:]); err != nil {
 		return nil, err
 	}
-	return &SecretKey{
-		version: keyVersion,
-		keyType: keyTypeDirect,
-		key:     key,
-	}, nil
+	return SecretKeyFromSeed(seed)
 }
 
 // SecretKeyFromSeed creates a new secret key for the given 64-byte seed.
-func SecretKeyFromSeed(seed []byte) (*SecretKey, error) {
-	if len(seed) != secretKeyBaseLength {
-		return nil, fmt.Errorf("%s: invalid seed length: expected %d, got %d", "xipher", secretKeyBaseLength, len(seed))
-	}
-	key := make([]byte, secretKeyBaseLength)
-	copy(key, seed)
+func SecretKeyFromSeed(seed [secretKeyBaseLength]byte) (*SecretKey, error) {
 	return &SecretKey{
 		version: keyVersion,
 		keyType: keyTypeDirect,
-		key:     key,
+		key:     seed[:],
 	}, nil
 }
 
