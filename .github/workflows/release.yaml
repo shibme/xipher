@@ -97,6 +97,14 @@ jobs:
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:latest
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:${{ env.XIPHER_VERSION }}
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:v${{ env.XIPHER_VERSION }}
+    - name: Force Tagging Major Version
+      run: |
+        FULL_VER_TAG=${{ github.ref_name }}
+        MAJOR_VER_TAG=$(echo "$FULL_VER_TAG" | grep -oE '^v[0-9]+')
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+        git tag -f "$MAJOR_VER_TAG"
+        git push origin "$MAJOR_VER_TAG" --force
 
   pages:
     name: Run GitHub Pages Workflow

@@ -66,7 +66,7 @@ You can also use Xipher in your GitHub Actions workflow:
 ```yaml
 steps:
 - name: Setup Xipher
-  uses: shibme/xipher@main
+  uses: shibme/xipher@v1
 ```
 
 A specific version of Xipher CLI can also be installed:
@@ -74,7 +74,7 @@ A specific version of Xipher CLI can also be installed:
 ```yaml
 steps:
 - name: Setup Xipher
-  uses: shibme/xipher@main
+  uses: shibme/xipher@v1
   with:
     version: 1.11.0
 ```
