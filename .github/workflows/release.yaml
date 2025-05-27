@@ -9,6 +9,8 @@ jobs:
 
   test:
     name: Running Tests
+    permissions:
+      contents: read
     uses: ./.github/workflows/test.yaml
 
   release:
@@ -99,5 +101,9 @@ jobs:
   pages:
     name: Run GitHub Pages Workflow
     needs: release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     uses: ./.github/workflows/pages.yaml
     secrets: inherit

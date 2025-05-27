@@ -22,8 +22,12 @@ builds:
       - windows_arm64
     env:
       - CGO_ENABLED=0
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -37,8 +41,12 @@ builds:
       - js_wasm
     env:
       - CGO_ENABLED=0
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -56,8 +64,12 @@ builds:
     env:
       - CC=o64-clang
       - CXX=o64-clang++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -74,8 +86,12 @@ builds:
     env:
       - CC=oa64-clang
       - CXX=oa64-clang++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -92,8 +108,12 @@ builds:
     env:
       - CC=x86_64-w64-mingw32-gcc
       - CXX=x86_64-w64-mingw32-g++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -110,8 +130,12 @@ builds:
     env:
       - CC=/llvm-mingw/bin/aarch64-w64-mingw32-gcc
       - CXX=/llvm-mingw/bin/aarch64-w64-mingw32-g++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -128,8 +152,12 @@ builds:
     env:
       - CC=x86_64-linux-gnu-gcc
       - CXX=x86_64-linux-gnu-g++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -147,8 +175,12 @@ builds:
     env:
       - CC=aarch64-linux-gnu-gcc
       - CXX=aarch64-linux-gnu-g++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
@@ -168,8 +200,12 @@ builds:
     env:
       - CC=arm-linux-gnueabihf-gcc
       - CXX=arm-linux-gnueabihf-g++
-    flags: "-mod=readonly"
+    flags:
+      - -trimpath
+      - -mod=readonly
     ldflags:
+      - -s
+      - -w
       - -X xipher.org/xipher.version={{.Version}}
       - -X xipher.org/xipher.commitDate={{.CommitDate}}
       - -X xipher.org/xipher.fullCommit={{.FullCommit}}
