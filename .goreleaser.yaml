@@ -216,7 +216,7 @@ archives:
   - id: xipher-cli
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     formats: [ 'zip' ]
-    builds:
+    ids:
       - xipher-cli
   - id: xipher-wasm
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
@@ -225,7 +225,7 @@ archives:
     files:
       - src: .ignore/wasm_exec.js
         dst: wasm_exec.js
-    builds:
+    ids:
       - xipher-wasm
   - id: xipher-web
     name_template: xipher-web
@@ -235,12 +235,12 @@ archives:
         dst: wasm/wasm_exec.js
       - src: .ignore/web/*
         dst: .
-    builds:
+    ids:
       - xipher-wasm
   - id: xipher-shared-lib
     name_template: "xipher-shared-lib_{{ .Os }}_{{ .Arch }}"
     formats: [ 'zip' ]
-    builds:
+    ids:
       - xipher-shared-lib-darwin-amd64
       - xipher-shared-lib-darwin-arm64
       - xipher-shared-lib-windows-amd64

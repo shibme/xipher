@@ -1,239 +1,229 @@
 <div align="center">
-	<img src="https://xipher.org/assets/images/logo.svg" width="128" alt="">
-</div>
-
-# Xipher
+	<img src="https://xipher.org/assets/images/logo.svg" width="128" alt="Xipher Logo">
+	<h1>Xipher</h1>
+	<p><strong>Secure asymmetric encryption with password-based keys</strong></p>
+	
 [![Go Reference](https://pkg.go.dev/badge/xipher.org/xipher.svg)](https://pkg.go.dev/xipher.org/xipher)
 [![Go Report Card](https://goreportcard.com/badge/xipher.org/xipher)](https://goreportcard.com/report/xipher.org/xipher)
 [![Test Status](https://github.com/shibme/xipher/actions/workflows/test.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/test.yaml)
 [![Release Status](https://github.com/shibme/xipher/actions/workflows/release.yaml/badge.svg)](https://github.com/shibme/xipher/actions/workflows/release.yaml)
 [![License](https://img.shields.io/github/license/shibme/xipher)](https://github.com/shibme/xipher/blob/main/LICENSE)
 
-Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption.
+</div>
 
-## What does it do?
-- Allows sharing of data securely between two parties over an insecure channel using asymmetric encryption.
-- The sender encrypts the data using a public key (of the receiver - usually derived from a password) and shares the encrypted data with the receiver.
-- The receiver decrypts the data using the secret key (or password).
+## Overview
 
-## Key Aspects
-- Encrypts data with the public key generated based on a password.
-- Supports stream cipher along with stream compression, resulting in lower memory footprint and smaller ciphertext.
-- Supports post-quantum cryptography using the Kyber1024 algorithm.
+Xipher is a curated collection of cryptographic primitives designed for secure password-based asymmetric encryption. It enables secure data sharing between parties over insecure channels using password-derived public keys, combining modern cryptography with post-quantum security.
 
-## CLI
-Download the latest binary from the [releases](https://github.com/shibme/xipher/releases/latest) page and add it to your path.
+## Features
 
-### Demo
-![Demo](https://xipher.org/assets/previews/demo.gif)
+- **🔐 Asymmetric Encryption**: Encrypt data with public keys derived from passwords
+- **📦 Stream Processing**: Built-in compression and streaming for memory efficiency  
+- **🛡️ Post-Quantum Security**: Optional Kyber1024 algorithm support
+- **🌐 Multi-Platform**: CLI, Go library, Web Assembly, and web interface
+- **⚡ Performance**: Optimized for both small and large data encryption
+- **🔧 Easy Integration**: Simple APIs for developers
 
-### Homebrew
-Xipher can be installed with brew using the following command on macOS
-```zsh
+## Quick Start
+
+### Installation
+
+#### CLI Tool
+
+**Homebrew (macOS):**
+```bash
 brew install shibme/tap/xipher
 ```
 
-### Install Script
-
-#### Install Latest Version
-**With Shell (MacOs/Linux):**
-```sh
+**Install Script:**
+```bash
+# Latest version
 curl -fsSL https://xipher.org/install/install.sh | sh
-```
-**With PowerShell (Windows):**
-```powershell
-irm https://xipher.org/install/install.ps1 | iex
-```
 
-#### Install Specific Version
-**With Shell (MacOs/Linux):**
-```sh
+# Specific version  
 curl -fsSL https://xipher.org/install/install.sh | sh -s v1.1.0
 ```
-**With PowerShell (Windows):**
-```powershell
-$v="1.1.0"; irm https://xipher.org/install/install.ps1 | iex
-```
 
-### Docker
-You can also run Xipher without installing using Docker:
-```zsh
+**Binary Download:**
+Download from [releases page](https://github.com/shibme/xipher/releases/latest)
+
+**Docker:**
+```bash
 docker run --rm -v $PWD:/data -it shibme/xipher help
 ```
 
-### GitHub Actions
-You can also use Xipher in your GitHub Actions workflow:
-```yaml
-steps:
-- name: Setup Xipher
-  uses: shibme/xipher@v1
-```
-
-A specific version of Xipher CLI can also be installed:
-
-```yaml
-steps:
-- name: Setup Xipher
-  uses: shibme/xipher@v1
-  with:
-    version: 1.11.0
-```
-
-## Web Interface
-A web interface interoperable with the CLI, implemented using [web assembly](#web-assembly) is available [here](https://xipher.org).
-
-You can also host it on your own GitHub Pages by setting up a workflow file like the one below. Make sure to enable Actions as the source for GitHub Pages under your repository settings.
-```yaml
-name: Publish Xipher Web
-
-on:
-  workflow_dispatch:
-
-jobs:
-  pages:
-    name: Run GitHub Pages Workflow
-    uses: shibme/xipher/.github/workflows/pages.yaml@main
-```
-
-### How does Xipher Web App work?
-- Receiver opens the Xipher web app on a browser.
-- Xipher generates a key pair and stores them in the browser local storage.
-- The Xiher web app returns the public key as a URL that can be shared.
-- Receiver shares the encryption URL (this contains the public key as a parameter) with the sender.
-- Sender opens the public encryption URL (opens Xipher encryption web page).
-- Sender inputs the data that needs to be encrypted.
-- Xipher encrypts the data using the public key from the URL.
-- Xipher returns ciphertext encrypted with the public key.
-- Sender sends the encrypted ciphertext to the receiver.
-- Receiver inputs the ciphertext in the decryption page.
-- Xipher decrypts the ciphertext using the secret key from local storage.
-- Xipher returns decrypted data.
-
-The following sequence diagram illustrates the workflow of the web app.
-```mermaid
-sequenceDiagram
-participant RX as Xipher<br>(on Browser)
-actor Receiver
-actor Sender
-participant SX as Xipher<br>(on Browser)
-    Receiver-->>+RX: Opens Xipher App on browser
-    RX-->>RX: Generates a key pair and stores them in the browser local storage
-    RX-->>-Receiver: Returns the Public Key<br>(as a URL that can be shared)
-    Receiver->>+Sender: Shares the encryption URL<br>(this contains the public key as parameter)
-    Sender-->>+SX: Opens the public encryption URL<br>(opens Xipher encryption web page)
-    Sender-->>SX: Inputs the data that needs to be encrypted
-    SX-->>SX: Encrypts the data using the public key from the URL
-    SX-->>-Sender: Returns ciphertext encrypted with the Public Key
-    Sender->>-Receiver: Sends the encrypted ciphertext to the Receiver
-    Receiver-->>+RX: Inputs the ciphertext<br>(in the decyrption page)
-    RX-->>RX: Decrypts the ciphertext<br>(using the secret key from local storage)
-    RX-->>-Receiver: Returns decrypted data
-```
-
-## Using as a Go package
-Install the package
-```sh
+#### Go Package
+```bash
 go get -u xipher.org/xipher
 ```
-Use it in your code
+
+### Basic Usage
+
+#### CLI Example
+![Demo](https://xipher.org/assets/previews/demo.gif)
+
+#### Go Package Example
 ```go
 package main
 
 import (
 	"encoding/base32"
 	"fmt"
-
 	"xipher.org/xipher"
 )
 
 func main() {
-	// Creating a new secret key for password
-	scrtKey, err := xipher.NewSecretKeyForPassword([]byte("Paws0meKittyKuwan!"))
+	// Create secret key from password
+	secretKey, err := xipher.NewSecretKeyForPassword([]byte("your-secure-password"))
 	if err != nil {
 		panic(err)
 	}
 
-	// Deriving  public key from secret key
-	pubKey, err := scrtKey.PublicKey(false)
+	// Derive public key
+	publicKey, err := secretKey.PublicKey(false)
 	if err != nil {
 		panic(err)
 	}
-	publicKeyBytes, err := pubKey.Bytes()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("PublicKey:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(publicKeyBytes))
 
-	platinText := []byte("Hello World!")
-
-	// Encrypting plain text with public key
-	cipherText, err := pubKey.Encrypt(platinText, true)
+	// Encrypt data
+	plaintext := []byte("Hello, World!")
+	ciphertext, err := publicKey.Encrypt(plaintext, true)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Encrypted:", base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(cipherText))
 
-	// Decrypting cipher text with secret key
-	plainText, err := scrtKey.Decrypt(cipherText)
+	// Decrypt data
+	decrypted, err := secretKey.Decrypt(ciphertext)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Decrypted:", string(plainText))
+
+	fmt.Printf("Original: %s\n", plaintext)
+	fmt.Printf("Decrypted: %s\n", decrypted)
 }
 ```
 
-## Web Assembly
-To use xipher as a web assembly (wasm) module in a browser app, follow the example below.
+## Usage Scenarios
+
+### Web Interface
+Experience Xipher directly in your browser at [xipher.org](https://xipher.org)
+
+**Workflow:**
+1. **Receiver** opens Xipher web app → generates key pair (stored in browser)
+2. **Receiver** shares the public key URL with sender
+3. **Sender** opens encryption URL → inputs data → gets encrypted result
+4. **Sender** shares ciphertext with receiver
+5. **Receiver** decrypts using stored private key
+
+```mermaid
+sequenceDiagram
+participant RX as Xipher<br>(Browser)
+actor R as Receiver
+actor S as Sender
+participant SX as Xipher<br>(Browser)
+    R-->>+RX: Opens app
+    RX-->>RX: Generate keys
+    RX-->>-R: Public key URL
+    R->>+S: Share URL
+    S-->>+SX: Open URL & encrypt
+    SX-->>-S: Ciphertext
+    S->>-R: Send ciphertext
+    R-->>+RX: Decrypt
+    RX-->>-R: Plaintext
+```
+
+### GitHub Actions Integration
+```yaml
+steps:
+- name: Setup Xipher
+  uses: shibme/xipher@v1
+  with:
+    version: 1.17.0  # optional
+```
+
+### Host Your Own Web Interface
+```yaml
+name: Publish Xipher Web
+on:
+  workflow_dispatch:
+jobs:
+  pages:
+    uses: shibme/xipher/.github/workflows/pages.yaml@main
+```
+
+### Web Assembly
 ```html
 <html>
-	<head>
-		<meta charset="utf-8"/>
-		<script src="https://xipher.org/wasm/wasm_exec.js"></script>
-		<script>
-			const go = new Go();
-			WebAssembly.instantiateStreaming(fetch("https://xipher.org/wasm/xipher.wasm"), go.importObject).then((result) => {
-				go.run(result.instance);
-			});
-		</script>
-	</head>
+<head>
+	<meta charset="utf-8"/>
+	<script src="https://xipher.org/wasm/wasm_exec.js"></script>
+	<script>
+		const go = new Go();
+		WebAssembly.instantiateStreaming(
+			fetch("https://xipher.org/wasm/xipher.wasm"), 
+			go.importObject
+		).then((result) => {
+			go.run(result.instance);
+		});
+	</script>
+</head>
 <body>
-	Call wasm methods that begin with xipher. For example: xipherNewSecretKey()
+	<!-- Call methods starting with 'xipher', e.g., xipherNewSecretKey() -->
 </body>
 </html>
 ```
 
-## Under the hood
-Xipher uses the following algorithms and libraries to achieve its functionality:
-- [Argon2id](https://en.wikipedia.org/wiki/Argon2) for password hashing.
-- [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for elliptic curve cryptography.
-- [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) using [CIRCL](https://github.com/cloudflare/circl) library for post-quantum cryptography.
-- [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305) for symmetric encryption.
-- [Zlib](https://en.wikipedia.org/wiki/Zlib) for compression.
+## Technical Details
 
-## Workflow
-The following sequence diagram illustrates the workflow of Xipher in encrypting data using a password based public key.
-```mermaid
-sequenceDiagram
-participant RX as Xipher
-actor Receiver
-actor Sender
-participant SX as Xipher
-    Receiver-->>+RX: Derive public (inputs password)
-    RX-->>-Receiver: Returns Public Key
-    Receiver->>Sender: Shares Public Key
-    Sender-->>+SX: Encrypt data with public key
-    SX-->>-Sender: Returns ciphertext encrypted with Public Key
-    Sender->>Receiver: Sends the encrypted ciphertext to the Receiver
-    Receiver-->>+RX: Decrypt data (inputs ciphertext and password)
-    RX-->>-Receiver: Returns decrypted data
-```
+### Cryptographic Algorithms
+- **Key Derivation**: [Argon2id](https://en.wikipedia.org/wiki/Argon2) for secure password hashing
+- **Elliptic Curve**: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for key exchange
+- **Post-Quantum**: [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) via [CIRCL](https://github.com/cloudflare/circl)
+- **Symmetric Encryption**: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
+- **Compression**: [Zlib](https://en.wikipedia.org/wiki/Zlib) for data compression
 
-## Disclaimer
-This tool/library is provided without any warranties, and there is no guarantee of its stability. Due to the experimental nature of some of its components, it is anticipated that modifications to the code, repository, and API will be made in the future. Caution is advised before incorporating this into a production application. Please [report](https://github.com/shibme/xipher/security/advisories) any identified security issues promptly. Your cooperation in notifying us of such concerns is highly appreciated.
+## Documentation
 
-## Credits
-This project would not have been possible without the following libraries & inspirations:
-- [Retriever](https://retriever.corgea.io/) - For inspiring the web-based encryption concept that served as the foundation for expanding it into a fully developed CLI and browser tool with cross-compatibility.
-- [CIRCL](https://github.com/cloudflare/circl) by Cloudflare - For providing library support for post-quantum cryptography (CRYSTALS-Kyber).
-- [StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js) - For the ingenious approach to saving files directly from the browser in frontend-only applications.
-- [age](https://github.com/FiloSottile/age) - For the inspiration drawn from its use of smaller Curve25519 keys and XChaCha20-Poly1305 stream cipher.
+- **API Reference**: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
+- **Web Interface**: [xipher.org](https://xipher.org)
+- **Examples**: See [usage examples](#basic-usage) above
+
+## Contributing
+
+We welcome contributions! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+For bugs and feature requests, please [open an issue](https://github.com/shibme/xipher/issues).
+
+## Security
+
+This project is experimental and should be used with caution in production environments. If you discover security vulnerabilities, please [report them responsibly](https://github.com/shibme/xipher/security/advisories).
+
+### Security Considerations
+- Password strength directly affects security
+- Post-quantum algorithms are still evolving
+- Regular updates recommended for latest security patches
+
+## License
+
+This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
+
+## Acknowledgments
+
+Special thanks to the projects and people that made Xipher possible:
+
+- **[Retriever](https://retriever.corgea.io/)** - Inspiration for web-based encryption concepts
+- **[CIRCL](https://github.com/cloudflare/circl)** by Cloudflare - Post-quantum cryptography support
+- **[StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js)** - Browser file saving capabilities
+- **[age](https://github.com/FiloSottile/age)** - Inspiration for Curve25519 and XChaCha20-Poly1305 usage
+
+---
+
+<div align="center">
+	<p>Made with ❤️ for secure communication</p>
+</div>
