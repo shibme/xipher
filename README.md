@@ -35,13 +35,22 @@ Xipher is a curated collection of cryptographic primitives designed for secure p
 brew install shibme/tap/xipher
 ```
 
-**Install Script:**
+**Install Script (Linux/macOS):**
 ```bash
 # Latest version
 curl -fsSL https://xipher.org/install/install.sh | sh
 
 # Specific version  
-curl -fsSL https://xipher.org/install/install.sh | sh -s v1.1.0
+curl -fsSL https://xipher.org/install/install.sh | sh -s v1.17.0
+```
+
+**Install Script (Windows):**
+```powershell
+# PowerShell (latest version)
+irm https://xipher.org/install/install.ps1 | iex
+
+# PowerShell with specific version
+$v="1.17.0"; irm https://xipher.org/install/install.ps1 | iex
 ```
 
 **Binary Download:**
