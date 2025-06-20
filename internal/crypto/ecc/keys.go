@@ -11,7 +11,7 @@ import (
 // KeyLength is the length of the ECC key.
 const KeyLength = curve25519.ScalarSize
 
-var errInvalidKeyLength = fmt.Errorf("%s: invalid key lengths [please use %d bytes]", "xipher", KeyLength)
+var errInvalidKeyLength = fmt.Errorf("invalid key lengths [please use %d bytes]", KeyLength)
 
 // PrivateKey represents a private key.
 type PrivateKey struct {
@@ -39,7 +39,7 @@ func (privateKey *PrivateKey) Bytes() []byte {
 func NewPrivateKey() (*PrivateKey, error) {
 	key := make([]byte, KeyLength)
 	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("%s: failed to generate private key", "xipher")
+		return nil, err
 	}
 	return ParsePrivateKey(key)
 }
@@ -59,7 +59,7 @@ func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 	if privateKey.publicKey == nil {
 		key, err := curve25519.X25519(privateKey.key, curve25519.Basepoint)
 		if err != nil {
-			return nil, fmt.Errorf("%s: failed to generate public key", "xipher")
+			return nil, err
 		}
 		privateKey.publicKey = &PublicKey{
 			key: key,
@@ -87,15 +87,15 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 	if publicKey.encrypter == nil {
 		ephPrivKey := make([]byte, KeyLength)
 		if _, err := rand.Read(ephPrivKey); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to generate ephemeral private key", "xipher")
+			return nil, err
 		}
 		ephPubKey, err := curve25519.X25519(ephPrivKey, curve25519.Basepoint)
 		if err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to generate ephemeral public key", "xipher")
+			return nil, err
 		}
 		sharedKey, err := curve25519.X25519(ephPrivKey, publicKey.key)
 		if err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to generate shared key", "xipher")
+			return nil, err
 		}
 		cipher, err := xcp.New(sharedKey)
 		if err != nil {

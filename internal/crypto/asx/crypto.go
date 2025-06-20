@@ -1,7 +1,6 @@
 package asx
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -9,12 +8,12 @@ import (
 func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (io.WriteCloser, error) {
 	if publicKey.ePub != nil {
 		if _, err := dst.Write([]byte{algoECC}); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to write algorithm", "xipher")
+			return nil, err
 		}
 		return publicKey.ePub.NewEncryptingWriter(dst, compress)
 	} else if publicKey.kPub != nil {
 		if _, err := dst.Write([]byte{algoKyber}); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to write algorithm", "xipher")
+			return nil, err
 		}
 		return publicKey.kPub.NewEncryptingWriter(dst, compress)
 	} else {
@@ -26,22 +25,23 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	algoBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, algoBytes); err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to read algorithm", "xipher")
+		return nil, err
 	}
 	var algo uint8 = algoBytes[0]
-	if algo == algoECC {
+	switch algo {
+	case algoECC:
 		eccPrivKey, err := privateKey.getEccPrivKey()
 		if err != nil {
 			return nil, err
 		}
 		return eccPrivKey.NewDecryptingReader(src)
-	} else if algo == algoKyber {
+	case algoKyber:
 		kybPrivKey, err := privateKey.getKybPrivKey()
 		if err != nil {
 			return nil, err
 		}
 		return kybPrivKey.NewDecryptingReader(src)
-	} else {
+	default:
 		return nil, errInvalidAlgorithm
 	}
 }

@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	errInvalidPrivateKeyLength = fmt.Errorf("%s: invalid private key lengths [please use %d bytes]", "xipher", PrivateKeyLength)
-	errInvalidPublicKeyLength  = fmt.Errorf("%s: invalid public key lengths [please use %d bytes]", "xipher", PublicKeyLength)
+	errInvalidPrivateKeyLength = fmt.Errorf("invalid private key lengths [please use %d bytes]", PrivateKeyLength)
+	errInvalidPublicKeyLength  = fmt.Errorf("invalid public key lengths [please use %d bytes]", PublicKeyLength)
 )
 
 // PrivateKey represents a private key.
@@ -48,7 +48,7 @@ func (privateKey *PrivateKey) Bytes() []byte {
 func NewPrivateKey() (*PrivateKey, error) {
 	key := make([]byte, PrivateKeyLength)
 	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("%s: failed to generate private key", "xipher")
+		return nil, err
 	}
 	return NewPrivateKeyForSeed(key)
 }
@@ -102,7 +102,7 @@ func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 	if publicKey.encrypter == nil {
 		keyEnc, sharedKey, err := kyber1024.Scheme().Encapsulate(publicKey.pk)
 		if err != nil {
-			return nil, fmt.Errorf("%s: failed to encapsulate shared key", "xipher")
+			return nil, err
 		}
 		cipher, err := xcp.New(sharedKey)
 		if err != nil {

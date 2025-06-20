@@ -1,7 +1,6 @@
 package kyb
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/cloudflare/circl/kem/kyber/kyber1024"
@@ -15,7 +14,7 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 		return nil, err
 	}
 	if _, err = dst.Write(encrypter.keyEnc); err != nil {
-		return nil, fmt.Errorf("%s: encrypter failed to write encapsulated key", "xipher")
+		return nil, err
 	}
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compress)
 }
@@ -24,11 +23,11 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	keyEnc := make([]byte, ctLength)
 	if _, err := io.ReadFull(src, keyEnc); err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to read encapsulated key", "xipher")
+		return nil, err
 	}
 	sharedKey, err := kyber1024.Scheme().Decapsulate(privateKey.sk, keyEnc)
 	if err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to generate shared key", "xipher")
+		return nil, err
 	}
 	decrypter, err := xcp.New(sharedKey)
 	if err != nil {

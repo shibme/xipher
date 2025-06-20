@@ -19,8 +19,8 @@ const (
 )
 
 var (
-	errInvalidPrivateKeyLength = fmt.Errorf("%s: invalid private key lengths [please use %d bytes]", "xipher", PrivateKeyLength)
-	errInvalidPublicKeyLength  = fmt.Errorf("%s: invalid public key lengths [please use a minimum of %d bytes]", "xipher", MinPublicKeyLength)
-	errInvalidPublicKey        = fmt.Errorf("%s: invalid public key", "xipher")
-	errInvalidAlgorithm        = fmt.Errorf("%s: invalid algorithm", "xipher")
+	errInvalidPrivateKeyLength = fmt.Errorf("invalid private key lengths [please use %d bytes]", PrivateKeyLength)
+	errInvalidPublicKeyLength  = fmt.Errorf("invalid public key lengths [please use a minimum of %d bytes]", MinPublicKeyLength)
+	errInvalidPublicKey        = fmt.Errorf("invalid public key")
+	errInvalidAlgorithm        = fmt.Errorf("invalid algorithm")
 )

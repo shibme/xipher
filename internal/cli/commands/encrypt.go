@@ -74,11 +74,12 @@ func encryptTextCommand() *cobra.Command {
 				}
 				text, _ := cmd.Flags().GetString(textFlag.name)
 				var input []byte
-				if text == "" {
+				switch text {
+				case "":
 					input, err = getHiddenInputFromUser("Enter text to encrypt: ")
-				} else if text == "-" {
+				case "-":
 					input, err = readBufferFromStdin("")
-				} else {
+				default:
 					input = []byte(text)
 				}
 				if err != nil {

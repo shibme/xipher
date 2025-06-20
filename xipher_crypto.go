@@ -3,7 +3,6 @@ package xipher
 import (
 	"bytes"
 	"crypto/sha256"
-	"fmt"
 	"io"
 
 	"xipher.org/xipher/internal/crypto/asx"
@@ -69,14 +68,14 @@ func (secretKey *SecretKey) NewEncryptingWriter(dst io.Writer, compress, encode 
 	}
 	if isPwdBased(secretKey.keyType) {
 		if _, err := dst.Write([]byte{ctPwdSymmetric}); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to write ciphertext type", "xipher")
+			return nil, err
 		}
 		if _, err := dst.Write(secretKey.spec.bytes()); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to write kdf spec", "xipher")
+			return nil, err
 		}
 	} else {
 		if _, err := dst.Write([]byte{ctKeySymmetric}); err != nil {
-			return nil, fmt.Errorf("%s: encrypter failed to write ciphertext type", "xipher")
+			return nil, err
 		}
 	}
 	if secretKey.symmCipher == nil {
@@ -258,7 +257,7 @@ func (publicKey *PublicKey) Encrypt(data []byte, compress, encode bool) (ciphert
 func (secretKey *SecretKey) newPlainDecryptingReader(src io.Reader) (io.Reader, error) {
 	ctTypeBytes := make([]byte, 1)
 	if _, err := io.ReadFull(src, ctTypeBytes); err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to read ciphertext type", "xipher")
+		return nil, err
 	}
 	var ctType uint8 = ctTypeBytes[0]
 	key := secretKey.key
@@ -273,7 +272,7 @@ func (secretKey *SecretKey) newPlainDecryptingReader(src io.Reader) (io.Reader, 
 		}
 		specBytes := make([]byte, kdfSpecLength)
 		if _, err := io.ReadFull(src, specBytes); err != nil {
-			return nil, fmt.Errorf("%s: decrypter failed to read kdf spec", "xipher")
+			return nil, err
 		}
 		spec, err := parseKdfSpec(specBytes)
 		if err != nil {

@@ -1,7 +1,6 @@
 package ecc
 
 import (
-	"fmt"
 	"io"
 
 	"golang.org/x/crypto/curve25519"
@@ -15,7 +14,7 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 		return nil, err
 	}
 	if _, err = dst.Write(encrypter.ephPubKey); err != nil {
-		return nil, fmt.Errorf("%s: encrypter failed to write ephemeral public key", "xipher")
+		return nil, err
 	}
 	return (*encrypter.cipher).NewEncryptingWriter(dst, compress)
 }
@@ -24,11 +23,11 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, error) {
 	ephPubKey := make([]byte, KeyLength)
 	if _, err := io.ReadFull(src, ephPubKey); err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to read ephemeral public key", "xipher")
+		return nil, err
 	}
 	sharedKey, err := curve25519.X25519(privateKey.key, ephPubKey)
 	if err != nil {
-		return nil, fmt.Errorf("%s: decrypter failed to generate shared key", "xipher")
+		return nil, err
 	}
 	decrypter, err := xcp.New(sharedKey)
 	if err != nil {
