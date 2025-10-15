@@ -1,19 +1,19 @@
 package kyb
 
 import (
+	"crypto/mlkem"
 	"crypto/rand"
 	"fmt"
 
-	"github.com/cloudflare/circl/kem/kyber/kyber1024"
 	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 const (
 	// PrivateKeyLength is the length of the key seed.
-	PrivateKeyLength = kyber1024.KeySeedSize
+	PrivateKeyLength = mlkem.SeedSize
 	// PublicKeyLength is the length of the Kyber-1024 public key.
-	PublicKeyLength = kyber1024.PublicKeySize
-	ctLength        = kyber1024.CiphertextSize
+	PublicKeyLength = mlkem.EncapsulationKeySize1024
+	ctLength        = mlkem.CiphertextSize1024
 )
 
 var (
@@ -24,13 +24,13 @@ var (
 // PrivateKey represents a private key.
 type PrivateKey struct {
 	seed      []byte
-	sk        *kyber1024.PrivateKey
+	sk        *mlkem.DecapsulationKey1024
 	publicKey *PublicKey
 }
 
 // PublicKey represents a public key.
 type PublicKey struct {
-	pk        *kyber1024.PublicKey
+	pk        *mlkem.EncapsulationKey1024
 	encrypter *encrypter
 }
 
@@ -58,12 +58,15 @@ func NewPrivateKeyForSeed(keySeed []byte) (*PrivateKey, error) {
 	if len(keySeed) != PrivateKeyLength {
 		return nil, errInvalidPrivateKeyLength
 	}
-	pk, sk := kyber1024.NewKeyFromSeed(keySeed)
+	sk, err := mlkem.NewDecapsulationKey1024(keySeed)
+	if err != nil {
+		return nil, err
+	}
 	return &PrivateKey{
 		seed: keySeed,
 		sk:   sk,
 		publicKey: &PublicKey{
-			pk: pk,
+			pk: sk.EncapsulationKey(),
 		},
 	}, nil
 }
@@ -71,9 +74,9 @@ func NewPrivateKeyForSeed(keySeed []byte) (*PrivateKey, error) {
 // PublicKey returns the public key corresponding to the private key. The public key is derived from the private key.
 func (privateKey *PrivateKey) PublicKey() (*PublicKey, error) {
 	if privateKey.publicKey == nil {
-		privateKey.sk.Public()
+		privateKey.sk.EncapsulationKey()
 		privateKey.publicKey = &PublicKey{
-			pk: privateKey.sk.Public().(*kyber1024.PublicKey),
+			pk: privateKey.sk.EncapsulationKey(),
 		}
 	}
 	return privateKey.publicKey, nil
@@ -84,26 +87,23 @@ func ParsePublicKey(keyBytes []byte) (*PublicKey, error) {
 	if len(keyBytes) != PublicKeyLength {
 		return nil, errInvalidPublicKeyLength
 	}
-	pk, err := kyber1024.Scheme().UnmarshalBinaryPublicKey(keyBytes)
+	pk, err := mlkem.NewEncapsulationKey1024(keyBytes)
 	if err != nil {
 		return nil, err
 	}
 	return &PublicKey{
-		pk: pk.(*kyber1024.PublicKey),
+		pk: pk,
 	}, nil
 }
 
 // Bytes returns the bytes of the public key.
-func (publicKey *PublicKey) Bytes() ([]byte, error) {
-	return publicKey.pk.MarshalBinary()
+func (publicKey *PublicKey) Bytes() []byte {
+	return publicKey.pk.Bytes()
 }
 
 func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
 	if publicKey.encrypter == nil {
-		keyEnc, sharedKey, err := kyber1024.Scheme().Encapsulate(publicKey.pk)
-		if err != nil {
-			return nil, err
-		}
+		sharedKey, keyEnc := publicKey.pk.Encapsulate()
 		cipher, err := xcp.New(sharedKey)
 		if err != nil {
 			return nil, err

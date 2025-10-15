@@ -112,10 +112,7 @@ func (publicKey *PublicKey) Bytes() ([]byte, error) {
 	if publicKey.ePub != nil {
 		return append([]byte{algoECC}, publicKey.ePub.Bytes()...), nil
 	} else if publicKey.kPub != nil {
-		kybPubKeyBytes, err := publicKey.kPub.Bytes()
-		if err != nil {
-			return nil, err
-		}
+		kybPubKeyBytes := publicKey.kPub.Bytes()
 		return append([]byte{algoKyber}, kybPubKeyBytes...), nil
 	} else {
 		return nil, errInvalidPublicKey

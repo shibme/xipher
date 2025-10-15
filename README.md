@@ -186,8 +186,8 @@ jobs:
 
 ### Cryptographic Algorithms
 - **Key Derivation**: [Argon2id](https://en.wikipedia.org/wiki/Argon2) for secure password hashing
-- **Elliptic Curve**: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) for key exchange
-- **Post-Quantum**: [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) via [CIRCL](https://github.com/cloudflare/circl)
+- **Elliptic Curve**: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) using ephemeral key exchange
+- **Post-Quantum**: [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) Kyber 1024 with ML-KEM
 - **Symmetric Encryption**: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
 - **Compression**: [Zlib](https://en.wikipedia.org/wiki/Zlib) for data compression
 
@@ -227,7 +227,6 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
 Special thanks to the projects and people that made Xipher possible:
 
 - **[Retriever](https://retriever.corgea.io/)** - Inspiration for web-based encryption concepts
-- **[CIRCL](https://github.com/cloudflare/circl)** by Cloudflare - Post-quantum cryptography support
 - **[StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js)** - Browser file saving capabilities
 - **[age](https://github.com/FiloSottile/age)** - Inspiration for Curve25519 and XChaCha20-Poly1305 usage
 
