@@ -191,6 +191,8 @@ jobs:
 - **Symmetric Encryption**: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
 - **Compression**: [Zlib](https://en.wikipedia.org/wiki/Zlib) for data compression
 
+> **Important Note**: From v1.19 onwards, post-quantum cryptography implementation has migrated from third-party packages to Go's native ML-KEM package to comply with [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) standards. **If you are using post-quantum cryptography (Kyber)**, this introduces breaking changes in key format and encryption operations. Standard ECC-based encryption remains unchanged and backward compatible.
+
 ## Documentation
 
 - **API Reference**: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
