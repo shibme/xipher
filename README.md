@@ -13,16 +13,15 @@
 
 ## Overview
 
-Xipher is a curated collection of cryptographic primitives designed for secure password-based asymmetric encryption. It enables secure data sharing between parties over insecure channels using password-derived public keys, combining modern cryptography with post-quantum security.
+Xipher is a collection of cryptographic primitives for password-based asymmetric encryption. It lets you share encrypted data between parties over insecure channels using public keys derived from passwords. Includes support for post-quantum algorithms.
 
 ## Features
 
-- **🔐 Asymmetric Encryption**: Encrypt data with public keys derived from passwords
-- **📦 Stream Processing**: Built-in compression and streaming for memory efficiency  
-- **🛡️ Post-Quantum Security**: Optional Kyber1024 algorithm support
-- **🌐 Multi-Platform**: CLI, Go library, Web Assembly, and web interface
-- **⚡ Performance**: Optimized for both small and large data encryption
-- **🔧 Easy Integration**: Simple APIs for developers
+- Asymmetric encryption using password-derived public keys
+- Stream processing with built-in compression
+- Post-quantum security (optional Kyber1024 support)
+- Available as CLI tool, Go library, WebAssembly module, and web interface
+- Optimized for both small and large data
 
 ## Quick Start
 
@@ -112,17 +111,17 @@ func main() {
 }
 ```
 
-## Usage Scenarios
+## Usage
 
 ### Web Interface
-Experience Xipher directly in your browser at [xipher.org](https://xipher.org)
+Try it out at [xipher.org](https://xipher.org)
 
-**Workflow:**
-1. **Receiver** opens Xipher web app → generates key pair (stored in browser)
-2. **Receiver** shares the public key URL with sender
-3. **Sender** opens encryption URL → inputs data → gets encrypted result
-4. **Sender** shares ciphertext with receiver
-5. **Receiver** decrypts using stored private key
+How it works:
+
+1. The receiver opens the web app and generates a key pair (keys are saved in the browser).
+2. The receiver shares their public key URL with the sender.
+3. The sender opens this URL, encrypts their data using the receiver's encryption URL, and then sends the resulting ciphertext (or encrypted link) back to the receiver.
+4. The receiver decrypts the ciphertext in the same browser where the key pair was originally generated.
 
 ```mermaid
 sequenceDiagram
@@ -184,41 +183,33 @@ jobs:
 
 ## Technical Details
 
-### Cryptographic Algorithms
-- **Key Derivation**: [Argon2id](https://en.wikipedia.org/wiki/Argon2) for secure password hashing
-- **Elliptic Curve**: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) using ephemeral key exchange
-- **Post-Quantum**: [CRYSTALS-Kyber](https://pq-crystals.org/kyber/) Kyber 1024 with ML-KEM
-- **Symmetric Encryption**: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
-- **Compression**: [Zlib](https://en.wikipedia.org/wiki/Zlib) for data compression
+### Algorithms
 
-> **Important Note**: From v1.19 onwards, post-quantum cryptography implementation has migrated from third-party packages to Go's native ML-KEM package to comply with [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) standards. **If you are using post-quantum cryptography (Kyber)**, this introduces breaking changes in key format and encryption operations. Standard ECC-based encryption remains unchanged and backward compatible.
+- Key derivation: [Argon2id](https://en.wikipedia.org/wiki/Argon2)
+- Elliptic curve: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) with ephemeral key exchange
+- Post-quantum: [Kyber 1024](https://pq-crystals.org/kyber/) (ML-KEM)
+- Symmetric encryption: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
+- Compression: [Zlib](https://en.wikipedia.org/wiki/Zlib)
+
+> **Note**: v1.19+ uses Go's native ML-KEM package for post-quantum crypto ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) compliant). This breaks compatibility with previous Kyber implementations. Standard ECC encryption is unaffected.
 
 ## Documentation
 
-- **API Reference**: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
-- **Web Interface**: [xipher.org](https://xipher.org)
-- **Examples**: See [usage examples](#basic-usage) above
+- API docs: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
+- Web interface: [xipher.org](https://xipher.org)
 
 ## Contributing
 
-We welcome contributions! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-For bugs and feature requests, please [open an issue](https://github.com/shibme/xipher/issues).
+Contributions are welcome. Fork the repo, make your changes, and submit a pull request. For bugs or feature requests, [open an issue](https://github.com/shibme/xipher/issues).
 
 ## Security
 
-This project is experimental and should be used with caution in production environments. If you discover security vulnerabilities, please [report them responsibly](https://github.com/shibme/xipher/security/advisories).
+This project is experimental - use with caution in production. If you find security issues, please [report them](https://github.com/shibme/xipher/security/advisories).
 
-### Security Considerations
-- Password strength directly affects security
+A few things to keep in mind:
+- Password strength matters
 - Post-quantum algorithms are still evolving
-- Regular updates recommended for latest security patches
+- Keep your dependencies updated
 
 ## License
 
@@ -226,14 +217,8 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
 
 ## Acknowledgments
 
-Special thanks to the projects and people that made Xipher possible:
+Thanks to these projects:
 
-- **[Retriever](https://retriever.corgea.io/)** - Inspiration for web-based encryption concepts
-- **[StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js)** - Browser file saving capabilities
-- **[age](https://github.com/FiloSottile/age)** - Inspiration for Curve25519 and XChaCha20-Poly1305 usage
-
----
-
-<div align="center">
-	<p>Made with ❤️ for secure communication</p>
-</div>
+- [Retriever](https://retriever.corgea.io/) - Inspiration for web-based encryption concepts
+- [StreamSaver.js](https://github.com/jimmywarting/StreamSaver.js) - Browser file saving capabilities
+- [age](https://github.com/FiloSottile/age) - Inspiration for Curve25519 and XChaCha20-Poly1305 usage
