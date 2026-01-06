@@ -197,6 +197,7 @@ jobs:
 
 - API docs: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
 - Web interface: [xipher.org](https://xipher.org)
+- Technical whitepaper: [WHITEPAPER.md](WHITEPAPER.md)
 
 ## Contributing
 
