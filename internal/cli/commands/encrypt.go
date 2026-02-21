@@ -142,18 +142,22 @@ func encryptFileCommand() *cobra.Command {
 						exitOnError(err, jsonFormat)
 					}
 				}
-				dst, err := os.Create(dstPath)
-				if err != nil {
-					exitOnError(err, jsonFormat)
-				}
+				dst := utils.NewThresholdFileWriter(dstPath, fileWriteThreshold)
 				keyPwdStr, err := getKeyPwdStr(cmd)
 				if err != nil {
+					dst.Discard()
 					exitOnError(err, jsonFormat)
 				}
 				compress, _ := cmd.Flags().GetBool(compressFlag.name)
 				if err = utils.EncryptStream(keyPwdStr, dst, src, compress, toXipherTxt); err != nil {
-					dst.Close()
-					os.Remove(dstPath)
+					dst.Discard()
+					exitOnError(err, jsonFormat)
+				}
+				if err = dst.Flush(); err != nil {
+					dst.Discard()
+					exitOnError(err, jsonFormat)
+				}
+				if err = dst.Close(); err != nil {
 					exitOnError(err, jsonFormat)
 				}
 				if jsonFormat {

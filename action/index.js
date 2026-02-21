@@ -1,13 +1,14 @@
-const exec = require('@actions/exec');
-const os = require('os');
-const core = require('@actions/core');
-const tc = require('@actions/tool-cache');
-const { Octokit } = require("@octokit/rest");
-let octokit;
+import * as exec from '@actions/exec';
+import os from 'os';
+import * as core from '@actions/core';
+import * as tc from '@actions/tool-cache';
+import { Octokit } from '@octokit/rest';
+import { createTokenAuth } from '@octokit/auth-token';
+
 const token = core.getInput('github-token');
 const userAgent = 'xipher-action';
+let octokit;
 if (token) {
-  const { createTokenAuth } = "@octokit/auth-token";
   octokit = new Octokit({
     authStrategy: createTokenAuth,
     auth: token,
@@ -68,7 +69,7 @@ async function getInstalledVersion() {
     installedVersion = await findInstalledVersion();
   }
   if (installedVersion) {
-    core.info(`Installed version of Xipher: ${ installedVersion }`);
+    core.info(`Installed version of Xipher: ${installedVersion}`);
   }
   return installedVersion;
 }
@@ -102,11 +103,11 @@ function mapArch(arch) {
   return mappings[arch] || arch;
 }
 
-function mapOS(os) {
+function mapOS(osPlatform) {
   const mappings = {
     win32: 'windows'
   };
-  return mappings[os] || os;
+  return mappings[osPlatform] || osPlatform;
 }
 
 async function getDownloadUrlForVersion(version) {
@@ -115,16 +116,16 @@ async function getDownloadUrlForVersion(version) {
     const release = await octokit.rest.repos.getReleaseByTag({
       owner: owner,
       repo: repo,
-      tag: `v${ version }`
+      tag: `v${version}`
     });
     const assets = release.data.assets;
     if (assets.length === 0) {
       core.setFailed('No assets found in the release version ' + version);
     }
     for (let i = 0; i < assets.length; i++) {
-      if (assets[i].name.includes(assetName + '_') && 
-          assets[i].name.includes(mapOS(platform)) && 
-          assets[i].name.includes(mapArch(os.arch())) && 
+      if (assets[i].name.includes(assetName + '_') &&
+          assets[i].name.includes(mapOS(platform)) &&
+          assets[i].name.includes(mapArch(os.arch())) &&
           assets[i].name.includes('.zip')) {
         return assets[i].browser_download_url;
       }
@@ -133,7 +134,7 @@ async function getDownloadUrlForVersion(version) {
     core.setFailed('Error retrieving download URL for version ' + version + ': ' + error.message);
     return '';
   }
-  core.setFailed('No assets found for current the platform (' + mapOS(platform) + 
+  core.setFailed('No assets found for current the platform (' + mapOS(platform) +
     '-' + mapArch(os.arch()) + ') in the release version ' + version);
   return '';
 }
@@ -149,9 +150,9 @@ async function installVersion(version) {
     core.addPath(pathToCLI);
     const installed_version = await findInstalledVersion();
     if (installed_version === version) {
-      core.info(`Successfully installed Xipher version ${ version }`);
+      core.info(`Successfully installed Xipher version ${version}`);
     } else {
-      core.setFailed(`Failed to install Xipher version ${ version }`);
+      core.setFailed(`Failed to install Xipher version ${version}`);
     }
   } catch (e) {
     core.setFailed(e);
@@ -168,7 +169,7 @@ async function setup() {
       requiredVersion = requiredVersion.slice(1);
     }
     if (installedVersion && installedVersion === requiredVersion) {
-      core.info(`Required version Xipher ${ installedVersion } is already installed`);
+      core.info(`Required version Xipher ${installedVersion} is already installed`);
       return;
     }
     await installVersion(requiredVersion);
@@ -186,8 +187,6 @@ async function run() {
   }
 }
 
-module.exports = run
+export default run;
 
-if (require.main === module) {
-  run();
-}
+run();

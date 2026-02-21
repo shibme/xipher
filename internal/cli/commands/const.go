@@ -8,6 +8,7 @@ import (
 const (
 	xipherPubKeyFileExt = ".xpk"
 	envar_XIPHER_SECRET = "XIPHER_SECRET"
+	fileWriteThreshold  = 1024 * 1024
 )
 
 var (

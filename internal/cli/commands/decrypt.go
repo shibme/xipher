@@ -111,17 +111,17 @@ func decryptFileCommand() *cobra.Command {
 				if err != nil {
 					exitOnError(err, jsonFormat)
 				}
-				dst, err := os.Create(dstPath)
-				if err != nil {
-					exitOnError(err, jsonFormat)
-				}
+				dst := utils.NewThresholdFileWriter(dstPath, fileWriteThreshold)
 				secretKeyOrPwd, err := getSecretKeyOrPwd(true)
 				if err != nil {
+					dst.Discard()
 					exitOnError(err, jsonFormat)
 				}
 				if err = utils.DecryptStream(secretKeyOrPwd, dst, src); err != nil {
-					dst.Close()
-					os.Remove(dstPath)
+					dst.Discard()
+					exitOnError(err, jsonFormat)
+				}
+				if err = dst.Close(); err != nil {
 					exitOnError(err, jsonFormat)
 				}
 				if jsonFormat {
