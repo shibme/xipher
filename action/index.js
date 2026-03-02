@@ -3,14 +3,12 @@ import os from 'os';
 import * as core from '@actions/core';
 import * as tc from '@actions/tool-cache';
 import { Octokit } from '@octokit/rest';
-import { createTokenAuth } from '@octokit/auth-token';
 
 const token = core.getInput('github-token');
 const userAgent = 'xipher-action';
 let octokit;
 if (token) {
   octokit = new Octokit({
-    authStrategy: createTokenAuth,
     auth: token,
     userAgent: userAgent,
   });

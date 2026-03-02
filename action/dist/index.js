@@ -38803,13 +38803,11 @@ const dist_src_Octokit = Octokit.plugin(requestLog, legacyRestEndpointMethods, p
 
 
 
-
 const token = getInput('github-token');
 const index_userAgent = 'xipher-action';
 let octokit;
 if (token) {
   octokit = new dist_src_Octokit({
-    authStrategy: createTokenAuth,
     auth: token,
     userAgent: index_userAgent,
   });
