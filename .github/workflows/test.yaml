@@ -45,7 +45,7 @@ jobs:
         version: ${{ matrix.version }}
     - name: Capture Xipher Version Installed
       run: |
-        VERSION_INSTALLED=$(xipher --version | grep -m1 "Version" | awk '{print $4}')
+        VERSION_INSTALLED=$(xipher --version | grep -m1 "Version" | awk '{print $NF}')
         if [[ ! "${VERSION_INSTALLED}" =~ ^v ]]; then
           VERSION_INSTALLED="v${VERSION_INSTALLED}"
         fi
