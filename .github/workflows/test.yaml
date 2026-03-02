@@ -28,6 +28,31 @@ jobs:
         go-version: 'stable'
     - name: Running Unit Tests
       run: go test -v .
+
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Build Xipher
+      run: go build -v .
+    - name: Download llvm-mingw latest version
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ASSET_NAME=$(gh release view --repo mstorsjo/llvm-mingw --json assets -q '.assets[].name | select(test("ucrt-ubuntu.*x86_64\\.tar\\.xz$"))')
+        gh release download --repo mstorsjo/llvm-mingw --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP"
+        mkdir -p "$RUNNER_TEMP/llvm-mingw"
+        tar -xf "$RUNNER_TEMP/$ASSET_NAME" --strip-components=1 -C "$RUNNER_TEMP/llvm-mingw"
+    - name: Testing Xipher Builds
+      run: |
+        docker run --rm \
+        -w /workspace \
+        -v $PWD:/workspace \
+        -v $PWD/llvm-mingw:/llvm-mingw \
+        ghcr.io/goreleaser/goreleaser-cross:latest \
+        build --clean --snapshot
   
   action-test:
     name: Action Test

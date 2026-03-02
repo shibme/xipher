@@ -21,8 +21,6 @@ jobs:
       id-token: write
       contents: write
       packages: write
-    env:
-      GORELEASER_CROSS_TAG: v1.25.1
     steps:
     - name: Setting Xipher Version
       run: echo "XIPHER_VERSION=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
@@ -41,22 +39,31 @@ jobs:
         mkdir -p .ignore
         cp -r web .ignore
         sed -i "s/xipher-cache/xipher-v${{ env.XIPHER_VERSION }}/g" .ignore/web/js/service-worker.js
+    - name: Download llvm-mingw latest version
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        ASSET_NAME=$(gh release view --repo mstorsjo/llvm-mingw --json assets -q '.assets[].name | select(test("ucrt-ubuntu.*x86_64\\.tar\\.xz$"))')
+        gh release download --repo mstorsjo/llvm-mingw --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP"
+        mkdir -p "$RUNNER_TEMP/llvm-mingw"
+        tar -xf "$RUNNER_TEMP/$ASSET_NAME" --strip-components=1 -C "$RUNNER_TEMP/llvm-mingw"
     - name: Copying wasm_exec.js to .ignore directory
       run: |
         docker run --rm \
         -w /workspace \
         -v $PWD:/workspace \
         --entrypoint sh \
-        ghcr.io/goreleaser/goreleaser-cross:${{ env.GORELEASER_CROSS_TAG }} \
+        ghcr.io/goreleaser/goreleaser-cross:latest \
         -c "cp \$(go env GOROOT)/lib/wasm/wasm_exec.js .ignore"
     - name: GoReleaser - Release Xipher
       run: |
         docker run --rm \
         -w /workspace \
         -v $PWD:/workspace \
+        -v $RUNNER_TEMP/llvm-mingw:/llvm-mingw \
         -e GITHUB_TOKEN \
         -e HOMEBREW_SSH_KEY \
-        ghcr.io/goreleaser/goreleaser-cross:${{ env.GORELEASER_CROSS_TAG }} \
+        ghcr.io/goreleaser/goreleaser-cross:latest \
         release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
