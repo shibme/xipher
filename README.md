@@ -31,7 +31,7 @@ Xipher is a collection of cryptographic primitives for password-based asymmetric
 
 **Homebrew (macOS):**
 ```bash
-brew install shibme/tap/xipher
+brew install --cask shibme/tap/xipher
 ```
 
 **Install Script (Linux/macOS):**

@@ -271,16 +271,23 @@ nfpms:
       - deb
       - rpm
 
-brews:
+homebrew_casks:
   - ids:
       - xipher-cli
     name: xipher
-    install: |
-      bin.install "{{ .Binary }}"
-      generate_completions_from_executable(bin/"{{ .Binary }}","completion")
+    binaries:
+      - xipher
     homepage: https://xipher.org
     description: "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
     license: "MIT"
+    url:
+      verified: "github.com/shibme/xipher/"
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/xipher"]
+          end
     commit_author:
       name: Shibly Meeran
       email: shibme@shib.me
