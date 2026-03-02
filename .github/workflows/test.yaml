@@ -50,15 +50,24 @@ jobs:
           VERSION_INSTALLED="v${VERSION_INSTALLED}"
         fi
         echo "XIPHER_VERSION_INSTALLED=${VERSION_INSTALLED}" >> $GITHUB_ENV
+    - name: Resolve Expected Version
+      run: |
+        if [ "${{ matrix.version }}" = "latest" ]; then
+          EXPECTED=$(gh release view --repo ${{ github.repository }} --json tagName -q '.tagName')
+        else
+          EXPECTED="${{ matrix.version }}"
+        fi
+        if [[ ! "${EXPECTED}" =~ ^v ]]; then
+          EXPECTED="v${EXPECTED}"
+        fi
+        echo "XIPHER_VERSION_EXPECTED=${EXPECTED}" >> $GITHUB_ENV
+      env:
+        GH_TOKEN: ${{ github.token }}
     - name: Verify Xipher Version
       shell: python
-      env:
-        XIPHER_VERSION_EXPECTED: ${{ matrix.version }}
       run: |
         import sys, os
         version_expected = os.environ["XIPHER_VERSION_EXPECTED"]
-        if not version_expected.startswith("v"):
-            version_expected = "v" + version_expected
         version_installed = os.environ["XIPHER_VERSION_INSTALLED"]
         sys.exit(
             int(version_expected != version_installed)
