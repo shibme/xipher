@@ -288,6 +288,12 @@ homebrew_casks:
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/xipher"]
           end
+          system_command "/bin/mkdir", args: ["-p", "#{HOMEBREW_PREFIX}/etc/bash_completion.d"]
+          system_command "/bin/mkdir", args: ["-p", "#{HOMEBREW_PREFIX}/share/zsh/site-functions"]
+          system_command "/bin/mkdir", args: ["-p", "#{HOMEBREW_PREFIX}/share/fish/vendor_completions.d"]
+          system_command "/bin/bash", args: ["-c", "#{staged_path}/xipher completion bash > #{HOMEBREW_PREFIX}/etc/bash_completion.d/xipher"]
+          system_command "/bin/bash", args: ["-c", "#{staged_path}/xipher completion zsh > #{HOMEBREW_PREFIX}/share/zsh/site-functions/_xipher"]
+          system_command "/bin/bash", args: ["-c", "#{staged_path}/xipher completion fish > #{HOMEBREW_PREFIX}/share/fish/vendor_completions.d/xipher.fish"]
     commit_author:
       name: Shibly Meeran
       email: shibme@shib.me
