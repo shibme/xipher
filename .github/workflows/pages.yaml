@@ -17,14 +17,11 @@ jobs:
       group: "pages"
       cancel-in-progress: true
     steps:
-      - name: Download wasm files from latest release
-        uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05
-        with:
-          repository: 'shibme/xipher'
-          latest: true
-          fileName: 'xipher-web.zip'
-      - name: Extracting Xipher Web
+      - name: Download and extract Xipher Web
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          gh release download --repo shibme/xipher --pattern 'xipher-web.zip' --dir .
           unzip xipher-web.zip -d xipher-web
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
