@@ -18,12 +18,26 @@ async function genXipherSecretKey() {
     return xipherKeyOutput.result;
 }
 
-async function genXipherPublicKey(xipherSecret) {
-    const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret);
+async function genXipherPublicKey(xipherSecret, quantumSafe) {
+    const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret, !!quantumSafe);
     if (xipherPublicKeyOutput.error || !xipherPublicKeyOutput.result) {
         throw new Error(xipherPublicKeyOutput.error ? xipherPublicKeyOutput.error : "Failed to get public key");
     }
     return xipherPublicKeyOutput.result;
+}
+
+// Validates a string as a Xipher secret key (XSK_ prefix). The WASM module
+// rejects malformed keys when deriving the public key, so we reuse that path.
+async function isValidSecretKey(secret) {
+    if (!secret || !secret.startsWith("XSK_")) {
+        return false;
+    }
+    try {
+        await genXipherPublicKey(secret, false);
+        return true;
+    } catch (error) {
+        return false;
+    }
 }
 
 const XipherStreamStatus = {
@@ -69,7 +83,7 @@ class FileEncrypter {
     }
 
     async start() {
-        self = this;
+        const self = this;
         const streamEncrypterOutput = await window.xipherNewEncryptingTransformer(self.keyOrPassword, self.compress);
         if (streamEncrypterOutput.error || !streamEncrypterOutput.result) {
             throw new Error(streamEncrypterOutput.error ? streamEncrypterOutput.error : "Failed to initialize encrypter");
@@ -135,8 +149,8 @@ class FileEncrypter {
     }
 
     async cancel() {
-        if (self.progressCallback && !self.cancelled) {
-            self.progressCallback(self.processedSize, XipherStreamStatus.CANCELLING);
+        if (this.progressCallback && !this.cancelled) {
+            this.progressCallback(this.processedSize, XipherStreamStatus.CANCELLING);
         }
         this.cancelled = true;
     }
@@ -156,7 +170,7 @@ class FileDecrypter {
     }
 
     async start() {
-        self = this;
+        const self = this;
         const streamDecrypterOutput = await window.xipherNewDecryptingTransformer(self.keyOrPassword);
         if (streamDecrypterOutput.error || !streamDecrypterOutput.result) {
             throw new Error(streamDecrypterOutput.error ? streamDecrypterOutput.error : "Failed to initialize decrypter");
@@ -229,8 +243,8 @@ class FileDecrypter {
     }
 
     async cancel() {
-        if (self.progressCallback) {
-            self.progressCallback(self.processedSize, XipherStreamStatus.CANCELLING);
+        if (this.progressCallback) {
+            this.progressCallback(this.processedSize, XipherStreamStatus.CANCELLING);
         }
         this.cancelled = true;
     }

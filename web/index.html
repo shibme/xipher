@@ -3,72 +3,115 @@
 
 <head>
     <meta http-equiv="Content-Security-Policy" content="
-        default-src 'none'; 
-        script-src 'self' 'unsafe-eval'; 
-        style-src 'self'; 
-        img-src 'self'; 
-        font-src 'self'; 
-        connect-src 'self'; 
-        frame-src 'self'; 
-        object-src 'none'; 
+        default-src 'none';
+        script-src 'self' 'unsafe-eval';
+        style-src 'self';
+        img-src 'self';
+        font-src 'self';
+        connect-src 'self';
+        frame-src 'self';
+        object-src 'none';
         manifest-src 'self';
-        base-uri 'self'; 
-        form-action 'self'; 
-        upgrade-insecure-requests; 
+        base-uri 'self';
+        form-action 'self';
+        upgrade-insecure-requests;
         block-all-mixed-content;
         ">
     <meta charset="UTF-8">
     <link rel="manifest" href="manifest.json">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a84ff">
+    <meta name="description"
+        content="Xipher is a lightweight, no-install, server-free encryption tool for securely sharing sensitive data right from your browser.">
     <link rel="icon" href="assets/images/logo.svg" />
-    <title>Xipher</title>
+    <title>Xipher · Secure data sharing in your browser</title>
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/objects.css">
 </head>
 
 <body>
+    <!-- Preloader -->
     <div id="preloader" class="preloader">
         <div class="preloader-container">
-            <img src="assets/images/logo.svg" alt="Logo" class="preloader-logo">
+            <img src="assets/images/logo.svg" alt="Xipher logo" class="preloader-logo">
             <div class="preloader-spinner"></div>
         </div>
-        <p>Loading Xipher</p>
+        <p class="preloader-text">Loading Xipher</p>
     </div>
-    <div id="theme-toggle" class="theme-toggle" title="Toggle Dark/Light Mode">
-        <div class="theme-toggle-circle"></div>
-    </div>
-    <div class="app-frame">
-        <div class="app-container">
-            <h1 id="app-title-container">
-                <a href="./" id="app-title-logo" class="app-title-logo">
-                    <img src="assets/images/logo.svg" alt="Xipher Logo">
-                    <p>XIPHER</p>
-                </a>
-            </h1>
-            <p class="description">Xipher is a lightweight, no-install, server-free encryption tool designed for
-                seamless, secure sharing of sensitive data—right from your browser!</p>
-            <p class="description">Share this URL with someone to receive a secret 👇</p>
-            <div id="link-viewbox" class="link-viewbox">
-                <input type="text" id="shareable-link" class="shareable-link" readonly value="" />
-                <button class="icon-button" id="publink-copy-button" title="Copy">
-                    📋
-                </button>
-                <button class="icon-button" id="publink-share-button" title="Share">
-                    ➤
-                </button>
+
+    <!-- Top navigation bar -->
+    <header class="topbar">
+        <a href="./" id="app-title-logo" class="app-title-logo" title="Xipher home">
+            <img src="assets/images/logo.svg" alt="Xipher logo">
+            <span class="app-title-text">XIPHER</span>
+        </a>
+        <nav class="topbar-actions">
+            <a href="docs/" class="topbar-link" title="Documentation">
+                <span class="topbar-link-icon" aria-hidden="true">📖</span>
+                <span class="topbar-link-label">Docs</span>
+            </a>
+            <a href="https://github.com/shibme/xipher" target="_blank" rel="noopener" class="topbar-link"
+                title="View on GitHub">
+                <img src="assets/images/github.svg" alt="" class="topbar-link-github-icon" aria-hidden="true">
+                <span class="topbar-link-label">shibme/xipher</span>
+            </a>
+            <button type="button" id="theme-toggle" class="theme-toggle" title="Toggle dark / light mode"
+                aria-label="Toggle dark or light mode">
+                <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">☀️</span>
+                <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">🌙</span>
+                <span class="theme-toggle-circle"></span>
+            </button>
+            <button type="button" id="key-settings-button" class="topbar-icon-button" title="Manage your key / password"
+                aria-label="Manage your key or password">
+                <span aria-hidden="true">🔑</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main app -->
+    <main class="app-frame">
+        <section class="app-container">
+            <div class="app-intro">
+                <h1 class="app-heading">Share secrets, securely.</h1>
+                <p class="description">Xipher is a lightweight, no-install, server-free encryption tool. Everything
+                    happens right here in your browser, so your data never leaves your device unencrypted.</p>
             </div>
+
+            <!-- Mode badge: adapts to whether you're receiving (sharing your link) or sending (encrypting for someone) -->
+            <div id="mode-badge" class="mode-badge" hidden>
+                <span class="mode-badge-dot"></span>
+                <span id="mode-badge-text" class="mode-badge-text"></span>
+            </div>
+
+            <!-- Your public link to receive secrets -->
+            <div id="link-section" class="link-section">
+                <label class="field-label" id="link-label" for="shareable-link">Share this link to receive a
+                    secret</label>
+                <div id="link-viewbox" class="link-viewbox">
+                    <input type="text" id="shareable-link" class="shareable-link" readonly value=""
+                        aria-label="Your shareable link">
+                    <button type="button" class="icon-button" id="publink-copy-button" title="Copy link"
+                        aria-label="Copy link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                    <button type="button" class="icon-button" id="publink-share-button" title="Share link"
+                        aria-label="Share link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
+                </div>
+            </div>
+
+            <!-- Encrypt / decrypt workspace -->
             <form id="crypto-form">
                 <div class="input-container">
                     <div id="drop-area" class="text-view">
-                        <textarea id="text" placeholder="Enter your text or drag/drop a file to encrypt/decrypt"></textarea>
-                        <button type="button" class="icon-button" id="text-copy-button" title="Copy">
-                            📋
-                        </button>
-                        <button type="button" class="icon-button" id="text-share-button" title="Share">
-                            ➤
-                        </button>
+                        <textarea id="text"
+                            placeholder="Type or paste text here, or drag &amp; drop a file to encrypt / decrypt"></textarea>
+                        <div class="text-view-actions">
+                            <button type="button" class="icon-button" id="text-copy-button" title="Copy"
+                                aria-label="Copy result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                            <button type="button" class="icon-button" id="text-share-button" title="Share"
+                                aria-label="Share result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
+                        </div>
                         <div id="file-display" class="file-display">
+                            <div class="file-icon" aria-hidden="true">📄</div>
                             <div class="file-details">
                                 <span id="file-name" class="file-name" title=""></span>
                                 <span id="file-size" class="file-size"></span>
@@ -76,27 +119,114 @@
                         </div>
                     </div>
                     <button type="button" class="app-button select-file-button" id="text-action-button">
-                        Pick File
+                        Pick a file
                     </button>
                     <input type="file" id="file" />
                 </div>
-                <button type="button" id="action-button" class="app-button" disabled>
+                <button type="button" id="action-button" class="app-button grey-button" disabled>
                     Waiting for input
                 </button>
             </form>
-        </div>
-        <div class="repo-reference">
-            <a href="https://github.com/shibme/xipher" target="_blank" title="View on GitHub" class="github-link">
-                <img src="assets/images/github.svg" alt="GitHub" class="github-icon">
-                <span class="repo-slug">shibme/xipher</span>
-            </a>
+
+            <p class="app-hint">Tip: open the <span class="hint-key" aria-hidden="true">🔑</span> menu to set your own
+                password or secret key so you can decrypt on any device.</p>
+        </section>
+    </main>
+
+    <!-- Key / password management modal -->
+    <div id="key-modal" class="modal-overlay" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+            <div class="modal-header">
+                <h2 id="key-modal-title" class="modal-title">Your key &amp; password</h2>
+                <button type="button" id="key-modal-close" class="modal-close" title="Close"
+                    aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-intro">Your identity is stored only in this browser. Set a password or paste an existing
+                    secret key to use the same identity across devices. Anyone who knows it can decrypt secrets sent to
+                    you, so keep it safe.</p>
+
+                <div class="key-current">
+                    <label class="field-label" for="key-current-pubkey">Current public key</label>
+                    <div class="link-viewbox">
+                        <input type="text" id="key-current-pubkey" class="shareable-link" readonly value=""
+                            aria-label="Current public key">
+                        <button type="button" class="icon-button" id="key-pubkey-copy" title="Copy public key"
+                            aria-label="Copy public key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                    </div>
+                </div>
+
+                <div class="key-tabs" role="tablist">
+                    <button type="button" class="key-tab is-active" id="tab-password" role="tab"
+                        data-tab="password">Password</button>
+                    <button type="button" class="key-tab" id="tab-secretkey" role="tab" data-tab="secretkey">Secret
+                        key</button>
+                    <button type="button" class="key-tab" id="tab-random" role="tab" data-tab="random">Random</button>
+                </div>
+
+                <!-- Password panel -->
+                <div class="key-panel is-active" id="panel-password" data-panel="password">
+                    <label class="field-label" for="key-password-input">Set a password</label>
+                    <div class="password-field">
+                        <input type="password" id="key-password-input" class="text-field"
+                            placeholder="Enter a strong password" autocomplete="new-password">
+                        <button type="button" class="icon-button" id="key-password-reveal" title="Show / hide"
+                            aria-label="Show or hide password">👁️</button>
+                    </div>
+                    <label class="field-label" for="key-password-confirm">Confirm password</label>
+                    <input type="password" id="key-password-confirm" class="text-field"
+                        placeholder="Re-enter the password" autocomplete="new-password">
+                    <p class="field-hint">Use a long, memorable passphrase. The same password always produces the same
+                        identity.</p>
+                </div>
+
+                <!-- Secret key panel -->
+                <div class="key-panel" id="panel-secretkey" data-panel="secretkey">
+                    <label class="field-label" for="key-secretkey-input">Paste a secret key</label>
+                    <input type="text" id="key-secretkey-input" class="text-field" placeholder="XSK_..."
+                        autocomplete="off" spellcheck="false">
+                    <p class="field-hint">A secret key starts with <code>XSK_</code>. Generate one with the CLI or the
+                        Random tab.</p>
+                </div>
+
+                <!-- Random panel -->
+                <div class="key-panel" id="panel-random" data-panel="random">
+                    <p class="field-hint">Generate a fresh, cryptographically random secret key. This replaces your
+                        current identity, so previously shared links will stop working for new secrets.</p>
+                    <button type="button" id="key-generate-random" class="app-button select-file-button">Generate new
+                        random key</button>
+                    <div class="generated-key" id="generated-key-box" hidden>
+                        <label class="field-label" for="generated-key-value">New secret key (save it somewhere
+                            safe)</label>
+                        <div class="link-viewbox">
+                            <input type="text" id="generated-key-value" class="shareable-link" readonly value=""
+                                aria-label="Generated secret key">
+                            <button type="button" class="icon-button" id="generated-key-copy" title="Copy secret key"
+                                aria-label="Copy secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="checkbox-row" for="quantum-safe-toggle">
+                    <input type="checkbox" id="quantum-safe-toggle">
+                    <span class="checkbox-label">Quantum-safe public key <span class="checkbox-sub">(larger link,
+                            post-quantum security)</span></span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="key-modal-cancel" class="app-button grey-button">Cancel</button>
+                <button type="button" id="key-save-button" class="app-button encrypt-button">Save &amp; apply</button>
+            </div>
         </div>
     </div>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
     <script src="wasm/wasm_exec.js" defer></script>
     <script src="js/xipher.js" defer></script>
     <script src="js/datastore.js" defer></script>
     <script src="js/ui.js" defer></script>
-    <script src="js/service-worker.js" defer></script>
     <script src="js/main.js" defer></script>
     <script src="lib/StreamSaver/StreamSaver.js" defer></script>
 </body>

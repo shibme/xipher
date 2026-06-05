@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        script-src 'self';
+        style-src 'self';
+        img-src 'self';
+        font-src 'self';
+        connect-src 'self';
+        object-src 'none';
+        manifest-src 'self';
+        base-uri 'self';
+        form-action 'self';
+        upgrade-insecure-requests;
+        block-all-mixed-content;
+        ">
+    <meta charset="UTF-8">
+    <link rel="manifest" href="../manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a84ff">
+    <meta name="description" content="Xipher documentation: guides and examples for the CLI, web app, Go library, WebAssembly module, and GitHub Action.">
+    <link rel="icon" href="../assets/images/logo.svg" />
+    <title>Xipher Docs · Guides & examples</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="docs.css">
+</head>
+
+<body class="docs-body">
+    <!-- Top bar -->
+    <header class="docs-topbar">
+        <button type="button" id="sidebar-toggle" class="docs-menu-button" aria-label="Toggle navigation"
+            title="Toggle navigation">☰</button>
+        <a href="../" class="app-title-logo" title="Xipher home">
+            <img src="../assets/images/logo.svg" alt="Xipher logo">
+            <span class="app-title-text">XIPHER</span>
+        </a>
+        <span class="docs-topbar-tag">Docs</span>
+        <nav class="docs-topbar-actions">
+            <a href="../" class="topbar-link" title="Open the web app">
+                <span class="topbar-link-icon" aria-hidden="true">🚀</span>
+                <span class="topbar-link-label">Web app</span>
+            </a>
+            <a href="https://github.com/shibme/xipher" target="_blank" rel="noopener" class="topbar-link"
+                title="View on GitHub">
+                <img src="../assets/images/github.svg" alt="" class="topbar-link-github-icon" aria-hidden="true">
+                <span class="topbar-link-label">shibme/xipher</span>
+            </a>
+            <button type="button" id="theme-toggle" class="theme-toggle" title="Toggle dark / light mode"
+                aria-label="Toggle dark or light mode">
+                <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">☀️</span>
+                <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">🌙</span>
+                <span class="theme-toggle-circle"></span>
+            </button>
+        </nav>
+    </header>
+
+    <div class="docs-shell">
+        <!-- Sidebar -->
+        <aside id="docs-sidebar" class="docs-sidebar">
+            <nav class="docs-nav" aria-label="Documentation sections">
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">Getting started</p>
+                    <a href="#introduction" class="docs-nav-link">Introduction</a>
+                    <a href="#concepts" class="docs-nav-link">Core concepts</a>
+                    <a href="#quickstart" class="docs-nav-link">Quick start</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">CLI</p>
+                    <a href="#cli-install" class="docs-nav-link">Installation</a>
+                    <a href="#cli-keygen" class="docs-nav-link">Generating keys</a>
+                    <a href="#cli-encrypt" class="docs-nav-link">Encrypting</a>
+                    <a href="#cli-decrypt" class="docs-nav-link">Decrypting</a>
+                    <a href="#cli-env" class="docs-nav-link">Environment & JSON</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">Web app</p>
+                    <a href="#web-overview" class="docs-nav-link">Overview</a>
+                    <a href="#web-receive" class="docs-nav-link">Receiving a secret</a>
+                    <a href="#web-send" class="docs-nav-link">Sending a secret</a>
+                    <a href="#web-keys" class="docs-nav-link">Keys & passwords</a>
+                    <a href="#web-files" class="docs-nav-link">Encrypting files</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">Library</p>
+                    <a href="#lib-install" class="docs-nav-link">Go package</a>
+                    <a href="#lib-usage" class="docs-nav-link">Usage</a>
+                    <a href="#lib-streams" class="docs-nav-link">Streams</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">Architecture</p>
+                    <a href="#arch-overview" class="docs-nav-link">Overview</a>
+                    <a href="#arch-primitives" class="docs-nav-link">Primitives</a>
+                    <a href="#arch-format" class="docs-nav-link">Data format</a>
+                    <a href="#arch-analysis" class="docs-nav-link">Security analysis</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">More</p>
+                    <a href="#wasm" class="docs-nav-link">WebAssembly</a>
+                    <a href="#action" class="docs-nav-link">GitHub Action</a>
+                    <a href="#selfhost" class="docs-nav-link">Self-hosting</a>
+                    <a href="#security" class="docs-nav-link">Security</a>
+                    <a href="#faq" class="docs-nav-link">FAQ</a>
+                </div>
+            </nav>
+        </aside>
+        <div id="sidebar-backdrop" class="docs-sidebar-backdrop" hidden></div>
+
+        <!-- Content -->
+        <main class="docs-content">
+            <article class="docs-article">
+
+                <div class="docs-hero">
+                    <h1>Xipher Documentation</h1>
+                    <p class="docs-lead">Xipher is a lightweight, server-free tool for password-based asymmetric
+                        encryption. Share sensitive data over any channel (the CLI, your browser, a Go program, or
+                        WebAssembly) without trusting a server with your secrets.</p>
+                    <div class="docs-hero-cards">
+                        <a href="#quickstart" class="docs-card">
+                            <span class="docs-card-icon">⚡</span>
+                            <span class="docs-card-title">Quick start</span>
+                            <span class="docs-card-desc">Encrypt your first secret in under a minute.</span>
+                        </a>
+                        <a href="#cli-install" class="docs-card">
+                            <span class="docs-card-icon">⌨️</span>
+                            <span class="docs-card-title">CLI</span>
+                            <span class="docs-card-desc">Scriptable encryption for your terminal.</span>
+                        </a>
+                        <a href="#web-overview" class="docs-card">
+                            <span class="docs-card-icon">🌐</span>
+                            <span class="docs-card-title">Web app</span>
+                            <span class="docs-card-desc">No install. Everything runs in your browser.</span>
+                        </a>
+                        <a href="#lib-install" class="docs-card">
+                            <span class="docs-card-icon">📦</span>
+                            <span class="docs-card-title">Go library</span>
+                            <span class="docs-card-desc">Embed Xipher into your own programs.</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Introduction -->
+                <section id="introduction" class="docs-section">
+                    <h2>Introduction</h2>
+                    <p>Xipher lets two parties exchange encrypted data over an insecure channel using asymmetric
+                        encryption. A <strong>receiver</strong> shares a public key (often derived from a password); a
+                        <strong>sender</strong> encrypts data against that public key; only the receiver, who holds the
+                        matching secret key or password, can decrypt it.</p>
+                    <p>It is available in several forms that all share the same cryptography and wire format:</p>
+                    <ul>
+                        <li><strong>CLI</strong>: a single binary for Linux, macOS, and Windows.</li>
+                        <li><strong>Web app</strong>: runs entirely in your browser via WebAssembly. Nothing is sent to
+                            a server.</li>
+                        <li><strong>Go library</strong>: <code>xipher.org/xipher</code> for embedding in your apps.</li>
+                        <li><strong>WebAssembly module</strong>: call Xipher directly from JavaScript.</li>
+                        <li><strong>GitHub Action</strong>: bring Xipher into your CI pipelines.</li>
+                    </ul>
+                </section>
+
+                <!-- Concepts -->
+                <section id="concepts" class="docs-section">
+                    <h2>Core concepts</h2>
+                    <p>Xipher uses a handful of string types, each with a recognizable prefix:</p>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr>
+                                    <th>Prefix</th>
+                                    <th>Type</th>
+                                    <th>Meaning</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>XSK_</code></td>
+                                    <td>Secret key</td>
+                                    <td>Private. Decrypts data. Never share it.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>XPK_</code></td>
+                                    <td>Public key</td>
+                                    <td>Safe to share. Senders encrypt with it.</td>
+                                </tr>
+                                <tr>
+                                    <td><code>XCT_</code></td>
+                                    <td>Ciphertext</td>
+                                    <td>Encrypted data, safe to send over any medium.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>There are two ways to obtain a secret key:</p>
+                    <ul>
+                        <li><strong>Password-based</strong>: derived from a password using Argon2id. Convenient and
+                            portable: the same password always yields the same identity, so you can decrypt on any
+                            device.</li>
+                        <li><strong>Random</strong>: generated from 64 bytes of secure randomness (<code>XSK_…</code>).
+                            Maximum entropy, but you must store it safely, since it can't be recovered if lost.</li>
+                    </ul>
+                    <div class="docs-callout">
+                        <span class="docs-callout-icon">💡</span>
+                        <div>
+                            <p>Enable <strong>quantum-safe</strong> mode when deriving a public key to use
+                                ML-KEM (Kyber-1024) alongside Curve25519, protecting against future quantum attacks. It
+                                produces larger keys and ciphertext.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick start -->
+                <section id="quickstart" class="docs-section">
+                    <h2>Quick start</h2>
+                    <h3>With the CLI</h3>
+                    <pre class="code-block" data-lang="bash"><code># Encrypt a message with a password (you'll be prompted)
+xipher encrypt text -t "Hello, World!"
+
+# Decrypt it back
+xipher decrypt text -c "XCT_..."</code></pre>
+                    <h3>In the browser</h3>
+                    <ol>
+                        <li>Open <a href="../">the web app</a>. A key pair is generated and stored in your browser
+                            automatically.</li>
+                        <li>Copy your <em>shareable link</em> and send it to whoever should send you a secret.</li>
+                        <li>They open the link, type their message, and click <strong>Encrypt</strong>.</li>
+                        <li>They send the resulting ciphertext (or encrypted link) back to you.</li>
+                        <li>You paste it into the same browser and click <strong>Decrypt</strong>.</li>
+                    </ol>
+                </section>
+
+                <!-- CLI -->
+                <section id="cli-install" class="docs-section">
+                    <h2>CLI</h2>
+                    <h3>Installation</h3>
+                    <p><strong>Homebrew (macOS):</strong></p>
+                    <pre class="code-block" data-lang="bash"><code>brew install --cask shibme/tap/xipher</code></pre>
+                    <p><strong>Install script (Linux / macOS):</strong></p>
+                    <pre class="code-block" data-lang="bash"><code># Latest version
+curl -fsSL https://xipher.org/install/install.sh | sh
+
+# Specific version
+curl -fsSL https://xipher.org/install/install.sh | sh -s v<span class="xipher-version">0.0.0</span></code></pre>
+                    <p><strong>Install script (Windows / PowerShell):</strong></p>
+                    <pre class="code-block" data-lang="powershell"><code># Latest version
+irm https://xipher.org/install/install.ps1 | iex
+
+# Specific version
+$v="<span class="xipher-version">0.0.0</span>"; irm https://xipher.org/install/install.ps1 | iex</code></pre>
+                    <p><strong>Docker:</strong></p>
+                    <pre class="code-block" data-lang="bash"><code>docker run --rm -v $PWD:/data -it shibme/xipher help</code></pre>
+                </section>
+
+                <section id="cli-keygen" class="docs-section">
+                    <h3>Generating keys</h3>
+                    <pre class="code-block" data-lang="bash"><code># Derive a public key from a password (you'll be prompted)
+xipher keygen
+
+# Auto-generate a random secret key and show its public key
+xipher keygen --auto
+
+# Quantum-safe public key
+xipher keygen --quantum-safe
+
+# Write the public key to a file
+xipher keygen --public-key-file mykey.xpk</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Flag</th><th>Short</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>--auto</code></td><td><code>-a</code></td><td>Auto-generate a secret key</td></tr>
+                                <tr><td><code>--quantum-safe</code></td><td><code>-q</code></td><td>Use quantum-safe cryptography</td></tr>
+                                <tr><td><code>--public-key-file</code></td><td><code>-p</code></td><td>Path to write the public key file</td></tr>
+                                <tr><td><code>--ignore-password-policy</code></td><td></td><td>Skip the password strength check</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="cli-encrypt" class="docs-section">
+                    <h3>Encrypting</h3>
+                    <pre class="code-block" data-lang="bash"><code># Encrypt text (prompts for a key/password if -k is omitted)
+xipher encrypt text -t "Hello, World!"
+
+# Encrypt text against a public key
+xipher encrypt text -k "XPK_..." -t "Secret message"
+
+# Read the plaintext from stdin
+echo "piped secret" | xipher encrypt text -t -
+
+# Encrypt a file
+xipher encrypt file -k "XPK_..." -f report.pdf -o report.pdf.xipher
+
+# Encrypt a stream (stdin -> stdout)
+cat backup.tar | xipher encrypt stream -k "XPK_..." > backup.tar.xipher</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Flag</th><th>Short</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>--key</code></td><td><code>-k</code></td><td>Public key, secret key, or password</td></tr>
+                                <tr><td><code>--text</code></td><td><code>-t</code></td><td>Text to encrypt (<code>-</code> reads stdin)</td></tr>
+                                <tr><td><code>--file</code></td><td><code>-f</code></td><td>Path to the input file</td></tr>
+                                <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file</td></tr>
+                                <tr><td><code>--compress</code></td><td><code>-c</code></td><td>Compress data before encryption</td></tr>
+                                <tr><td><code>--xiphertext</code></td><td></td><td>Encode output as Xipher text</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="cli-decrypt" class="docs-section">
+                    <h3>Decrypting</h3>
+                    <p>You are prompted for the secret key or password unless it is set via the
+                        <code>XIPHER_SECRET</code> environment variable.</p>
+                    <pre class="code-block" data-lang="bash"><code># Decrypt text
+xipher decrypt text -c "XCT_..."
+
+# Decrypt a file (output path inferred by stripping .xipher)
+xipher decrypt file -f report.pdf.xipher
+
+# ...or set an explicit output path
+xipher decrypt file -f report.pdf.xipher -o report.pdf
+
+# Decrypt a stream (stdin -> stdout)
+cat backup.tar.xipher | xipher decrypt stream > backup.tar</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Flag</th><th>Short</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>--ciphertext</code></td><td><code>-c</code></td><td>Ciphertext to decrypt (<code>text</code> only)</td></tr>
+                                <tr><td><code>--file</code></td><td><code>-f</code></td><td>Path to the encrypted input file</td></tr>
+                                <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file (inferred if omitted)</td></tr>
+                                <tr><td><code>--overwrite</code></td><td></td><td>Overwrite the output file if it exists</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="cli-env" class="docs-section">
+                    <h3>Environment &amp; JSON output</h3>
+                    <p>For non-interactive use (CI, scripts), provide your secret key or password via the
+                        <code>XIPHER_SECRET</code> environment variable. The <code>stream</code> subcommands require it.
+                    </p>
+                    <pre class="code-block" data-lang="bash"><code>export XIPHER_SECRET="XSK_..."   # or a password
+cat data.bin | xipher encrypt stream -k "XPK_..." > data.bin.xipher
+cat data.bin.xipher | xipher decrypt stream > data.bin
+
+# Machine-readable output (works on any command)
+xipher keygen --auto --json
+
+# Version and help
+xipher version
+xipher encrypt --help</code></pre>
+                    <p>The global <code>--json</code> / <code>-j</code> flag emits structured output (and errors) as JSON
+                        on any command. Every command also accepts <code>--help</code> / <code>-h</code>.</p>
+                </section>
+
+                <!-- WEB APP -->
+                <section id="web-overview" class="docs-section">
+                    <h2>Web app</h2>
+                    <p>The web app at <a href="https://xipher.org" target="_blank" rel="noopener">xipher.org</a> performs
+                        all cryptography locally using WebAssembly. Your keys are stored encrypted in your browser's
+                        local storage and never transmitted anywhere.</p>
+                    <div class="docs-callout">
+                        <span class="docs-callout-icon">🔒</span>
+                        <div>
+                            <p>It works offline and can be installed as a Progressive Web App (PWA) on desktop and
+                                mobile. Once loaded, no network connection is required to encrypt or decrypt.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="web-receive" class="docs-section">
+                    <h3>Receiving a secret</h3>
+                    <p>When you open the app fresh, you are the <strong>receiver</strong>. The app shows a shareable link
+                        containing your public key. Anyone who opens that link can encrypt data that only you can
+                        decrypt.</p>
+                    <ol>
+                        <li>Copy the link with the <span class="ui-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></span> button, or share it with the <span
+                                class="ui-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></span> button.</li>
+                        <li>When you receive ciphertext back, paste it into the text box and press
+                            <strong>Decrypt</strong>.</li>
+                    </ol>
+                </section>
+
+                <section id="web-send" class="docs-section">
+                    <h3>Sending a secret</h3>
+                    <p>When you open someone else's shareable link, you become the <strong>sender</strong>. The app
+                        loads their public key automatically and any text or file you encrypt is locked to their
+                        identity.</p>
+                    <ol>
+                        <li>Type your message or pick a file.</li>
+                        <li>Press <strong>Encrypt</strong>.</li>
+                        <li>Copy or share the resulting ciphertext / link back to the receiver.</li>
+                    </ol>
+                </section>
+
+                <section id="web-keys" class="docs-section">
+                    <h3>Keys &amp; passwords</h3>
+                    <p>By default the web app generates a random secret key the first time you visit. To use the same
+                        identity across devices, open the <span class="ui-chip">🔑</span> menu in the top bar and choose
+                        one of:</p>
+                    <ul>
+                        <li><strong>Password</strong>: set a password; the same password recreates the same identity
+                            anywhere.</li>
+                        <li><strong>Secret key</strong>: paste an existing <code>XSK_…</code> key (e.g. generated by the
+                            CLI).</li>
+                        <li><strong>Random</strong>: generate a fresh random key and save it somewhere safe.</li>
+                    </ul>
+                    <p>You can also toggle <strong>quantum-safe</strong> mode here. Changing your key updates your
+                        shareable link immediately.</p>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>Changing your key or password changes your public link. Secrets encrypted to your previous
+                                identity can still be decrypted only with that previous key or password.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="web-files" class="docs-section">
+                    <h3>Encrypting files</h3>
+                    <p>Drag &amp; drop a file onto the text box, or use <strong>Pick a file</strong>. Files are
+                        processed as a stream, so even large files are handled efficiently without loading them fully
+                        into memory.</p>
+                    <ul>
+                        <li>Encrypted files are saved with a <code>.xipher</code> extension.</li>
+                        <li>To decrypt, drop a <code>.xipher</code> file and press <strong>Decrypt</strong>.</li>
+                    </ul>
+                </section>
+
+                <!-- LIBRARY -->
+                <section id="lib-install" class="docs-section">
+                    <h2>Go library</h2>
+                    <pre class="code-block" data-lang="bash"><code>go get -u xipher.org/xipher</code></pre>
+                </section>
+
+                <section id="lib-usage" class="docs-section">
+                    <h3>Usage</h3>
+                    <pre class="code-block" data-lang="go"><code>package main
+
+import (
+	"fmt"
+	"xipher.org/xipher"
+)
+
+func main() {
+	// Create a secret key from a password
+	secretKey, err := xipher.NewSecretKeyForPassword([]byte("your-secure-password"))
+	if err != nil {
+		panic(err)
+	}
+
+	// Derive the public key (pass true for quantum-safe)
+	publicKey, err := secretKey.PublicKey(false)
+	if err != nil {
+		panic(err)
+	}
+
+	// Encrypt with the public key (compress = true, encode = true)
+	ciphertext, err := publicKey.Encrypt([]byte("Hello, World!"), true, true)
+	if err != nil {
+		panic(err)
+	}
+
+	// Decrypt with the secret key
+	plaintext, err := secretKey.Decrypt(ciphertext)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Decrypted: %s\n", plaintext)
+}</code></pre>
+                    <p>To use a random key instead of a password:</p>
+                    <pre class="code-block" data-lang="go"><code>secretKey, _ := xipher.NewSecretKey()
+keyStr, _ := secretKey.String()           // export "XSK_..."
+imported, _ := xipher.ParseSecretKeyStr(keyStr) // re-import</code></pre>
+                </section>
+
+                <section id="lib-streams" class="docs-section">
+                    <h3>Streams</h3>
+                    <p>For large data, encrypt and decrypt with streams to keep memory usage low:</p>
+                    <pre class="code-block" data-lang="go"><code>// Encrypt: src -> dst, compress = true, encode = true
+err = publicKey.EncryptStream(dst, src, true, true)
+
+// Decrypt: src -> dst
+err = secretKey.DecryptStream(dst, src)</code></pre>
+                    <p>Full API reference:
+                        <a href="https://pkg.go.dev/xipher.org/xipher" target="_blank" rel="noopener">pkg.go.dev/xipher.org/xipher</a>.
+                    </p>
+                </section>
+
+                <!-- ARCHITECTURE -->
+                <section id="arch-overview" class="docs-section">
+                    <h2>Architecture</h2>
+                    <p>Xipher enables <strong>password-based asymmetric encryption</strong>: public keys can be derived
+                        from a memorable password, with no certificate authority or PKI to manage. It uses a hybrid
+                        KEM + DEM scheme: a key-exchange layer establishes a shared symmetric key, which a stream
+                        cipher then uses to encrypt the data in chunks for constant-memory processing of any size.</p>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>
+                            <tbody>
+                                <tr><td>Key derivation</td><td>Argon2id (password) or 64 bytes from <code>crypto/rand</code> (direct)</td></tr>
+                                <tr><td>Key exchange (KEM)</td><td>Curve25519 (X25519), or ML-KEM / Kyber-1024 in quantum-safe mode</td></tr>
+                                <tr><td>Data encryption (DEM)</td><td>XChaCha20-Poly1305 AEAD over 64&nbsp;KB chunks, optional zlib</td></tr>
+                                <tr><td>Encoding</td><td>Base32 with an <code>XCT_</code> prefix (optional, for text transport)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="arch-primitives" class="docs-section">
+                    <h3>Primitives</h3>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Role</th><th>Primitive</th><th>Parameters</th></tr></thead>
+                            <tbody>
+                                <tr><td>Stream cipher</td><td>XChaCha20-Poly1305</td><td>256-bit key, 192-bit nonce, 128-bit tag</td></tr>
+                                <tr><td>Classical KEX</td><td>Curve25519 (X25519)</td><td>32-byte keys, ephemeral (forward secrecy)</td></tr>
+                                <tr><td>Post-quantum KEX</td><td>ML-KEM / Kyber-1024</td><td>NIST Level 5, 1568-byte key &amp; ciphertext</td></tr>
+                                <tr><td>Password KDF</td><td>Argon2id</td><td>Default: 16 iterations, 64&nbsp;MB, 1 thread</td></tr>
+                                <tr><td>Compression</td><td>zlib (DEFLATE)</td><td>Best compression, applied before encryption</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Mode</th><th>Classical</th><th>Quantum</th><th>Public key</th></tr></thead>
+                            <tbody>
+                                <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>32 bytes</td></tr>
+                                <tr><td>Quantum-safe (Kyber-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1568 bytes</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>The 64-byte secret key seeds every algorithm: the ECC private key is <code>SHA-256</code> of the
+                        base key, while Kyber uses the base key as its seed. Password-based secret keys are never
+                        serialized; only the public key they derive can be shared.</p>
+                </section>
+
+                <section id="arch-format" class="docs-section">
+                    <h3>Data format</h3>
+                    <p>Ciphertext begins with a one-byte type tag, optionally followed by a 19-byte KDF spec
+                        (iterations, memory, threads, 16-byte salt) for password-based keys. The key-exchange material
+                        and a 24-byte nonce come next, then a compression flag, then the AEAD-encrypted chunks.</p>
+                    <pre class="code-block" data-lang="text"><code>[type] [KDF spec?] [KEX material] [nonce] [compress flag] [chunks…]
+
+KEX material   ECC  : 1-byte algo + 32-byte ephemeral public key
+               Kyber: 1-byte algo + 1568-byte encapsulation
+chunk          64 KB ciphertext + 16-byte Poly1305 tag (last chunk shorter)
+encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
+                    <p>Every chunk shares the session nonce, which is safe because each encryption generates a fresh
+                        random nonce against a fresh key (ephemeral for asymmetric, freshly derived for password
+                        modes), and the 192-bit nonce space makes collisions infeasible.</p>
+                </section>
+
+                <section id="arch-analysis" class="docs-section">
+                    <h3>Security analysis</h3>
+                    <ul>
+                        <li><strong>Confidentiality &amp; integrity:</strong> XChaCha20-Poly1305 is AEAD; the Poly1305
+                            tag is verified per chunk, so tampering is caught immediately rather than after full
+                            decryption.</li>
+                        <li><strong>Forward secrecy:</strong> asymmetric encryption uses a fresh ephemeral key per
+                            operation, so compromising one message's key does not expose others.</li>
+                        <li><strong>Quantum resistance:</strong> ECC mode is vulnerable to Shor's algorithm; enable
+                            quantum-safe mode (Kyber-1024, Module-LWE) for long-term security.</li>
+                        <li><strong>Password strength:</strong> password-based keys are only as strong as the password.
+                            Argon2id is memory-hard to resist GPU/ASIC attacks, but weak passwords remain
+                            dictionary-attackable, so prefer long passphrases.</li>
+                        <li><strong>Compression leakage:</strong> compressing before encryption can leak information
+                            about plaintext patterns (CRIME-style). Use it thoughtfully on sensitive data.</li>
+                    </ul>
+                    <p>Standards: FIPS&nbsp;203 (ML-KEM), RFC&nbsp;8439 (ChaCha20-Poly1305), RFC&nbsp;7748
+                        (Curve25519), RFC&nbsp;9106 (Argon2). All randomness comes from <code>crypto/rand</code> and
+                        all primitives use constant-time implementations from the Go standard library.</p>
+                </section>
+
+                <!-- WASM -->
+                <section id="wasm" class="docs-section">
+                    <h2>WebAssembly</h2>
+                    <p>Load the Xipher WASM module to call its functions directly from JavaScript. Every exported
+                        function returns an object shaped like <code>{ result }</code> or <code>{ error }</code>.</p>
+                    <pre class="code-block" data-lang="html"><code>&lt;script src="https://xipher.org/wasm/wasm_exec.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const go = new Go();
+  WebAssembly.instantiateStreaming(
+    fetch("https://xipher.org/wasm/xipher.wasm"),
+    go.importObject
+  ).then((result) =&gt; {
+    go.run(result.instance);
+  });
+&lt;/script&gt;</code></pre>
+                    <pre class="code-block" data-lang="javascript"><code>// Generate a random secret key
+const sk = await xipherNewSecretKey();          // { result: "XSK_..." }
+
+// Derive a public key (second arg = quantum-safe)
+const pk = await xipherGetPublicKey(sk.result, false);
+
+// Encrypt and decrypt a string
+const ct = await xipherEncryptStr(pk.result, "Hello");
+const pt = await xipherDecryptStr(sk.result, ct.result);
+console.log(pt.result); // "Hello"</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>xipherNewSecretKey()</code></td><td>Generate a random secret key</td></tr>
+                                <tr><td><code>xipherGetPublicKey(secret, quantumSafe)</code></td><td>Derive a public key</td></tr>
+                                <tr><td><code>xipherEncryptStr(key, text)</code></td><td>Encrypt a string</td></tr>
+                                <tr><td><code>xipherDecryptStr(secret, ct)</code></td><td>Decrypt a string</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- ACTION -->
+                <section id="action" class="docs-section">
+                    <h2>GitHub Action</h2>
+                    <p>Set up the Xipher CLI in a workflow:</p>
+                    <pre class="code-block" data-lang="yaml"><code>steps:
+  - name: Setup Xipher
+    uses: shibme/xipher@v1
+    with:
+      version: <span class="xipher-version">0.0.0</span>  # optional
+
+  - name: Decrypt a secret
+    env:
+      XIPHER_SECRET: ${{ secrets.XIPHER_SECRET }}
+    run: |
+      echo "$ENCRYPTED" | xipher decrypt stream > secret.txt</code></pre>
+                </section>
+
+                <!-- SELF HOST -->
+                <section id="selfhost" class="docs-section">
+                    <h2>Self-hosting the web app</h2>
+                    <p>Publish your own copy of the web interface to GitHub Pages using the reusable workflow:</p>
+                    <pre class="code-block" data-lang="yaml"><code>name: Publish Xipher Web
+on:
+  workflow_dispatch:
+jobs:
+  pages:
+    uses: shibme/xipher/.github/workflows/pages.yaml@main</code></pre>
+                    <p>The web app is fully static, so you can also serve the <code>web/</code> directory from any static
+                        host. It must be served over HTTPS for the service worker and clipboard APIs to work.</p>
+                </section>
+
+                <!-- SECURITY -->
+                <section id="security" class="docs-section">
+                    <h2>Security</h2>
+                    <ul>
+                        <li><strong>Algorithms:</strong> Argon2id (key derivation), Curve25519 with ephemeral key
+                            exchange, ML-KEM / Kyber-1024 (post-quantum, optional), XChaCha20-Poly1305 (symmetric), Zlib
+                            (compression).</li>
+                        <li><strong>Password strength matters</strong>: password-based keys are only as strong as the
+                            password. Prefer long passphrases.</li>
+                        <li><strong>Random keys can't be recovered</strong>: store <code>XSK_…</code> keys safely.</li>
+                        <li><strong>Compression can leak</strong> information about plaintext patterns; use it
+                            thoughtfully.</li>
+                    </ul>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>This project is experimental. See the <a href="#arch-overview">architecture</a> section
+                                for cryptographic details, and report security issues through
+                                <a href="https://github.com/shibme/xipher/security/advisories" target="_blank"
+                                    rel="noopener">GitHub security advisories</a>.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section id="faq" class="docs-section">
+                    <h2>FAQ</h2>
+                    <details class="docs-faq">
+                        <summary>Where are my keys stored in the web app?</summary>
+                        <p>Encrypted in your browser's local storage on your device. They are never transmitted to any
+                            server.</p>
+                    </details>
+                    <details class="docs-faq">
+                        <summary>Can I decrypt on a different device than I encrypted on?</summary>
+                        <p>Yes, if you use a password or the same secret key. The default random key lives only in the
+                            browser that generated it, so set a password via the 🔑 menu to go cross-device.</p>
+                    </details>
+                    <details class="docs-faq">
+                        <summary>Is there a size limit for files?</summary>
+                        <p>No hard limit. Files are streamed, so size is bounded only by your device and browser.</p>
+                    </details>
+                    <details class="docs-faq">
+                        <summary>Are CLI and web outputs compatible?</summary>
+                        <p>Yes. All Xipher implementations share the same wire format. Ciphertext from one decrypts in
+                            any other with the right key.</p>
+                    </details>
+                </section>
+
+                <footer class="docs-footer">
+                    <p>Xipher · <a href="https://github.com/shibme/xipher" target="_blank" rel="noopener">shibme/xipher</a>
+                        · <a href="../">Open the web app</a></p>
+                </footer>
+
+            </article>
+        </main>
+    </div>
+
+    <script src="docs.js" defer></script>
+</body>
+
+</html>

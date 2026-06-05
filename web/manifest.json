@@ -1,21 +1,33 @@
 {
     "name": "Xipher",
     "short_name": "Xipher",
-    "description": "Xipher is a lightweight, no-install, server-free encryption tool designed for seamless, secure sharing of sensitive data—right from your browser!",
+    "description": "Xipher is a lightweight, no-install, server-free encryption tool designed for seamless, secure sharing of sensitive data, right from your browser.",
     "start_url": "/index.html",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#000000",
+    "orientation": "any",
+    "background_color": "#0b0e14",
+    "theme_color": "#0a84ff",
     "icons": [
         {
             "src": "assets/icons/logo-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "assets/icons/logo-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Documentation",
+            "short_name": "Docs",
+            "description": "Read the Xipher guides and examples",
+            "url": "/docs/"
         }
     ],
     "screenshots": [

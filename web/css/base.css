@@ -1,82 +1,173 @@
+/* ==========================================================================
+   Xipher - Design tokens & base styles
+   ========================================================================== */
+
 :root {
-    --bg-color: #f4f7f9;
-    --text-color: #333;
-    --border-color: #ccc;
-    --input-bg-color: #fff;
+    /* Brand */
+    --brand-1: #00ddff;
+    --brand-2: #0044ff;
+    --brand-gradient: linear-gradient(135deg, #00ddff, #0044ff);
 
-    --button-encrypt-bg: #4caf50;
-    --button-encrypt-text: #fff;
+    /* Surfaces */
+    --bg-color: #eef2f7;
+    --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0, 132, 255, 0.10), transparent 60%);
+    --surface-color: #ffffff;
+    --surface-2: #f5f8fc;
+    --surface-elevated: #ffffff;
 
-    --button-decrypt-bg: #ff9800;
-    --button-decrypt-text: #fff;
+    /* Text */
+    --text-color: #1c2430;
+    --text-muted: #5a6677;
+    --text-faint: #8a96a8;
 
-    --button-select-file-bg: #2196f3;
-    --button-select-file-text: #fff;
+    /* Lines */
+    --border-color: #d7dee8;
+    --border-strong: #c2ccd9;
+    --input-bg-color: #ffffff;
 
-    --button-remove-file-bg: #f44336;
-    --button-remove-file-text: #fff;
+    /* Buttons */
+    --button-encrypt-bg: #1faa53;
+    --button-encrypt-text: #ffffff;
+    --button-decrypt-bg: #f0820e;
+    --button-decrypt-text: #ffffff;
+    --button-select-file-bg: #0a84ff;
+    --button-select-file-text: #ffffff;
+    --button-remove-file-bg: #e5484d;
+    --button-remove-file-text: #ffffff;
 
-    --action-disabled-bg: #ccc;
-    --action-disabled-text: #666;
+    --action-disabled-bg: #e2e8f0;
+    --action-disabled-text: #8a96a8;
 
-    --file-bg: #fff;
-    --file-border: #ddd;
-    --file-text: #555;
+    /* Files */
+    --file-bg: #f5f8fc;
+    --file-border: #dbe3ee;
+    --file-text: #3a4656;
+
+    /* Status */
+    --success-color: #1faa53;
+    --error-color: #e5484d;
+
+    /* Effects */
+    --shadow-sm: 0 1px 3px rgba(16, 30, 54, 0.08);
+    --shadow-md: 0 6px 20px rgba(16, 30, 54, 0.10);
+    --shadow-lg: 0 18px 50px rgba(16, 30, 54, 0.18);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 999px;
+
+    /* Typography */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
-    --bg-color: #121212;
-    --text-color: #e0e0e0;
-    --border-color: #444;
-    --input-bg-color: #1d1d1d;
+    --bg-color: #0b0e14;
+    --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0, 132, 255, 0.16), transparent 60%);
+    --surface-color: #151a23;
+    --surface-2: #1b212c;
+    --surface-elevated: #1a2029;
 
-    --button-encrypt-bg: #81c784;
-    --button-encrypt-text: #000;
+    --text-color: #e7ecf3;
+    --text-muted: #a3afc0;
+    --text-faint: #6c7888;
 
+    --border-color: #2a323f;
+    --border-strong: #38424f;
+    --input-bg-color: #11161e;
+
+    --button-encrypt-bg: #2ecc71;
+    --button-encrypt-text: #06210f;
     --button-decrypt-bg: #ffa726;
-    --button-decrypt-text: #000;
+    --button-decrypt-text: #2a1800;
+    --button-select-file-bg: #3a9bff;
+    --button-select-file-text: #04203f;
+    --button-remove-file-bg: #ff6b6b;
+    --button-remove-file-text: #2a0808;
 
-    --button-select-file-bg: #64b5f6;
-    --button-select-file-text: #000;
+    --action-disabled-bg: #232b36;
+    --action-disabled-text: #6c7888;
 
-    --button-remove-file-bg: #e57373;
-    --button-remove-file-text: #000;
+    --file-bg: #1b212c;
+    --file-border: #2a323f;
+    --file-text: #c4cedb;
 
-    --action-disabled-bg: #555;
-    --action-disabled-text: #bbb;
+    --success-color: #36d177;
+    --error-color: #ff6b6b;
 
-    --file-bg: #1d1d1d;
-    --file-border: #444;
-    --file-text: #e0e0e0;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 20px 55px rgba(0, 0, 0, 0.6);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    font-family: monospace, Arial, sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg-color);
+    background-image: var(--bg-accent);
+    background-attachment: fixed;
     color: var(--text-color);
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    transition: background 0.3s, color 0.3s;
+    min-height: 100vh;
+    min-height: 100dvh;
+    line-height: 1.5;
+    transition: background-color 0.3s var(--ease), color 0.3s var(--ease);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
+
+a {
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+::selection {
+    background: rgba(10, 132, 255, 0.25);
+}
+
+/* Custom scrollbars */
+textarea::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: var(--radius-pill);
+}
+
+/* ==========================================================================
+   Preloader
+   ========================================================================== */
 
 .preloader {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: var(--bg-color);
-    color: linear-gradient(135deg, #00ddff, #0044ff);
+    background-image: var(--bg-accent);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    gap: 18px;
+    z-index: 2000;
+    transition: opacity 0.4s var(--ease), visibility 0.4s var(--ease);
     visibility: visible;
     opacity: 1;
 }
@@ -84,6 +175,7 @@ body {
 .preloader.hidden {
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
 }
 
 .preloader-container {
@@ -97,39 +189,42 @@ body {
 
 .preloader-logo {
     position: absolute;
-    width: 30px;
+    width: 32px;
     height: auto;
-    animation: logo-animation 1.5s infinite;
+    animation: logo-pulse 1.5s infinite;
 }
 
-@keyframes logo-animation {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-    100% {
-        opacity: 1;
-    }
+.preloader-text {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+@keyframes logo-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.92); }
 }
 
 .preloader-spinner {
     position: absolute;
-    width: 60px;
-    height: 60px;
-    border: 5px solid var(--border-color);
-    border-top: 5px solid var(--text-color);
+    width: 64px;
+    height: 64px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--brand-2);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    background: none;
+    animation: spin 0.9s linear infinite;
 }
 
 @keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .preloader-logo,
+    .preloader-spinner {
+        animation: none;
     }
 }

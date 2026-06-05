@@ -1,6 +1,7 @@
 const burialCache = new Map();
 const xipherSecretStoreId = "xipherSecret";
 const xipherPublicKeyStoreId = "xipherPublicKey";
+const xipherQuantumSafeStoreId = "xipherQuantumSafe";
 
 async function bury(id, data) {
     const textEncoder = new TextEncoder();
@@ -73,6 +74,26 @@ async function dig(id) {
     }
 }
 
+// Quantum-safe preference for public key derivation.
+function isQuantumSafe() {
+    return localStorage.getItem(xipherQuantumSafeStoreId) === "true";
+}
+
+function setQuantumSafe(enabled) {
+    const current = isQuantumSafe();
+    if (current !== !!enabled) {
+        if (enabled) {
+            localStorage.setItem(xipherQuantumSafeStoreId, "true");
+        } else {
+            localStorage.removeItem(xipherQuantumSafeStoreId);
+        }
+        // Invalidate the cached public key so it gets re-derived.
+        localStorage.removeItem(xipherPublicKeyStoreId);
+        return true;
+    }
+    return false;
+}
+
 async function setXipherSecret(xipherSecret) {
     const currentXipherSecret = await dig(xipherSecretStoreId);
     if (currentXipherSecret !== xipherSecret) {
@@ -94,7 +115,7 @@ async function getPublicKey() {
     const xipherSecret = await getXipherSecret();
     let xipherPublicKey = localStorage.getItem(xipherPublicKeyStoreId);
     if (!xipherPublicKey) {
-        xipherPublicKey = await genXipherPublicKey(xipherSecret);
+        xipherPublicKey = await genXipherPublicKey(xipherSecret, isQuantumSafe());
         localStorage.setItem(xipherPublicKeyStoreId, xipherPublicKey);
     }
     return xipherPublicKey;

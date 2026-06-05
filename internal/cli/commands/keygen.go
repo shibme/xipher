@@ -37,7 +37,7 @@ func keygenCommand() *cobra.Command {
 						resultMap["secretKey"] = secret
 					} else {
 						fmt.Println("Secret Key:", color.HiBlackString(secret))
-						fmt.Println(color.YellowString("Keep this secret key private — anyone with it can decrypt your data."))
+						fmt.Println(color.YellowString("Keep this secret key private. Anyone with it can decrypt your data."))
 					}
 				} else {
 					password, err := getPasswordOrSecretKeyFromUser(true, ignoreFlag)

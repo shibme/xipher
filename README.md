@@ -39,8 +39,8 @@ brew install --cask shibme/tap/xipher
 # Latest version
 curl -fsSL https://xipher.org/install/install.sh | sh
 
-# Specific version  
-curl -fsSL https://xipher.org/install/install.sh | sh -s v1.17.0
+# Specific version
+curl -fsSL https://xipher.org/install/install.sh | sh -s vX.Y.Z
 ```
 
 **Install Script (Windows):**
@@ -49,7 +49,7 @@ curl -fsSL https://xipher.org/install/install.sh | sh -s v1.17.0
 irm https://xipher.org/install/install.ps1 | iex
 
 # PowerShell with specific version
-$v="1.17.0"; irm https://xipher.org/install/install.ps1 | iex
+$v="X.Y.Z"; irm https://xipher.org/install/install.ps1 | iex
 ```
 
 **Binary Download:**
@@ -75,7 +75,6 @@ go get -u xipher.org/xipher
 package main
 
 import (
-	"encoding/base32"
 	"fmt"
 	"xipher.org/xipher"
 )
@@ -87,15 +86,15 @@ func main() {
 		panic(err)
 	}
 
-	// Derive public key
+	// Derive public key (pass true for quantum-safe)
 	publicKey, err := secretKey.PublicKey(false)
 	if err != nil {
 		panic(err)
 	}
 
-	// Encrypt data
+	// Encrypt data (compress = true, encode = true)
 	plaintext := []byte("Hello, World!")
-	ciphertext, err := publicKey.Encrypt(plaintext, true)
+	ciphertext, err := publicKey.Encrypt(plaintext, true, true)
 	if err != nil {
 		panic(err)
 	}
@@ -140,46 +139,9 @@ participant SX as Xipher<br>(Browser)
     RX-->>-R: Plaintext
 ```
 
-### GitHub Actions Integration
-```yaml
-steps:
-- name: Setup Xipher
-  uses: shibme/xipher@v1
-  with:
-    version: 1.17.0  # optional
-```
+### CLI, GitHub Action, WebAssembly & self-hosting
 
-### Host Your Own Web Interface
-```yaml
-name: Publish Xipher Web
-on:
-  workflow_dispatch:
-jobs:
-  pages:
-    uses: shibme/xipher/.github/workflows/pages.yaml@main
-```
-
-### Web Assembly
-```html
-<html>
-<head>
-	<meta charset="utf-8"/>
-	<script src="https://xipher.org/wasm/wasm_exec.js"></script>
-	<script>
-		const go = new Go();
-		WebAssembly.instantiateStreaming(
-			fetch("https://xipher.org/wasm/xipher.wasm"), 
-			go.importObject
-		).then((result) => {
-			go.run(result.instance);
-		});
-	</script>
-</head>
-<body>
-	<!-- Call methods starting with 'xipher', e.g., xipherNewSecretKey() -->
-</body>
-</html>
-```
+Full command reference, flags, and copy-paste examples for the CLI, GitHub Action, WebAssembly module, and self-hosting the web app live in the [documentation](https://xipher.org/docs/).
 
 ## Technical Details
 
@@ -195,9 +157,10 @@ jobs:
 
 ## Documentation
 
-- API docs: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
+- Guides & examples: [xipher.org/docs](https://xipher.org/docs/)
+- Architecture & cryptography: [xipher.org/docs/#arch-overview](https://xipher.org/docs/#arch-overview)
+- Go API reference: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
 - Web interface: [xipher.org](https://xipher.org)
-- Technical whitepaper: [WHITEPAPER.md](WHITEPAPER.md)
 
 ## Contributing
 
@@ -211,6 +174,8 @@ A few things to keep in mind:
 - Password strength matters
 - Post-quantum algorithms are still evolving
 - Keep your dependencies updated
+
+See the [architecture &amp; security analysis](https://xipher.org/docs/#arch-overview) for cryptographic details.
 
 ## License
 
