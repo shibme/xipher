@@ -36,6 +36,8 @@
             <img src="../assets/images/logo.svg" alt="Xipher logo">
             <span class="app-title-text">XIPHER</span>
         </a>
+        <a href="https://github.com/shibme/xipher/releases" target="_blank" rel="noopener" class="topbar-version"
+            title="Release notes">v<span class="xipher-version">0.0.0</span></a>
         <span class="docs-topbar-tag">Docs</span>
         <nav class="docs-topbar-actions">
             <a href="../" class="topbar-link" title="Open the web app">
@@ -89,19 +91,19 @@
                     <a href="#lib-streams" class="docs-nav-link">Streams</a>
                 </div>
                 <div class="docs-nav-group">
-                    <p class="docs-nav-title">Architecture</p>
-                    <a href="#arch-overview" class="docs-nav-link">Overview</a>
-                    <a href="#arch-primitives" class="docs-nav-link">Primitives</a>
-                    <a href="#arch-format" class="docs-nav-link">Data format</a>
-                    <a href="#arch-analysis" class="docs-nav-link">Security analysis</a>
-                </div>
-                <div class="docs-nav-group">
                     <p class="docs-nav-title">More</p>
                     <a href="#wasm" class="docs-nav-link">WebAssembly</a>
                     <a href="#action" class="docs-nav-link">GitHub Action</a>
                     <a href="#selfhost" class="docs-nav-link">Self-hosting</a>
                     <a href="#security" class="docs-nav-link">Security</a>
                     <a href="#faq" class="docs-nav-link">FAQ</a>
+                </div>
+                <div class="docs-nav-group">
+                    <p class="docs-nav-title">Architecture</p>
+                    <a href="#arch-overview" class="docs-nav-link">Overview</a>
+                    <a href="#arch-primitives" class="docs-nav-link">Primitives</a>
+                    <a href="#arch-format" class="docs-nav-link">Data format</a>
+                    <a href="#arch-analysis" class="docs-nav-link">Security analysis</a>
                 </div>
             </nav>
         </aside>
@@ -495,91 +497,6 @@ err = secretKey.DecryptStream(dst, src)</code></pre>
                     </p>
                 </section>
 
-                <!-- ARCHITECTURE -->
-                <section id="arch-overview" class="docs-section">
-                    <h2>Architecture</h2>
-                    <p>Xipher enables <strong>password-based asymmetric encryption</strong>: public keys can be derived
-                        from a memorable password, with no certificate authority or PKI to manage. It uses a hybrid
-                        KEM + DEM scheme: a key-exchange layer establishes a shared symmetric key, which a stream
-                        cipher then uses to encrypt the data in chunks for constant-memory processing of any size.</p>
-                    <div class="docs-table-wrap">
-                        <table class="docs-table">
-                            <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>
-                            <tbody>
-                                <tr><td>Key derivation</td><td>Argon2id (password) or 64 bytes from <code>crypto/rand</code> (direct)</td></tr>
-                                <tr><td>Key exchange (KEM)</td><td>Curve25519 (X25519), or ML-KEM / Kyber-1024 in quantum-safe mode</td></tr>
-                                <tr><td>Data encryption (DEM)</td><td>XChaCha20-Poly1305 AEAD over 64&nbsp;KB chunks, optional zlib</td></tr>
-                                <tr><td>Encoding</td><td>Base32 with an <code>XCT_</code> prefix (optional, for text transport)</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <section id="arch-primitives" class="docs-section">
-                    <h3>Primitives</h3>
-                    <div class="docs-table-wrap">
-                        <table class="docs-table">
-                            <thead><tr><th>Role</th><th>Primitive</th><th>Parameters</th></tr></thead>
-                            <tbody>
-                                <tr><td>Stream cipher</td><td>XChaCha20-Poly1305</td><td>256-bit key, 192-bit nonce, 128-bit tag</td></tr>
-                                <tr><td>Classical KEX</td><td>Curve25519 (X25519)</td><td>32-byte keys, ephemeral (forward secrecy)</td></tr>
-                                <tr><td>Post-quantum KEX</td><td>ML-KEM / Kyber-1024</td><td>NIST Level 5, 1568-byte key &amp; ciphertext</td></tr>
-                                <tr><td>Password KDF</td><td>Argon2id</td><td>Default: 16 iterations, 64&nbsp;MB, 1 thread</td></tr>
-                                <tr><td>Compression</td><td>zlib (DEFLATE)</td><td>Best compression, applied before encryption</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="docs-table-wrap">
-                        <table class="docs-table">
-                            <thead><tr><th>Mode</th><th>Classical</th><th>Quantum</th><th>Public key</th></tr></thead>
-                            <tbody>
-                                <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>32 bytes</td></tr>
-                                <tr><td>Quantum-safe (Kyber-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1568 bytes</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <p>The 64-byte secret key seeds every algorithm: the ECC private key is <code>SHA-256</code> of the
-                        base key, while Kyber uses the base key as its seed. Password-based secret keys are never
-                        serialized; only the public key they derive can be shared.</p>
-                </section>
-
-                <section id="arch-format" class="docs-section">
-                    <h3>Data format</h3>
-                    <p>Ciphertext begins with a one-byte type tag, optionally followed by a 19-byte KDF spec
-                        (iterations, memory, threads, 16-byte salt) for password-based keys. The key-exchange material
-                        and a 24-byte nonce come next, then a compression flag, then the AEAD-encrypted chunks.</p>
-                    <pre class="code-block" data-lang="text"><code>[type] [KDF spec?] [KEX material] [nonce] [compress flag] [chunks…]
-
-KEX material   ECC  : 1-byte algo + 32-byte ephemeral public key
-               Kyber: 1-byte algo + 1568-byte encapsulation
-chunk          64 KB ciphertext + 16-byte Poly1305 tag (last chunk shorter)
-encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
-                    <p>Every chunk shares the session nonce, which is safe because each encryption generates a fresh
-                        random nonce against a fresh key (ephemeral for asymmetric, freshly derived for password
-                        modes), and the 192-bit nonce space makes collisions infeasible.</p>
-                </section>
-
-                <section id="arch-analysis" class="docs-section">
-                    <h3>Security analysis</h3>
-                    <ul>
-                        <li><strong>Confidentiality &amp; integrity:</strong> XChaCha20-Poly1305 is AEAD; the Poly1305
-                            tag is verified per chunk, so tampering is caught immediately rather than after full
-                            decryption.</li>
-                        <li><strong>Forward secrecy:</strong> asymmetric encryption uses a fresh ephemeral key per
-                            operation, so compromising one message's key does not expose others.</li>
-                        <li><strong>Quantum resistance:</strong> ECC mode is vulnerable to Shor's algorithm; enable
-                            quantum-safe mode (Kyber-1024, Module-LWE) for long-term security.</li>
-                        <li><strong>Password strength:</strong> password-based keys are only as strong as the password.
-                            Argon2id is memory-hard to resist GPU/ASIC attacks, but weak passwords remain
-                            dictionary-attackable, so prefer long passphrases.</li>
-                        <li><strong>Compression leakage:</strong> compressing before encryption can leak information
-                            about plaintext patterns (CRIME-style). Use it thoughtfully on sensitive data.</li>
-                    </ul>
-                    <p>Standards: FIPS&nbsp;203 (ML-KEM), RFC&nbsp;8439 (ChaCha20-Poly1305), RFC&nbsp;7748
-                        (Curve25519), RFC&nbsp;9106 (Argon2). All randomness comes from <code>crypto/rand</code> and
-                        all primitives use constant-time implementations from the Go standard library.</p>
-                </section>
-
                 <!-- WASM -->
                 <section id="wasm" class="docs-section">
                     <h2>WebAssembly</h2>
@@ -695,6 +612,91 @@ jobs:
                         <p>Yes. All Xipher implementations share the same wire format. Ciphertext from one decrypts in
                             any other with the right key.</p>
                     </details>
+                </section>
+
+                <!-- ARCHITECTURE -->
+                <section id="arch-overview" class="docs-section">
+                    <h2>Architecture</h2>
+                    <p>Xipher enables <strong>password-based asymmetric encryption</strong>: public keys can be derived
+                        from a memorable password, with no certificate authority or PKI to manage. It uses a hybrid
+                        KEM + DEM scheme: a key-exchange layer establishes a shared symmetric key, which a stream
+                        cipher then uses to encrypt the data in chunks for constant-memory processing of any size.</p>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>
+                            <tbody>
+                                <tr><td>Key derivation</td><td>Argon2id (password) or 64 bytes from <code>crypto/rand</code> (direct)</td></tr>
+                                <tr><td>Key exchange (KEM)</td><td>Curve25519 (X25519), or ML-KEM / Kyber-1024 in quantum-safe mode</td></tr>
+                                <tr><td>Data encryption (DEM)</td><td>XChaCha20-Poly1305 AEAD over 64&nbsp;KB chunks, optional zlib</td></tr>
+                                <tr><td>Encoding</td><td>Base32 with an <code>XCT_</code> prefix (optional, for text transport)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="arch-primitives" class="docs-section">
+                    <h3>Primitives</h3>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Role</th><th>Primitive</th><th>Parameters</th></tr></thead>
+                            <tbody>
+                                <tr><td>Stream cipher</td><td>XChaCha20-Poly1305</td><td>256-bit key, 192-bit nonce, 128-bit tag</td></tr>
+                                <tr><td>Classical KEX</td><td>Curve25519 (X25519)</td><td>32-byte keys, ephemeral (forward secrecy)</td></tr>
+                                <tr><td>Post-quantum KEX</td><td>ML-KEM / Kyber-1024</td><td>NIST Level 5, 1568-byte key &amp; ciphertext</td></tr>
+                                <tr><td>Password KDF</td><td>Argon2id</td><td>Default: 16 iterations, 64&nbsp;MB, 1 thread</td></tr>
+                                <tr><td>Compression</td><td>zlib (DEFLATE)</td><td>Best compression, applied before encryption</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Mode</th><th>Classical</th><th>Quantum</th><th>Public key</th></tr></thead>
+                            <tbody>
+                                <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>32 bytes</td></tr>
+                                <tr><td>Quantum-safe (Kyber-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1568 bytes</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>The 64-byte secret key seeds every algorithm: the ECC private key is <code>SHA-256</code> of the
+                        base key, while Kyber uses the base key as its seed. Password-based secret keys are never
+                        serialized; only the public key they derive can be shared.</p>
+                </section>
+
+                <section id="arch-format" class="docs-section">
+                    <h3>Data format</h3>
+                    <p>Ciphertext begins with a one-byte type tag, optionally followed by a 19-byte KDF spec
+                        (iterations, memory, threads, 16-byte salt) for password-based keys. The key-exchange material
+                        and a 24-byte nonce come next, then a compression flag, then the AEAD-encrypted chunks.</p>
+                    <pre class="code-block" data-lang="text"><code>[type] [KDF spec?] [KEX material] [nonce] [compress flag] [chunks…]
+
+KEX material   ECC  : 1-byte algo + 32-byte ephemeral public key
+               Kyber: 1-byte algo + 1568-byte encapsulation
+chunk          64 KB ciphertext + 16-byte Poly1305 tag (last chunk shorter)
+encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
+                    <p>Every chunk shares the session nonce, which is safe because each encryption generates a fresh
+                        random nonce against a fresh key (ephemeral for asymmetric, freshly derived for password
+                        modes), and the 192-bit nonce space makes collisions infeasible.</p>
+                </section>
+
+                <section id="arch-analysis" class="docs-section">
+                    <h3>Security analysis</h3>
+                    <ul>
+                        <li><strong>Confidentiality &amp; integrity:</strong> XChaCha20-Poly1305 is AEAD; the Poly1305
+                            tag is verified per chunk, so tampering is caught immediately rather than after full
+                            decryption.</li>
+                        <li><strong>Forward secrecy:</strong> asymmetric encryption uses a fresh ephemeral key per
+                            operation, so compromising one message's key does not expose others.</li>
+                        <li><strong>Quantum resistance:</strong> ECC mode is vulnerable to Shor's algorithm; enable
+                            quantum-safe mode (Kyber-1024, Module-LWE) for long-term security.</li>
+                        <li><strong>Password strength:</strong> password-based keys are only as strong as the password.
+                            Argon2id is memory-hard to resist GPU/ASIC attacks, but weak passwords remain
+                            dictionary-attackable, so prefer long passphrases.</li>
+                        <li><strong>Compression leakage:</strong> compressing before encryption can leak information
+                            about plaintext patterns (CRIME-style). Use it thoughtfully on sensitive data.</li>
+                    </ul>
+                    <p>Standards: FIPS&nbsp;203 (ML-KEM), RFC&nbsp;8439 (ChaCha20-Poly1305), RFC&nbsp;7748
+                        (Curve25519), RFC&nbsp;9106 (Argon2). All randomness comes from <code>crypto/rand</code> and
+                        all primitives use constant-time implementations from the Go standard library.</p>
                 </section>
 
                 <footer class="docs-footer">

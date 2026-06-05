@@ -20,6 +20,11 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Keep the version chip beside the logo; push the nav actions to the right. */
+.topbar > .topbar-version {
+    margin-right: auto;
+}
+
 .app-title-logo {
     display: inline-flex;
     align-items: center;

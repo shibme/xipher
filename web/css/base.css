@@ -140,6 +140,29 @@ button {
     background: rgba(10, 132, 255, 0.25);
 }
 
+/* Build-time version chip, shared by the app and docs top bars */
+.topbar-version {
+    align-self: center;
+    padding: 2px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.topbar-version:hover {
+    background: var(--surface-color);
+    border-color: var(--border-strong);
+    color: var(--text-color);
+}
+
 /* Custom scrollbars */
 textarea::-webkit-scrollbar,
 .modal-body::-webkit-scrollbar {

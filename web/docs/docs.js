@@ -70,6 +70,39 @@ const sections = navLinks
 
 if ("IntersectionObserver" in window && sections.length) {
     const visible = new Set();
+
+    function setActiveLink(activeId) {
+        let activeLink = null;
+        navLinks.forEach((link) => {
+            const id = link.getAttribute("href").slice(1);
+            const isActive = id === activeId;
+            link.classList.toggle("is-active", isActive);
+            if (isActive) {
+                activeLink = link;
+            }
+        });
+        keepActiveLinkInView(activeLink);
+    }
+
+    function updateActiveSection() {
+        // When scrolled to the bottom, the last sections can never reach the
+        // top activation band, so force the final section active there.
+        const scrollBottom = window.innerHeight + window.scrollY;
+        if (scrollBottom >= document.documentElement.scrollHeight - 2) {
+            setActiveLink(sections[sections.length - 1].el.id);
+            return;
+        }
+        // Otherwise activate the topmost section inside the activation band.
+        let activeId = null;
+        for (const { el } of sections) {
+            if (visible.has(el.id)) {
+                activeId = el.id;
+                break;
+            }
+        }
+        setActiveLink(activeId);
+    }
+
     const observer = new IntersectionObserver(
         (entries) => {
             entries.forEach((entry) => {
@@ -79,28 +112,16 @@ if ("IntersectionObserver" in window && sections.length) {
                     visible.delete(entry.target.id);
                 }
             });
-            // Activate the topmost visible section.
-            let activeId = null;
-            for (const { el } of sections) {
-                if (visible.has(el.id)) {
-                    activeId = el.id;
-                    break;
-                }
-            }
-            let activeLink = null;
-            navLinks.forEach((link) => {
-                const id = link.getAttribute("href").slice(1);
-                const isActive = id === activeId;
-                link.classList.toggle("is-active", isActive);
-                if (isActive) {
-                    activeLink = link;
-                }
-            });
-            keepActiveLinkInView(activeLink);
+            updateActiveSection();
         },
         { rootMargin: "-72px 0px -65% 0px", threshold: 0 }
     );
     sections.forEach(({ el }) => observer.observe(el));
+
+    // The observer doesn't fire at the very bottom once all sections have
+    // settled, so also recheck on scroll (and resize, which shifts the band).
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
 }
 
 // Scroll the sidebar (only) so the active link stays visible as the page scrolls.
