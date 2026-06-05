@@ -82,7 +82,7 @@ var (
 		flagDef: flagDef{
 			name:      "version",
 			shorthand: "v",
-			usage:     "Shows version info",
+			usage:     "Show version info",
 		},
 	}
 
@@ -91,7 +91,7 @@ var (
 		flagDef: flagDef{
 			name:      "public-key-file",
 			shorthand: "p",
-			usage:     "Specify path to the public key file",
+			usage:     "Path to write the public key file",
 		},
 	}
 
@@ -100,7 +100,7 @@ var (
 		flagDef: flagDef{
 			name:      "quantum-safe",
 			shorthand: "q",
-			usage:     "Uses quantum-safe cryptography",
+			usage:     "Use quantum-safe cryptography",
 		},
 	}
 
@@ -108,7 +108,7 @@ var (
 	ignorePasswordCheckFlag = boolFlag{
 		flagDef: flagDef{
 			name:  "ignore-password-policy",
-			usage: "Ignores the password policy check",
+			usage: "Skip the password policy check",
 		},
 	}
 
@@ -117,7 +117,7 @@ var (
 		flagDef: flagDef{
 			name:      "auto",
 			shorthand: "a",
-			usage:     "Auto generate a secret key",
+			usage:     "Auto-generate a secret key",
 		},
 	}
 
@@ -126,7 +126,7 @@ var (
 		flagDef: flagDef{
 			name:      "key",
 			shorthand: "k",
-			usage:     "Specify public key, secret key or a password",
+			usage:     "Public key, secret key, or password",
 		},
 	}
 
@@ -135,7 +135,7 @@ var (
 		flagDef: flagDef{
 			name:      "text",
 			shorthand: "t",
-			usage:     "Specify the text to encrypt (use '-' to read from stdin)",
+			usage:     "Text to encrypt (use '-' to read from stdin)",
 		},
 	}
 
@@ -144,7 +144,7 @@ var (
 		flagDef: flagDef{
 			name:      "ciphertext",
 			shorthand: "c",
-			usage:     "Specify the ciphertext",
+			usage:     "Ciphertext to decrypt",
 		},
 	}
 
@@ -153,7 +153,7 @@ var (
 		flagDef: flagDef{
 			name:      "file",
 			shorthand: "f",
-			usage:     "Specify file path",
+			usage:     "Path to the input file",
 		},
 	}
 
@@ -162,7 +162,7 @@ var (
 		flagDef: flagDef{
 			name:      "out",
 			shorthand: "o",
-			usage:     "Specify an output file path",
+			usage:     "Path to the output file",
 		},
 	}
 
@@ -171,7 +171,7 @@ var (
 		flagDef: flagDef{
 			name:      "compress",
 			shorthand: "c",
-			usage:     "Enable compression as the data is encrypted",
+			usage:     "Compress data before encryption",
 		},
 	}
 
@@ -180,7 +180,7 @@ var (
 		flagDef: flagDef{
 			name:      "json",
 			shorthand: "j",
-			usage:     "Console output in JSON format",
+			usage:     "Output in JSON format",
 		},
 	}
 
@@ -196,7 +196,7 @@ var (
 	toXipherTxtFlag = boolFlag{
 		flagDef: flagDef{
 			name:  "xiphertext",
-			usage: "Encode the output in xipher text format",
+			usage: "Encode output as xipher text",
 		},
 	}
 )

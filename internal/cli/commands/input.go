@@ -17,7 +17,7 @@ const (
 	pwdLength       = 10
 )
 
-var errInvalidPassword = fmt.Errorf("%s: password must be at least %d characters long and include an uppercase letter, a lowercase letter, a number, and one of: %s", "xipher", pwdLength, pwdSpecialChars)
+var errInvalidPassword = fmt.Errorf("password must be at least %d characters long and include an uppercase letter, a lowercase letter, a number, and one of: %s", pwdLength, pwdSpecialChars)
 
 func pwdCheck(password string) error {
 	var (
@@ -65,7 +65,7 @@ func getHiddenInputFromUser(prompt string) ([]byte, error) {
 }
 
 func getPasswordOrSecretKeyFromUser(confirm, ignorePolicyCheck bool) ([]byte, error) {
-	initialPrompt := "Enter a Password/Secret Key: "
+	initialPrompt := "Enter a password or secret key: "
 	passwordOrSecretKey, err := getHiddenInputFromUser(initialPrompt)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func getPasswordOrSecretKeyFromUser(confirm, ignorePolicyCheck bool) ([]byte, er
 		}
 	}
 	if confirm {
-		if confirmPassword, err := getHiddenInputFromUser("Confirm Password/Secret Key: "); err != nil {
+		if confirmPassword, err := getHiddenInputFromUser("Confirm password or secret key: "); err != nil {
 			return nil, err
 		} else if !bytes.Equal(passwordOrSecretKey, confirmPassword) {
 			return nil, fmt.Errorf("passwords do not match")

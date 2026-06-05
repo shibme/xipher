@@ -15,7 +15,7 @@ func keygenCommand() *cobra.Command {
 	if keygenCmd == nil {
 		keygenCmd = &cobra.Command{
 			Use:   "keygen",
-			Short: "Generate a new random key pair or a public key based on a given password or secret key",
+			Short: "Generate a key pair, or derive a public key from a password/secret key",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				resultMap := make(map[string]interface{})
@@ -37,6 +37,7 @@ func keygenCommand() *cobra.Command {
 						resultMap["secretKey"] = secret
 					} else {
 						fmt.Println("Secret Key:", color.HiBlackString(secret))
+						fmt.Println(color.YellowString("Keep this secret key private — anyone with it can decrypt your data."))
 					}
 				} else {
 					password, err := getPasswordOrSecretKeyFromUser(true, ignoreFlag)
@@ -78,7 +79,7 @@ func keygenCommand() *cobra.Command {
 				if jsonFormat {
 					fmt.Println(toJsonString(resultMap))
 				} else {
-					fmt.Println("It is completely safe to share this public key with anyone.")
+					fmt.Println("This public key is safe to share with anyone.")
 				}
 			},
 		}

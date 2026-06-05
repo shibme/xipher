@@ -14,7 +14,7 @@ func decryptCommand() *cobra.Command {
 		decryptCmd = &cobra.Command{
 			Use:     "decrypt",
 			Aliases: []string{"decr", "dec", "de", "d"},
-			Short:   "Decrypts the encrypted data",
+			Short:   "Decrypt data",
 			Run: func(cmd *cobra.Command, args []string) {
 				cmd.Help()
 			},
@@ -48,7 +48,7 @@ func decryptTextCommand() *cobra.Command {
 		decryptTxtCmd = &cobra.Command{
 			Use:     "text",
 			Aliases: []string{"txt", "t", "string", "str", "s"},
-			Short:   "Decrypts a xipher encrypted text",
+			Short:   "Decrypt an encrypted text string",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
@@ -80,7 +80,7 @@ func decryptFileCommand() *cobra.Command {
 		decryptFileCmd = &cobra.Command{
 			Use:     "file",
 			Aliases: []string{"f"},
-			Short:   "Decrypts a xipher encrypted file",
+			Short:   "Decrypt an encrypted file",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				overwrite, _ := cmd.Flags().GetBool(overwriteFlag.name)
@@ -99,11 +99,16 @@ func decryptFileCommand() *cobra.Command {
 						break
 					}
 					if overwrite {
-						fmt.Println("Overwriting file:", color.YellowString(dstPath))
+						if !jsonFormat {
+							fmt.Println("Overwriting file:", color.YellowString(dstPath))
+						}
 						break
 					}
+					if jsonFormat {
+						exitOnErrorWithMessage(fmt.Sprintf("file already exists: %s", dstPath), jsonFormat)
+					}
 					fmt.Println("File already exists:", color.YellowString(dstPath))
-					if dstPath, err = getVisibleInput("Enter a new file path for the decrypted file: "); err != nil {
+					if dstPath, err = getVisibleInput("Enter a new output file path: "); err != nil {
 						exitOnError(err, jsonFormat)
 					}
 				}
@@ -144,14 +149,15 @@ func decryptFileCommand() *cobra.Command {
 func decryptStreamCommand() *cobra.Command {
 	if decryptStreamCmd == nil {
 		decryptStreamCmd = &cobra.Command{
-			Use:   "stream",
-			Short: "Decrypts the encrypted data from the standard input and writes to the standard output",
+			Use:     "stream",
+			Aliases: []string{"str"},
+			Short:   "Decrypt data from stdin to stdout",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				secretKeyOrPwd, _ := getSecretKeyOrPwd(false)
 				if secretKeyOrPwd == "" {
 					exitOnErrorWithMessage(fmt.Sprintf(
-						"Please provide a secret key or password using the environment variable %s", envar_XIPHER_SECRET), jsonFormat)
+						"provide a secret key or password via the %s environment variable", envar_XIPHER_SECRET), jsonFormat)
 				}
 				if err := utils.DecryptStream(secretKeyOrPwd, os.Stdout, os.Stdin); err != nil {
 					exitOnError(err, jsonFormat)

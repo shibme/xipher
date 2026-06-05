@@ -14,7 +14,7 @@ func encryptCommand() *cobra.Command {
 		encryptCmd = &cobra.Command{
 			Use:     "encrypt",
 			Aliases: []string{"encr", "enc", "en", "e"},
-			Short:   "Encrypts data",
+			Short:   "Encrypt data",
 			Run: func(cmd *cobra.Command, args []string) {
 				cmd.Help()
 			},
@@ -32,7 +32,7 @@ func getKeyPwdStr(cmd *cobra.Command) (string, error) {
 	keyPwdStr := cmd.Flag(keyOrPwdFlag.name).Value.String()
 	keyFlagInput := false
 	if keyPwdStr == "" {
-		keyPwdInput, err := getHiddenInputFromUser("Enter a public key, secret key or a password: ")
+		keyPwdInput, err := getHiddenInputFromUser("Enter a public key, secret key, or password: ")
 		if err != nil {
 			return "", err
 		}
@@ -49,7 +49,7 @@ func getKeyPwdStr(cmd *cobra.Command) (string, error) {
 				return "", err
 			}
 		}
-		confirmPwd, err := getHiddenInputFromUser("Confirm the password: ")
+		confirmPwd, err := getHiddenInputFromUser("Confirm password: ")
 		if err != nil {
 			return "", err
 		}
@@ -65,7 +65,7 @@ func encryptTextCommand() *cobra.Command {
 		encryptTxtCmd = &cobra.Command{
 			Use:     "text",
 			Aliases: []string{"txt", "t", "string", "str", "s"},
-			Short:   "Encrypts a given text",
+			Short:   "Encrypt a text string",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				keyPwdStr, err := getKeyPwdStr(cmd)
@@ -101,7 +101,7 @@ func encryptTextCommand() *cobra.Command {
 					if ctUrl != "" {
 						fmt.Println("Encrypted text URL:", color.HiCyanString(ctUrl))
 					}
-					fmt.Println("It is completely safe to share this encrypted text over any medium.")
+					fmt.Println("This encrypted text is safe to share over any medium.")
 				}
 			},
 		}
@@ -115,7 +115,7 @@ func encryptFileCommand() *cobra.Command {
 		encryptFileCmd = &cobra.Command{
 			Use:     "file",
 			Aliases: []string{"f"},
-			Short:   "Encrypts a given file",
+			Short:   "Encrypt a file",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				toXipherTxt, _ := cmd.Flags().GetBool(toXipherTxtFlag.name)
@@ -134,11 +134,16 @@ func encryptFileCommand() *cobra.Command {
 						break
 					}
 					if overwrite {
-						fmt.Println("Overwriting file:", color.YellowString(dstPath))
+						if !jsonFormat {
+							fmt.Println("Overwriting file:", color.YellowString(dstPath))
+						}
 						break
 					}
+					if jsonFormat {
+						exitOnErrorWithMessage(fmt.Sprintf("file already exists: %s", dstPath), jsonFormat)
+					}
 					fmt.Println("File already exists:", color.YellowString(dstPath))
-					if dstPath, err = getVisibleInput("Provide a new destination file ending with .xipher: "); err != nil {
+					if dstPath, err = getVisibleInput("Enter a new output file path: "); err != nil {
 						exitOnError(err, jsonFormat)
 					}
 				}
@@ -163,9 +168,10 @@ func encryptFileCommand() *cobra.Command {
 				if jsonFormat {
 					resultMap := make(map[string]interface{})
 					resultMap["encryptedFile"] = dstPath
+					fmt.Println(toJsonString(resultMap))
 				} else {
 					fmt.Println("Encrypted file:", color.GreenString(dstPath))
-					fmt.Println("It is completely safe to share this encrypted file over any medium.")
+					fmt.Println("This encrypted file is safe to share over any medium.")
 				}
 			},
 		}
@@ -182,8 +188,9 @@ func encryptFileCommand() *cobra.Command {
 func encryptStreamCommand() *cobra.Command {
 	if encryptStreamCmd == nil {
 		encryptStreamCmd = &cobra.Command{
-			Use:   "stream",
-			Short: "Encryts data from the standard input stream and writes to the standard output stream",
+			Use:     "stream",
+			Aliases: []string{"str"},
+			Short:   "Encrypt data from stdin to stdout",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				toXipherTxt, _ := cmd.Flags().GetBool(toXipherTxtFlag.name)
@@ -191,7 +198,7 @@ func encryptStreamCommand() *cobra.Command {
 				if keyPwdStr == "" {
 					if keyPwdStr, _ = getSecretKeyOrPwd(false); keyPwdStr == "" {
 						exitOnErrorWithMessage(fmt.Sprintf(
-							"Please set a public key using the --%s flag or provide a secret key or password using the environment variable %s",
+							"set a public key using --%s, or provide a secret key or password via the %s environment variable",
 							keyOrPwdFlag.name, envar_XIPHER_SECRET), jsonFormat)
 					}
 				}
