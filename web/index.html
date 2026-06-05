@@ -47,26 +47,26 @@
             <span class="app-title-text">XIPHER</span>
         </a>
         <a href="https://github.com/shibme/xipher/releases" target="_blank" rel="noopener" class="topbar-version"
-            title="Release notes">v<span class="xipher-version">0.0.0</span></a>
+            title="View release notes on GitHub">v<span class="xipher-version">0.0.0</span></a>
         <nav class="topbar-actions">
-            <a href="docs/" class="topbar-link" title="Documentation">
+            <a href="docs/" class="topbar-link" title="Read the documentation">
                 <span class="topbar-link-icon" aria-hidden="true">📖</span>
                 <span class="topbar-link-label">Docs</span>
             </a>
             <a href="https://github.com/shibme/xipher" target="_blank" rel="noopener" class="topbar-link"
-                title="View on GitHub">
+                title="View the source on GitHub">
                 <img src="assets/images/github.svg" alt="" class="topbar-link-github-icon" aria-hidden="true">
                 <span class="topbar-link-label">shibme/xipher</span>
             </a>
-            <button type="button" id="theme-toggle" class="theme-toggle" title="Toggle dark / light mode"
+            <button type="button" id="theme-toggle" class="theme-toggle" title="Switch between dark and light mode"
                 aria-label="Toggle dark or light mode">
                 <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">☀️</span>
                 <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">🌙</span>
                 <span class="theme-toggle-circle"></span>
             </button>
-            <button type="button" id="key-settings-button" class="topbar-icon-button" title="Manage your key / password"
-                aria-label="Manage your key or password">
-                <span aria-hidden="true">🔑</span>
+            <button type="button" id="settings-button" class="topbar-icon-button"
+                title="Settings: your key, password, and encryption options" aria-label="Open settings">
+                <span aria-hidden="true">⚙️</span>
             </button>
         </nav>
     </header>
@@ -130,90 +130,56 @@
                 </button>
             </form>
 
-            <p class="app-hint">Tip: open the <span class="hint-key" aria-hidden="true">🔑</span> menu to set your own
+            <p class="app-hint">Tip: open <span class="hint-key" aria-hidden="true">⚙️</span> Settings to set your own
                 password or secret key so you can decrypt on any device.</p>
         </section>
     </main>
 
-    <!-- Key / password management modal -->
+    <!-- Settings modal -->
     <div id="key-modal" class="modal-overlay" hidden>
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
             <div class="modal-header">
-                <h2 id="key-modal-title" class="modal-title">Your key &amp; password</h2>
+                <h2 id="key-modal-title" class="modal-title">Settings</h2>
                 <button type="button" id="key-modal-close" class="modal-close" title="Close"
                     aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
-                <p class="modal-intro">Your identity is stored only in this browser. Set a password or paste an existing
-                    secret key to use the same identity across devices. Anyone who knows it can decrypt secrets sent to
-                    you, so keep it safe.</p>
+                <p class="modal-intro">Your identity is stored only in this browser. Set a password or secret key to use
+                    the same identity across devices. Anyone who knows it can decrypt secrets sent to you, so keep it
+                    safe.</p>
 
-                <div class="key-current">
-                    <label class="field-label" for="key-current-pubkey">Current public key</label>
-                    <div class="link-viewbox">
-                        <input type="text" id="key-current-pubkey" class="shareable-link" readonly value=""
-                            aria-label="Current public key">
-                        <button type="button" class="icon-button" id="key-pubkey-copy" title="Copy public key"
-                            aria-label="Copy public key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
-                    </div>
+                <label class="field-label" for="key-current-pubkey">Current public key</label>
+                <div class="link-viewbox">
+                    <input type="text" id="key-current-pubkey" class="shareable-link" readonly value=""
+                        aria-label="Current public key">
+                    <button type="button" class="icon-button" id="key-pubkey-copy" title="Copy public key"
+                        aria-label="Copy public key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
                 </div>
 
-                <div class="key-tabs" role="tablist">
-                    <button type="button" class="key-tab is-active" id="tab-password" role="tab"
-                        data-tab="password">Password</button>
-                    <button type="button" class="key-tab" id="tab-secretkey" role="tab" data-tab="secretkey">Secret
-                        key</button>
-                    <button type="button" class="key-tab" id="tab-random" role="tab" data-tab="random">Random</button>
-                </div>
-
-                <!-- Password panel -->
-                <div class="key-panel is-active" id="panel-password" data-panel="password">
-                    <label class="field-label" for="key-password-input">Set a password</label>
-                    <div class="password-field">
-                        <input type="password" id="key-password-input" class="text-field"
-                            placeholder="Enter a strong password" autocomplete="new-password">
-                        <button type="button" class="icon-button" id="key-password-reveal" title="Show / hide"
-                            aria-label="Show or hide password">👁️</button>
-                    </div>
-                    <label class="field-label" for="key-password-confirm">Confirm password</label>
-                    <input type="password" id="key-password-confirm" class="text-field"
-                        placeholder="Re-enter the password" autocomplete="new-password">
-                    <p class="field-hint">Use a long, memorable passphrase. The same password always produces the same
-                        identity.</p>
-                </div>
-
-                <!-- Secret key panel -->
-                <div class="key-panel" id="panel-secretkey" data-panel="secretkey">
-                    <label class="field-label" for="key-secretkey-input">Paste a secret key</label>
-                    <input type="text" id="key-secretkey-input" class="text-field" placeholder="XSK_..."
-                        autocomplete="off" spellcheck="false">
-                    <p class="field-hint">A secret key starts with <code>XSK_</code>. Generate one with the CLI or the
-                        Random tab.</p>
-                </div>
-
-                <!-- Random panel -->
-                <div class="key-panel" id="panel-random" data-panel="random">
-                    <p class="field-hint">Generate a fresh, cryptographically random secret key. This replaces your
-                        current identity, so previously shared links will stop working for new secrets.</p>
-                    <button type="button" id="key-generate-random" class="app-button select-file-button">Generate new
-                        random key</button>
-                    <div class="generated-key" id="generated-key-box" hidden>
-                        <label class="field-label" for="generated-key-value">New secret key (save it somewhere
-                            safe)</label>
-                        <div class="link-viewbox">
-                            <input type="text" id="generated-key-value" class="shareable-link" readonly value=""
-                                aria-label="Generated secret key">
-                            <button type="button" class="icon-button" id="generated-key-copy" title="Copy secret key"
-                                aria-label="Copy secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
-                        </div>
-                    </div>
-                </div>
-
-                <label class="checkbox-row" for="quantum-safe-toggle">
-                    <input type="checkbox" id="quantum-safe-toggle">
-                    <span class="checkbox-label">Quantum-safe public key <span class="checkbox-sub">(larger link,
-                            post-quantum security)</span></span>
+                <label class="settings-row" for="quantum-safe-toggle">
+                    <span class="settings-row-text">
+                        <span class="settings-row-label">Quantum-safe</span>
+                        <span class="settings-row-sub">Post-quantum protection (ML-KEM). Applies instantly and re-derives
+                            the public key above; no need to change your key.</span>
+                    </span>
+                    <input type="checkbox" id="quantum-safe-toggle" class="settings-switch-input">
+                    <span class="settings-switch" aria-hidden="true"></span>
                 </label>
+
+                <hr class="settings-divider">
+
+                <label class="field-label" for="key-secret-input">Change password or secret key</label>
+                <div class="password-field">
+                    <input type="password" id="key-secret-input" class="text-field"
+                        placeholder="••••••••••••  (leave blank to keep current)" autocomplete="off" spellcheck="false">
+                    <button type="button" class="icon-button" id="key-secret-reveal" title="Show / hide"
+                        aria-label="Show or hide value">👁️</button>
+                    <button type="button" class="icon-button" id="key-secret-generate"
+                        title="Generate a random secret key" aria-label="Generate a random secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg></button>
+                </div>
+                <p class="field-hint">Your saved key is never shown. Leave this blank to keep it, or enter a new
+                    password or secret key to change it. Use a long passphrase, or generate a random secret key; a secret
+                    key starts with <code>XSK_</code>.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" id="key-modal-cancel" class="app-button grey-button">Cancel</button>

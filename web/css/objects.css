@@ -282,8 +282,7 @@
 @media (prefers-reduced-motion: reduce) {
     .animate,
     .modal,
-    .modal-overlay,
-    .key-panel.is-active {
+    .modal-overlay {
         animation: none;
     }
 }

@@ -104,45 +104,24 @@ dropArea.addEventListener("drop", (event) => {
    ========================================================================== */
 
 const keyModal = document.getElementById("key-modal");
-const keySettingsButton = document.getElementById("key-settings-button");
+const keySettingsButton = document.getElementById("settings-button");
 const keyModalClose = document.getElementById("key-modal-close");
 const keyModalCancel = document.getElementById("key-modal-cancel");
 const keySaveButton = document.getElementById("key-save-button");
 const keyCurrentPubkey = document.getElementById("key-current-pubkey");
 const keyPubkeyCopy = document.getElementById("key-pubkey-copy");
-const keyTabs = Array.from(document.querySelectorAll(".key-tab"));
-const keyPanels = Array.from(document.querySelectorAll(".key-panel"));
-const keyPasswordInput = document.getElementById("key-password-input");
-const keyPasswordConfirm = document.getElementById("key-password-confirm");
-const keyPasswordReveal = document.getElementById("key-password-reveal");
-const keySecretKeyInput = document.getElementById("key-secretkey-input");
-const keyGenerateRandom = document.getElementById("key-generate-random");
-const generatedKeyBox = document.getElementById("generated-key-box");
-const generatedKeyValue = document.getElementById("generated-key-value");
-const generatedKeyCopy = document.getElementById("generated-key-copy");
+const keySecretInput = document.getElementById("key-secret-input");
+const keySecretReveal = document.getElementById("key-secret-reveal");
+const keySecretGenerate = document.getElementById("key-secret-generate");
 const quantumSafeToggle = document.getElementById("quantum-safe-toggle");
 
-let activeKeyTab = "password";
-
-function setActiveKeyTab(tab) {
-    activeKeyTab = tab;
-    keyTabs.forEach((t) => t.classList.toggle("is-active", t.dataset.tab === tab));
-    keyPanels.forEach((p) => p.classList.toggle("is-active", p.dataset.panel === tab));
-}
-
-keyTabs.forEach((tab) => {
-    tab.addEventListener("click", () => setActiveKeyTab(tab.dataset.tab));
-});
-
 async function openKeyModal() {
-    // Reset transient inputs.
-    keyPasswordInput.value = "";
-    keyPasswordConfirm.value = "";
-    keySecretKeyInput.value = "";
-    keyPasswordInput.type = "password";
-    generatedKeyBox.hidden = true;
-    generatedKeyValue.value = "";
-    setActiveKeyTab("password");
+    // Reset transient inputs. The field stays empty (we never load the saved
+    // secret back); the masked placeholder just signals that one is set, and
+    // leaving it blank keeps the current key.
+    keySecretInput.value = "";
+    keySecretInput.type = "password";
+    keySecretInput.placeholder = "••••••••••••  (leave blank to keep current)";
     quantumSafeToggle.checked = isQuantumSafe();
     try {
         keyCurrentPubkey.value = await getPublicKey();
@@ -174,28 +153,25 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
-keyPasswordReveal.addEventListener("click", () => {
-    const reveal = keyPasswordInput.type === "password";
-    keyPasswordInput.type = reveal ? "text" : "password";
-    keyPasswordConfirm.type = reveal ? "text" : "password";
+keySecretReveal.addEventListener("click", () => {
+    keySecretInput.type = keySecretInput.type === "password" ? "text" : "password";
 });
 
 keyPubkeyCopy.addEventListener("click", () => {
     copyToClipboard(keyCurrentPubkey.value, keyPubkeyCopy, "Public key copied.");
 });
 
-generatedKeyCopy.addEventListener("click", () => {
-    copyToClipboard(generatedKeyValue.value, generatedKeyCopy, "Secret key copied.");
-});
-
-keyGenerateRandom.addEventListener("click", async () => {
+// Fill the input with a fresh random secret key, revealed so it's visible.
+keySecretGenerate.addEventListener("click", async () => {
+    keySecretGenerate.disabled = true;
     try {
-        const newKey = await genXipherSecretKey();
-        generatedKeyValue.value = newKey;
-        generatedKeyBox.hidden = false;
-        showToast("New key generated. Save it, then click Save & apply.", "info", 3200);
+        keySecretInput.value = await genXipherSecretKey();
+        keySecretInput.type = "text";
+        showToast("Random secret key generated. Click Save & apply to use it.", "info", 3200);
     } catch (error) {
         showToast("Failed to generate key.", "error");
+    } finally {
+        keySecretGenerate.disabled = false;
     }
 });
 
@@ -210,54 +186,32 @@ function validatePassword(pwd) {
 async function handleKeySave() {
     keySaveButton.disabled = true;
     try {
-        let newSecret = null;
-        if (activeKeyTab === "password") {
-            const pwd = keyPasswordInput.value;
-            const confirm = keyPasswordConfirm.value;
-            if (!pwd) {
-                showToast("Enter a password.", "error");
+        const value = keySecretInput.value.trim();
+        // Blank means "keep the current key" so the modal can be used just to
+        // change the quantum-safe toggle (which already applied on change).
+        if (!value) {
+            closeKeyModal();
+            return;
+        }
+        // A value with the secret-key prefix is validated as a key; anything
+        // else is treated as a password and held to the strength policy.
+        if (value.startsWith("XSK_")) {
+            if (!(await isValidSecretKey(value))) {
+                showToast("That doesn't look like a valid secret key (XSK_…).", "error");
                 return;
             }
-            const err = validatePassword(pwd);
+        } else {
+            const err = validatePassword(value);
             if (err) {
                 showToast(err, "error");
                 return;
             }
-            if (pwd !== confirm) {
-                showToast("Passwords do not match.", "error");
-                return;
-            }
-            newSecret = pwd;
-        } else if (activeKeyTab === "secretkey") {
-            const sk = keySecretKeyInput.value.trim();
-            if (!sk) {
-                showToast("Paste a secret key.", "error");
-                return;
-            }
-            if (!(await isValidSecretKey(sk))) {
-                showToast("That doesn't look like a valid secret key (XSK_…).", "error");
-                return;
-            }
-            newSecret = sk;
-        } else if (activeKeyTab === "random") {
-            const gk = generatedKeyValue.value.trim();
-            if (!gk) {
-                showToast("Generate a key first.", "error");
-                return;
-            }
-            newSecret = gk;
         }
 
-        const quantumChanged = setQuantumSafe(quantumSafeToggle.checked);
+        await setXipherSecret(value);
 
-        if (newSecret !== null) {
-            await setXipherSecret(newSecret);
-        } else if (!quantumChanged) {
-            showToast("Nothing to update.", "info");
-            return;
-        }
-
-        // Refresh the shareable link and app state with the new identity.
+        // Refresh the shareable link and the public key shown in the modal.
+        keyCurrentPubkey.value = await getPublicKey();
         if (typeof refreshIdentity === "function") {
             await refreshIdentity();
         }
@@ -272,3 +226,28 @@ async function handleKeySave() {
 }
 
 keySaveButton.addEventListener("click", handleKeySave);
+
+// Quantum-safe is a standalone derivation preference, independent of the key
+// setup above: the public key is always re-derived from the stored identity, so
+// toggling it re-derives the current key immediately (no "Save & apply" needed).
+quantumSafeToggle.addEventListener("change", async () => {
+    quantumSafeToggle.disabled = true;
+    try {
+        setQuantumSafe(quantumSafeToggle.checked);
+        keyCurrentPubkey.value = await getPublicKey();
+        if (typeof refreshIdentity === "function") {
+            await refreshIdentity();
+        }
+        showToast(
+            quantumSafeToggle.checked ? "Quantum-safe encryption enabled." : "Quantum-safe encryption disabled.",
+            "success"
+        );
+    } catch (error) {
+        console.error("Failed to update quantum-safe mode:", error);
+        showToast("Failed to update quantum-safe mode.", "error");
+        // Revert the visual state to the actual stored preference.
+        quantumSafeToggle.checked = isQuantumSafe();
+    } finally {
+        quantumSafeToggle.disabled = false;
+    }
+});
