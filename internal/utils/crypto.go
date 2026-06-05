@@ -74,7 +74,7 @@ func encryptData(keyOrPwd string, data []byte, compress bool) (string, error) {
 func EncryptData(keyOrPwd string, data []byte, compress bool) (ctStr string, ctUrl string, err error) {
 	if ctStr, err = encryptData(keyOrPwd, data, compress); err == nil {
 		ctUrl = xipherWebURL + "#" + ctStr
-		if len(ctUrl) > urlMaxLenth {
+		if len(ctUrl) > urlMaxLength {
 			ctUrl = ""
 		}
 	}

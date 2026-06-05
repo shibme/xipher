@@ -34,7 +34,7 @@ func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (pubKeyStr, pubKeyUrl
 		return "", "", err
 	}
 	pubKeyUrl = xipherWebURL + "#" + pubKeyStr
-	if len(pubKeyUrl) > urlMaxLenth {
+	if len(pubKeyUrl) > urlMaxLength {
 		pubKeyUrl = ""
 	}
 	return

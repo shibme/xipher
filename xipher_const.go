@@ -75,12 +75,12 @@ const (
 
 	// KDF (Key Derivation Function) constants
 
-	// kdfParamsLenth is the length of KDF parameters (iterations, memory, threads).
-	kdfParamsLenth = 3
+	// kdfParamsLength is the length of KDF parameters (iterations, memory, threads).
+	kdfParamsLength = 3
 	// kdfSaltLength is the length of the salt used in key derivation (16 bytes).
 	kdfSaltLength = 16
 	// kdfSpecLength is the total length of the KDF specification (19 bytes: 3 params + 16 salt).
-	kdfSpecLength = kdfParamsLenth + kdfSaltLength
+	kdfSpecLength = kdfParamsLength + kdfSaltLength
 
 	// Key type constants
 

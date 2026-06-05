@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	urlMaxLenth = 65536
+	urlMaxLength = 65536
 )
 
 var (

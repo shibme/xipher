@@ -78,7 +78,7 @@ func parseKdfSpec(kdfBytes []byte) (*kdfSpec, error) {
 	iterations := kdfBytes[0]
 	memory := kdfBytes[1]
 	threads := kdfBytes[2]
-	salt := kdfBytes[kdfParamsLenth:]
+	salt := kdfBytes[kdfParamsLength:]
 	if iterations == 0 || memory == 0 || threads == 0 {
 		return nil, errInvalidKDFSpec
 	}

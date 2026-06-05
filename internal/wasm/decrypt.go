@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ctMinLegthRequired = 128 * 1024 // Arbitrary value based on max key length with generously possible header length
+	ctMinLengthRequired = 128 * 1024 // Arbitrary value based on max key length with generously possible header length
 	readableBlockSize  = 32 * 1024
 )
 
@@ -52,12 +52,12 @@ func (d *decrypter) transform(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	buf := new(bytes.Buffer)
-	if d.src.Len() >= ctMinLegthRequired {
+	if d.src.Len() >= ctMinLengthRequired {
 		if err := d.initReaderGracefully(); err != nil {
 			return nil, err
 		}
 		block := make([]byte, readableBlockSize)
-		for d.src.Len() >= ctMinLegthRequired {
+		for d.src.Len() >= ctMinLengthRequired {
 			n, err := d.reader.Read(block)
 			if err != nil {
 				return nil, err
