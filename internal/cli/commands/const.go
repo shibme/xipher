@@ -126,7 +126,15 @@ var (
 		flagDef: flagDef{
 			name:      "key",
 			shorthand: "k",
-			usage:     "Public key, secret key, or password",
+			usage:     "Public key, secret key, password, or a URL/domain serving a public key",
+		},
+	}
+
+	// Fetch Flag: treat the key value as a URL/domain and fetch the public key from it
+	fetchKeyFlag = boolFlag{
+		flagDef: flagDef{
+			name:  "fetch",
+			usage: "Fetch the public key by treating the key value as a URL or domain",
 		},
 	}
 

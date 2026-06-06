@@ -20,6 +20,7 @@ func encryptCommand() *cobra.Command {
 			},
 		}
 		encryptCmd.PersistentFlags().StringP(keyOrPwdFlag.fields())
+		encryptCmd.PersistentFlags().BoolP(fetchKeyFlag.fields())
 		encryptCmd.PersistentFlags().BoolP(ignorePasswordCheckFlag.fields())
 		encryptCmd.AddCommand(encryptTextCommand())
 		encryptCmd.AddCommand(encryptFileCommand())
@@ -40,8 +41,38 @@ func getKeyPwdStr(cmd *cobra.Command) (string, error) {
 	} else {
 		keyFlagInput = true
 	}
-	var isKey bool
-	keyPwdStr, isKey = utils.GetSanitisedKeyOrPwd(keyPwdStr)
+
+	// --fetch forces URL/domain resolution with no confirmation. Without it, a
+	// value that merely looks like a bare domain is ambiguous (it could be a
+	// password), so confirm before fetching it over the network.
+	fetchFlag, _ := cmd.Flags().GetBool(fetchKeyFlag.name)
+	if !fetchFlag && utils.LooksLikeDomain(keyPwdStr) {
+		if confirmInput(fmt.Sprintf("'%s' looks like a domain. Fetch the public key from it?", keyPwdStr)) {
+			fetchFlag = true
+		}
+	}
+	if fetchFlag {
+		pubKeyStr, name, err := utils.FetchPublicKeyFromURL(keyPwdStr)
+		if err != nil {
+			return "", err
+		}
+		if name != "" {
+			if jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name); !jsonFormat {
+				fmt.Println("Resolved recipient:", color.HiCyanString(name))
+			}
+		}
+		return pubKeyStr, nil
+	}
+
+	keyPwdStr, isKey, name, err := utils.GetSanitisedKeyOrPwd(keyPwdStr)
+	if err != nil {
+		return "", err
+	}
+	if name != "" {
+		if jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name); !jsonFormat {
+			fmt.Println("Resolved recipient:", color.HiCyanString(name))
+		}
+	}
 	if !isKey && !keyFlagInput {
 		ignoreFlag, _ := cmd.Flags().GetBool(ignorePasswordCheckFlag.name)
 		if !ignoreFlag {

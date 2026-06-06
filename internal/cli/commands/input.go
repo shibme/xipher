@@ -57,6 +57,19 @@ func getVisibleInput(prompt string) (string, error) {
 	return input, err
 }
 
+// confirmInput asks the user a yes/no question, defaulting to "no". A read error
+// (e.g. EOF in a non-interactive run) is treated as "no" so scripted input is
+// never silently sent over the network.
+func confirmInput(prompt string) bool {
+	fmt.Print(prompt + " [y/N]: ")
+	var response string
+	if _, err := fmt.Scanln(&response); err != nil {
+		return false
+	}
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
+}
+
 func getHiddenInputFromUser(prompt string) ([]byte, error) {
 	fmt.Print("[Hidden] " + prompt)
 	input, err := term.ReadPassword(int(syscall.Stdin))

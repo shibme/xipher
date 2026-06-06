@@ -40,7 +40,13 @@ func GetPublicKey(secretKeyOrPwd string, quantumSafe bool) (pubKeyStr, pubKeyUrl
 	return
 }
 
-func GetSanitisedKeyOrPwd(keyPwdStr string) (sanitisedKey string, isKey bool) {
+func GetSanitisedKeyOrPwd(keyPwdStr string) (sanitisedKey string, isKey bool, name string, err error) {
+	if isKeyURL(keyPwdStr) {
+		if sanitisedKey, name, err = fetchPublicKey(keyPwdStr); err != nil {
+			return "", false, "", err
+		}
+		return sanitisedKey, true, name, nil
+	}
 	keyPwdStr = getSanitisedValue(keyPwdStr, xipher.IsPubKeyStr)
-	return keyPwdStr, xipher.IsPubKeyStr(keyPwdStr) || xipher.IsSecretKeyStr(keyPwdStr)
+	return keyPwdStr, xipher.IsPubKeyStr(keyPwdStr) || xipher.IsSecretKeyStr(keyPwdStr), "", nil
 }

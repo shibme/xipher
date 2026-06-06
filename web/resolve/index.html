@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        script-src 'self';
+        style-src 'self';
+        img-src 'self';
+        font-src 'self';
+        connect-src 'self' https: http://localhost:* http://127.0.0.1:*;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'none';
+        ">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a84ff">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="../assets/images/logo.svg" />
+    <title>Resolving public key · Xipher</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/objects.css">
+</head>
+
+<body>
+    <div class="preloader">
+        <div class="preloader-container">
+            <img src="../assets/images/logo.svg" alt="Xipher logo" class="preloader-logo">
+            <div class="preloader-spinner"></div>
+        </div>
+        <p id="status" class="preloader-text">Resolving public key…</p>
+    </div>
+
+    <script src="../js/resolve.js" defer></script>
+</body>
+
+</html>

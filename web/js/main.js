@@ -21,21 +21,95 @@ const publinkCopyButton = document.getElementById("publink-copy-button");
 const publinkShareButton = document.getElementById("publink-share-button");
 const modeBadge = document.getElementById("mode-badge");
 const modeBadgeText = document.getElementById("mode-badge-text");
-const { xk, xt } = initParams();
+const { xk, xt, xn, redirecting } = initParams();
+
+// Matches a bare host (optionally with a port/path) that has no URL scheme,
+// e.g. "alice.com" or "alice.com/keys". Mirrors domainRegex in resolver.go.
+const DOMAIN_REGEX = /^([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?::\d+)?(?:\/[^\s]*)?$/;
+const SCHEME_REGEX = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
+
+// isLoopbackHost reports whether host is a loopback address, for which plain
+// http is permitted (local development). Mirrors isLoopbackHost in resolver.go.
+function isLoopbackHost(host) {
+    host = (host || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+}
+
+// isFetchableUrl reports whether s is a key URL we may fetch: https anywhere, or
+// http when the host is a loopback address.
+function isFetchableUrl(s) {
+    if (typeof s !== "string") {
+        return false;
+    }
+    try {
+        const u = new URL(s);
+        if (u.protocol === "https:") {
+            return true;
+        }
+        return u.protocol === "http:" && isLoopbackHost(u.hostname);
+    } catch (e) {
+        return false;
+    }
+}
+
+// redirectToResolver hands a key URL off to the /resolve/ page, which can fetch
+// it (the main app's CSP forbids external connections).
+function redirectToResolver(url) {
+    window.location.replace("resolve/?u=" + encodeURIComponent(url));
+}
+
+// classifyKeyRef decides what a URL-supplied key reference is. It returns
+// { pubKey } for a public key, { url } for a fetchable URL (https, or http for
+// loopback) or a bare domain (normalised to https://), or null for anything
+// else. Secret keys, passwords, and disallowed schemes are all rejected — only
+// public material may travel here.
+function classifyKeyRef(value) {
+    if (!value) {
+        return null;
+    }
+    if (value.startsWith("XPK_")) {
+        return { pubKey: value };
+    }
+    if (isFetchableUrl(value)) {
+        return { url: value };
+    }
+    if (!SCHEME_REGEX.test(value)) {
+        // A schemeless loopback host uses http; a bare domain uses https.
+        const host = value.split("/")[0].split(":")[0];
+        if (isLoopbackHost(host)) {
+            return { url: "http://" + value };
+        }
+        if (DOMAIN_REGEX.test(value)) {
+            return { url: "https://" + value };
+        }
+    }
+    return null;
+}
 
 function initParams() {
     const urlParams = new URLSearchParams(window.location.search);
-    const xk = urlParams.get("xk");
     const xt = urlParams.get("xt");
-    if (xk || xt) {
-        return { xk, xt };
+    const xn = urlParams.get("xn"); // display name resolved by the /resolve/ page
+    const queryRef = classifyKeyRef(urlParams.get("xk"));
+    if (queryRef || xt) {
+        if (queryRef && queryRef.url) {
+            redirectToResolver(queryRef.url);
+            return { xk: null, xt: null, xn: null, redirecting: true };
+        }
+        return { xk: queryRef ? queryRef.pubKey : null, xt, xn };
     }
     const fragment = window.location.hash.substring(1);
     if (fragment) {
         if (fragment.startsWith("XCT_")) {
             return { xk: null, xt: fragment };
-        } else if (fragment.startsWith("XPK_") || fragment.startsWith("XSK_")) {
-            return { xk: fragment, xt: null };
+        }
+        const fragRef = classifyKeyRef(fragment);
+        if (fragRef) {
+            if (fragRef.url) {
+                redirectToResolver(fragRef.url);
+                return { xk: null, xt: null, xn: null, redirecting: true };
+            }
+            return { xk: fragRef.pubKey, xt: null };
         }
     }
     return { xk: null, xt: null };
@@ -45,11 +119,8 @@ function getEncryptionTarget() {
     if (!xk) {
         return "with your Key";
     }
-    if (xk.startsWith("XPK_")) {
-        return `with ${xk.substring(0, 16)}..`;
-    } else {
-        return "with given Secret Key";
-    }
+    // xk is always a public key here (initParams rejects secret keys/passwords).
+    return xn ? `with ${xn}` : `with ${xk.substring(0, 16)}..`;
 }
 
 function disableActionButton(placeholderText) {
@@ -399,7 +470,9 @@ async function refreshIdentity() {
 function setupModeUI() {
     if (xk) {
         // The visitor opened someone else's public-key link: they're the sender.
-        modeBadgeText.textContent = "Encrypting for the shared recipient";
+        modeBadgeText.textContent = xn
+            ? `Encrypting for ${xn}`
+            : "Encrypting for the shared recipient";
         modeBadge.hidden = false;
         // The visitor's own receive-link is not relevant in this flow.
         if (linkSection) {
@@ -415,7 +488,31 @@ function setupModeUI() {
     }
 }
 
+// Maps a resolver failure reason (the xkerr value) to a user-facing message.
+function keyResolveErrorMessage(reason) {
+    switch (reason) {
+        case "network":
+            return "Couldn't reach that key URL. The host must serve the key over HTTPS and allow cross-origin requests (CORS).";
+        case "status":
+            return "The key URL returned an error. Check the address and that a key is published there.";
+        case "badkey":
+            return "That URL didn't serve a valid public key.";
+        case "toolarge":
+            return "The key URL response was too large.";
+        case "timeout":
+            return "The key URL took too long to respond.";
+        case "invalid":
+            return "That public key URL is not valid.";
+        default:
+            return "Couldn't resolve a public key from that link.";
+    }
+}
+
 function initApp() {
+    const xkerr = new URLSearchParams(window.location.search).get("xkerr");
+    if (xkerr) {
+        showToast(keyResolveErrorMessage(xkerr), "error");
+    }
     setupModeUI();
     if (!xk) {
         disableActionButton("Waiting for input");
@@ -434,6 +531,10 @@ function hidePreloader() {
 }
 
 async function main() {
+    if (redirecting) {
+        // We're navigating to the /resolve/ page; don't initialize the app.
+        return;
+    }
     loadTheme();
     await loadXipherWASM();
     const pubKeyUrl = await getXipherPublicKeyUrl();

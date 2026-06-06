@@ -77,6 +77,12 @@
                     <a href="#cli-env" class="docs-nav-link">Environment & JSON</a>
                 </div>
                 <div class="docs-nav-group">
+                    <p class="docs-nav-title">Key references</p>
+                    <a href="#keyref-overview" class="docs-nav-link">URLs & domains</a>
+                    <a href="#keyref-format" class="docs-nav-link">Published key format</a>
+                    <a href="#keyref-hosting" class="docs-nav-link">Hosting a key</a>
+                </div>
+                <div class="docs-nav-group">
                     <p class="docs-nav-title">Web app</p>
                     <a href="#web-overview" class="docs-nav-link">Overview</a>
                     <a href="#web-receive" class="docs-nav-link">Receiving a secret</a>
@@ -360,6 +366,96 @@ xipher version
 xipher encrypt --help</code></pre>
                     <p>The global <code>--json</code> / <code>-j</code> flag emits structured output (and errors) as JSON
                         on any command. Every command also accepts <code>--help</code> / <code>-h</code>.</p>
+                </section>
+
+                <!-- KEY REFERENCES -->
+                <section id="keyref-overview" class="docs-section">
+                    <h2>Key references (URLs &amp; domains)</h2>
+                    <p>Anywhere a public key is accepted, you can instead point Xipher at an <strong>HTTPS URL</strong>
+                        that serves the key. This gives recipients a friendly, memorable reference (your domain) instead
+                        of a long <code>XPK_…</code> string. Xipher fetches the URL and uses the public key it finds.</p>
+                    <pre class="code-block" data-lang="bash"><code># Full URL to a published key
+xipher encrypt text -k "https://alice.example.com/.well-known/xipher" -t "Secret message"
+
+# A bare domain or URL — pass --fetch to fetch without a prompt
+xipher encrypt text --fetch -k "alice.example.com" -t "Secret message"
+
+# Without --fetch, a domain-like value asks for confirmation before fetching,
+# so an ordinary password is never sent over the network by mistake.
+xipher encrypt text -k "alice.example.com" -t "Secret message"
+# > 'alice.example.com' looks like a domain. Fetch the public key from it? [y/N]:</code></pre>
+                    <ul>
+                        <li>A <strong>bare domain</strong> (e.g. <code>alice.example.com</code>) is expanded to
+                            <code>https://</code> and the <a href="#keyref-format">well-known path</a> is fetched.</li>
+                        <li>A <strong>URL with a path</strong> (e.g. <code>alice.example.com/shib</code>) is tried
+                            verbatim first; if no key is found there, the <a href="#keyref-format">well-known path</a> is
+                            probed <em>under</em> that path (<code>alice.example.com/shib/.well-known/xipher</code>). So a
+                            path can point either directly at a key file or at a prefix that hosts one.</li>
+                        <li>Only <code>https://</code> is allowed. The one exception is <strong>loopback hosts</strong>
+                            (<code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code>), which may use plain
+                            <code>http://</code> for local development.</li>
+                        <li>In the <strong>web app</strong>, opening a link such as
+                            <code>https://xipher.org/?xk=alice.example.com</code> resolves the key automatically. Only
+                            public keys and URLs are accepted through a link — secret keys and passwords are never read
+                            from the URL.</li>
+                    </ul>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>A URL authenticates the <em>host</em> (via TLS), not the key's owner. Treat a key
+                                reference as a convenience, not a cryptographic identity guarantee — anyone who controls
+                                the host (or its DNS) controls the key served there.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="keyref-format" class="docs-section">
+                    <h3>Published key format</h3>
+                    <p>The URL should serve the public key in one of two forms. Xipher tries JSON first, then falls back
+                        to plain text.</p>
+                    <p><strong>JSON</strong> (recommended — lets you attach a display name shown to the sender):</p>
+                    <pre class="code-block" data-lang="json"><code>{
+  "name": "Alice",
+  "publicKey": "XPK_..."
+}</code></pre>
+                    <p><strong>Plain text</strong> — the response body is exactly the <code>XPK_…</code> string:</p>
+                    <pre class="code-block" data-lang="text"><code>XPK_...</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>publicKey</code></td><td>Yes</td><td>Must be a valid <code>XPK_…</code> public key</td></tr>
+                                <tr><td><code>name</code></td><td>No</td><td>Display-only; trimmed and capped at 64 characters</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>Responses must be served over HTTPS, return <code>200 OK</code>, and stay under 8&nbsp;KiB.
+                        The conventional location for a bare domain is the well-known path:</p>
+                    <pre class="code-block" data-lang="text"><code>https://your-domain/.well-known/xipher</code></pre>
+                </section>
+
+                <section id="keyref-hosting" class="docs-section">
+                    <h3>Hosting a key</h3>
+                    <p>Publish the JSON (or plain <code>XPK_…</code>) file at <code>/.well-known/xipher</code> on any
+                        static host — GitHub Pages, Cloudflare Pages, S3, your own server, etc. To host several keys
+                        under one domain, place each at <code>/&lt;name&gt;/.well-known/xipher</code> and share the path
+                        (e.g. <code>example.com/alice</code>), which probes that location automatically.</p>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">🌐</span>
+                        <div>
+                            <p><strong>For the web app, CORS is required.</strong> When the browser-based app resolves a
+                                key from another origin, the browser only allows it to read the response if your host
+                                sends an <code>Access-Control-Allow-Origin</code> header. Without it, resolution fails
+                                with a "couldn't reach that key URL" error. Add the header to your
+                                <code>/.well-known/xipher</code> response:</p>
+                        </div>
+                    </div>
+                    <pre class="code-block" data-lang="text"><code>Access-Control-Allow-Origin: *
+Content-Type: application/json</code></pre>
+                    <p>The CLI and Go library are not browsers and have no CORS restriction — they resolve any reachable
+                        HTTPS URL regardless of headers.</p>
                 </section>
 
                 <!-- WEB APP -->

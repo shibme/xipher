@@ -1,7 +1,10 @@
-const CACHE_NAME = 'xipher-cache-v2';
+const CACHE_NAME = 'xipher-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/resolve/',
+  '/resolve/index.html',
+  '/js/resolve.js',
   '/manifest.json',
   '/assets/images/github.svg',
   '/assets/images/logo.svg',

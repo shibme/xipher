@@ -143,6 +143,60 @@ participant SX as Xipher<br>(Browser)
 
 Full command reference, flags, and copy-paste examples for the CLI, GitHub Action, WebAssembly module, and self-hosting the web app live in the [documentation](https://xipher.org/docs/).
 
+### Public key references (URLs & domains)
+
+Anywhere a public key is accepted, you can instead point Xipher at an **HTTPS URL** that serves the key. This lets recipients share a friendly, memorable reference (their domain) instead of a long `XPK_…` string.
+
+```bash
+# Full URL to a published key
+xipher encrypt text -k "https://alice.example.com/.well-known/xipher" -t "Secret message"
+
+# A bare domain or path — pass --fetch to fetch without a prompt
+xipher encrypt text --fetch -k "alice.example.com" -t "Secret message"
+
+# Without --fetch, a domain-like value asks for confirmation before fetching,
+# so an ordinary password is never sent over the network by mistake.
+xipher encrypt text -k "alice.example.com" -t "Secret message"
+# > 'alice.example.com' looks like a domain. Fetch the public key from it? [y/N]:
+```
+
+**How a reference resolves:**
+
+- A **bare domain** (`alice.example.com`) is expanded to `https://` and the well-known path `/.well-known/xipher` is fetched.
+- A **URL with a path** (`alice.example.com/alice`) is tried verbatim first; if no key is found there, the well-known path is probed *under* that path (`alice.example.com/alice/.well-known/xipher`). So a path can point either directly at a key file or at a prefix that hosts one.
+- Only `https://` is allowed, except for **loopback hosts** (`localhost`, `127.0.0.1`, `::1`) which may use plain `http://` for local development.
+- In the **web app**, opening a link like `https://xipher.org/?xk=alice.example.com` resolves the key automatically. Only public keys and URLs are accepted through a link — secret keys and passwords are never read from the URL.
+
+**Serving a key.** Publish the key at `/.well-known/xipher` (or any path you share) on any static host — GitHub Pages, Cloudflare Pages, S3, your own server, etc. The response must be served over HTTPS, return `200 OK`, and stay under 8&nbsp;KiB. It can be in either of two formats; Xipher tries JSON first, then falls back to plain text:
+
+```jsonc
+// JSON (recommended — the optional "name" is shown to the sender)
+{
+  "name": "Alice",
+  "publicKey": "XPK_..."
+}
+```
+
+```text
+# Plain text — the body is exactly the XPK_ string
+XPK_...
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `publicKey` | Yes | A valid `XPK_…` public key |
+| `name` | No | Display-only; trimmed and capped at 64 characters |
+
+To host several keys under one domain, place each at `/<name>/.well-known/xipher` and share the path (e.g. `example.com/alice`).
+
+> [!IMPORTANT]
+> **For the web app, CORS is required.** When the browser-based app resolves a key from another origin, the browser only reads the response if your host sends an `Access-Control-Allow-Origin` header (e.g. `Access-Control-Allow-Origin: *`). Without it, resolution fails. The CLI and Go library have no CORS restriction.
+
+> [!NOTE]
+> A URL authenticates the *host* (via TLS), not the key's owner. Treat a key reference as a convenience, not a cryptographic identity guarantee — whoever controls the host (or its DNS) controls the key served there.
+
+See the [full guide](https://xipher.org/docs/#keyref-overview) for more detail.
+
 ## Technical Details
 
 ### Algorithms

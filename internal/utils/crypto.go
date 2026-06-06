@@ -29,8 +29,21 @@ func getSanitisedValue(strOrUrl string, patternVerifier func(string) bool) strin
 	return strings.TrimSpace(strOrUrl)
 }
 
+// resolveOrSanitise resolves an https:// key-serving URL to the XPK_ public key
+// it serves. For any other input it falls back to getSanitisedValue, preserving
+// the existing password / key / embedded-key-in-URL behavior.
+func resolveOrSanitise(strOrUrl string, patternVerifier func(string) bool) (string, error) {
+	if isKeyURL(strOrUrl) {
+		pubKey, _, err := fetchPublicKey(strOrUrl)
+		return pubKey, err
+	}
+	return getSanitisedValue(strOrUrl, patternVerifier), nil
+}
+
 func NewEncryptingWriter(keyOrPwd string, dst io.Writer, compress, encode bool) (encryptingWriteCloser io.WriteCloser, err error) {
-	keyOrPwd = getSanitisedValue(keyOrPwd, xipher.IsPubKeyStr)
+	if keyOrPwd, err = resolveOrSanitise(keyOrPwd, xipher.IsPubKeyStr); err != nil {
+		return nil, err
+	}
 	if xipher.IsPubKeyStr(keyOrPwd) {
 		var pubKey *xipher.PublicKey
 		if pubKey, err = xipher.ParsePublicKeyStr(keyOrPwd); err != nil {
