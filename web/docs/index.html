@@ -725,7 +725,7 @@ jobs:
                             <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>
                             <tbody>
                                 <tr><td>Key derivation</td><td>Argon2id (password) or 64 bytes from <code>crypto/rand</code> (direct)</td></tr>
-                                <tr><td>Key exchange (KEM)</td><td>Curve25519 (X25519), or ML-KEM / Kyber-1024 in quantum-safe mode</td></tr>
+                                <tr><td>Key exchange (KEM)</td><td>Curve25519 (X25519), or a hybrid of X25519 + ML-KEM / Kyber-1024 in quantum-safe mode</td></tr>
                                 <tr><td>Data encryption (DEM)</td><td>XChaCha20-Poly1305 AEAD over 64&nbsp;KB chunks, optional zlib</td></tr>
                                 <tr><td>Encoding</td><td>Base32 with an <code>XCT_</code> prefix (optional, for text transport)</td></tr>
                             </tbody>
@@ -752,7 +752,7 @@ jobs:
                             <thead><tr><th>Mode</th><th>Classical</th><th>Quantum</th><th>Public key</th></tr></thead>
                             <tbody>
                                 <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>32 bytes</td></tr>
-                                <tr><td>Quantum-safe (Kyber-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1568 bytes</td></tr>
+                                <tr><td>Quantum-safe (X25519 + ML-KEM-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1600 bytes</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -768,8 +768,9 @@ jobs:
                         and a 24-byte nonce come next, then a compression flag, then the AEAD-encrypted chunks.</p>
                     <pre class="code-block" data-lang="text"><code>[type] [KDF spec?] [KEX material] [nonce] [compress flag] [chunks…]
 
-KEX material   ECC  : 1-byte algo + 32-byte ephemeral public key
-               Kyber: 1-byte algo + 1568-byte encapsulation
+KEX material   ECC   : 1-byte algo + 32-byte ephemeral public key
+               Kyber : 1-byte algo + 1568-byte encapsulation
+               Hybrid: 1-byte algo + 32-byte X25519 ephemeral + 1568-byte ML-KEM encapsulation
 chunk          64 KB ciphertext + 16-byte Poly1305 tag (last chunk shorter)
 encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
                     <p>Every chunk shares the session nonce, which is safe because each encryption generates a fresh
@@ -786,7 +787,8 @@ encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
                         <li><strong>Forward secrecy:</strong> asymmetric encryption uses a fresh ephemeral key per
                             operation, so compromising one message's key does not expose others.</li>
                         <li><strong>Quantum resistance:</strong> ECC mode is vulnerable to Shor's algorithm; enable
-                            quantum-safe mode (Kyber-1024, Module-LWE) for long-term security.</li>
+                            quantum-safe mode (hybrid X25519 + ML-KEM-1024) for long-term security, which stays secure
+                            as long as either primitive is unbroken.</li>
                         <li><strong>Password strength:</strong> password-based keys are only as strong as the password.
                             Argon2id is memory-hard to resist GPU/ASIC attacks, but weak passwords remain
                             dictionary-attackable, so prefer long passphrases.</li>
