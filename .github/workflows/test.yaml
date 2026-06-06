@@ -27,7 +27,7 @@ jobs:
       with:
         go-version: 'stable'
     - name: Running Unit Tests
-      run: go test -v .
+      run: go test -v $(go list ./... | grep -v internal/wasm)
 
   build-test:
     name: Build Test
