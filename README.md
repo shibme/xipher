@@ -1,7 +1,7 @@
 <div align="center">
 	<img src="https://xipher.org/assets/images/logo.svg" width="128" alt="Xipher Logo">
 	<h1>Xipher</h1>
-	<p><strong>Secure asymmetric encryption with password-based keys</strong></p>
+	<p><strong>Key/password-based asymmetric encryption with optional post-quantum security</strong></p>
 	
 [![Go Reference](https://pkg.go.dev/badge/xipher.org/xipher.svg)](https://pkg.go.dev/xipher.org/xipher)
 [![Go Report Card](https://goreportcard.com/badge/xipher.org/xipher)](https://goreportcard.com/report/xipher.org/xipher)
@@ -13,13 +13,13 @@
 
 ## Overview
 
-Xipher is a collection of cryptographic primitives for password-based asymmetric encryption. It lets you share encrypted data between parties over insecure channels using public keys derived from passwords. Includes support for post-quantum algorithms.
+Xipher is a collection of cryptographic primitives for key/password-based asymmetric encryption, with optional post-quantum security. It lets you share encrypted data between parties over insecure channels using public keys derived from passwords.
 
 ## Features
 
-- Asymmetric encryption using password-derived public keys
+- Asymmetric encryption using key/password-derived public keys
 - Stream processing with built-in compression
-- Post-quantum security (optional Kyber1024 support)
+- Post-quantum security (optional ML-KEM / Kyber-1024 support)
 - Available as CLI tool, Go library, WebAssembly module, and web interface
 - Optimized for both small and large data
 
@@ -149,7 +149,7 @@ Full command reference, flags, and copy-paste examples for the CLI, GitHub Actio
 
 - Key derivation: [Argon2id](https://en.wikipedia.org/wiki/Argon2)
 - Elliptic curve: [Curve25519](https://en.wikipedia.org/wiki/Curve25519) with ephemeral key exchange
-- Post-quantum: [Kyber 1024](https://pq-crystals.org/kyber/) (ML-KEM)
+- Post-quantum: [ML-KEM / Kyber-1024](https://pq-crystals.org/kyber/)
 - Symmetric encryption: [XChaCha20-Poly1305](https://en.wikipedia.org/wiki/ChaCha20-Poly1305)
 - Compression: [Zlib](https://en.wikipedia.org/wiki/Zlib)
 

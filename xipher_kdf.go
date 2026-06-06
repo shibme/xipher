@@ -20,8 +20,8 @@ type kdfSpec struct {
 // The iterations, memory, and threads parameters control the computational cost of key derivation.
 //
 // Parameters:
-//   - iterations: Number of iterations for Argon2 (must be > 0)
-//   - memory: Memory size in MB for Argon2 (must be > 0)
+//   - iterations: Number of iterations for Argon2id (must be > 0)
+//   - memory: Memory size in MB for Argon2id (must be > 0)
 //   - threads: Number of threads for parallel processing (must be > 0)
 //
 // Returns an error if any parameter is zero or if salt generation fails.

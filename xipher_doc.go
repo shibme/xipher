@@ -1,5 +1,5 @@
 /*
-Package xipher provides a curated collection of cryptographic primitives for performing
+Package xipher provides a collection of cryptographic primitives for
 key/password-based asymmetric encryption with support for post-quantum cryptography.
 
 # Overview
@@ -11,9 +11,9 @@ the data using the corresponding secret key or password.
 
 # Key Features
 
-• Password-based public key generation using Argon2 key derivation
+• Password-based public key generation using Argon2id key derivation
 • Stream cipher with optional compression for memory efficiency
-• Post-quantum cryptography support using Kyber1024
+• Post-quantum cryptography support using ML-KEM (Kyber-1024)
 • Stream processing for handling large files efficiently
 • Base32 encoding for human-readable ciphertext
 • Both symmetric and asymmetric encryption modes
@@ -36,7 +36,7 @@ Xipher supports two types of keys:
 Direct Keys: Generated from cryptographically secure random data (64 bytes).
 These provide maximum entropy and are suitable when key management is handled separately.
 
-Password-based Keys: Derived from passwords using Argon2 key derivation function.
+Password-based Keys: Derived from passwords using the Argon2id key derivation function.
 These are more convenient for human use but require secure password practices.
 
 # Encryption Modes
@@ -49,7 +49,7 @@ This enables secure communication between different parties.
 
 # Post-Quantum Cryptography
 
-Xipher supports post-quantum cryptography using the Kyber1024 algorithm, providing
+Xipher supports post-quantum cryptography using ML-KEM (Kyber-1024), providing
 resistance against quantum computer attacks. This can be enabled when generating
 public keys by setting the pq parameter to true.
 
@@ -163,7 +163,7 @@ public keys by setting the pq parameter to true.
 
 # Key Derivation Parameters
 
-For password-based keys, you can customize the Argon2 parameters:
+For password-based keys, you can customize the Argon2id parameters:
 
 	// High-security configuration
 	secretKey, err := xipher.NewSecretKeyForPasswordAndSpec(
@@ -199,7 +199,7 @@ The encoded format is human-readable and safe for text-based transmission.
 # Error Handling
 
 The package defines several specific error types for different failure modes:
-• errInvalidPassword: Empty or invalid password provided
+• errInvalidPassword: Password does not meet the strength policy
 • errInvalidCiphertext: Malformed ciphertext data
 • errInvalidPublicKey: Invalid public key format
 • errInvalidSecretKey: Invalid secret key format

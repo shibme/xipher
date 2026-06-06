@@ -330,7 +330,7 @@ func Example_postQuantumCryptography() {
 		log.Fatal(err)
 	}
 
-	// Generate post-quantum public key (Kyber1024)
+	// Generate post-quantum public key (ML-KEM / Kyber-1024)
 	pqPublicKey, err := secretKey.PublicKey(true) // true enables post-quantum
 	if err != nil {
 		log.Fatal(err)
@@ -410,7 +410,7 @@ func Example_streamProcessing() {
 	// Encrypted data is smaller due to compression: true
 }
 
-// Example_customKDFParameters demonstrates using custom Argon2 parameters for key derivation.
+// Example_customKDFParameters demonstrates using custom Argon2id parameters for key derivation.
 func Example_customKDFParameters() {
 	password := []byte("my-password")
 

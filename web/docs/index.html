@@ -115,7 +115,7 @@
 
                 <div class="docs-hero">
                     <h1>Xipher Documentation</h1>
-                    <p class="docs-lead">Xipher is a lightweight, server-free tool for password-based asymmetric
+                    <p class="docs-lead">Xipher is a lightweight, server-free tool for key/password-based asymmetric
                         encryption. Share sensitive data over any channel (the CLI, your browser, a Go program, or
                         WebAssembly) without trusting a server with your secrets.</p>
                     <div class="docs-hero-cards">
@@ -618,10 +618,11 @@ jobs:
                 <!-- ARCHITECTURE -->
                 <section id="arch-overview" class="docs-section">
                     <h2>Architecture</h2>
-                    <p>Xipher enables <strong>password-based asymmetric encryption</strong>: public keys can be derived
-                        from a memorable password, with no certificate authority or PKI to manage. It uses a hybrid
-                        KEM + DEM scheme: a key-exchange layer establishes a shared symmetric key, which a stream
-                        cipher then uses to encrypt the data in chunks for constant-memory processing of any size.</p>
+                    <p>Xipher enables <strong>key/password-based asymmetric encryption</strong>: public keys can be
+                        derived from a random secret key or a memorable password, with no certificate authority or PKI to
+                        manage. It uses a hybrid KEM + DEM scheme: a key-exchange layer establishes a shared symmetric
+                        key, which a stream cipher then uses to encrypt the data in chunks for constant-memory processing
+                        of any size.</p>
                     <div class="docs-table-wrap">
                         <table class="docs-table">
                             <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>

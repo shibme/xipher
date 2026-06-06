@@ -1,5 +1,5 @@
-// Package xipher provides a curated collection of cryptographic primitives
-// for performing key/password-based asymmetric encryption.
+// Package xipher provides a collection of cryptographic primitives
+// for key/password-based asymmetric encryption, with optional post-quantum security.
 //
 // Xipher allows secure data sharing between two parties over an insecure channel
 // using asymmetric encryption. The sender encrypts data using a public key
@@ -9,7 +9,7 @@
 // Key features:
 //   - Password-based public key generation
 //   - Stream cipher with compression support
-//   - Post-quantum cryptography using Kyber1024
+//   - Post-quantum cryptography using ML-KEM (Kyber-1024)
 //   - Stream processing for memory efficiency
 //
 // Example usage:
@@ -64,13 +64,13 @@ const (
 	// publicKeyMinLength is the minimum length of a public key (varies based on key type).
 	publicKeyMinLength = asx.MinPublicKeyLength + 1 // +1 for the key type
 
-	// Default Argon2 parameters for key derivation
+	// Default Argon2id parameters for key derivation
 
-	// defaultKdfIterations is the default number of iterations for Argon2 key derivation.
+	// defaultKdfIterations is the default number of iterations for Argon2id key derivation.
 	defaultKdfIterations uint8 = 16
-	// defaultKdfMemory is the default memory size in MB for Argon2 key derivation.
+	// defaultKdfMemory is the default memory size in MB for Argon2id key derivation.
 	defaultKdfMemory uint8 = 64
-	// defaultKdfThreads is the default number of threads for Argon2 key derivation.
+	// defaultKdfThreads is the default number of threads for Argon2id key derivation.
 	defaultKdfThreads uint8 = 1
 
 	// KDF (Key Derivation Function) constants
@@ -135,7 +135,7 @@ const (
 	// web is the official website URL.
 	web = "https://xipher.org"
 	// description is the application description.
-	description = "Xipher is a curated collection of cryptographic primitives put together to perform key/password based asymmetric encryption."
+	description = "Xipher is a collection of cryptographic primitives for key/password-based asymmetric encryption, with optional post-quantum security."
 	// art is the ASCII art logo.
 	art = `
   xxxxxxxxx      xxxxxxxxx  

@@ -49,7 +49,7 @@ func NewSecretKeyForPassword(password []byte) (*SecretKey, error) {
 //
 // Parameters:
 //   - password: The password to derive the key from (must not be empty)
-//   - iterations: Number of Argon2 iterations (higher = more secure, slower)
+//   - iterations: Number of Argon2id iterations (higher = more secure, slower)
 //   - memory: Memory usage in MB (higher = more secure, more memory)
 //   - threads: Number of parallel threads (higher = faster on multi-core systems)
 //
@@ -268,7 +268,7 @@ type PublicKey struct {
 // The public key can be used for encryption, while the secret key is needed for decryption.
 //
 // Parameters:
-//   - pq: If true, uses post-quantum cryptography (Kyber1024); if false, uses ECC
+//   - pq: If true, uses post-quantum cryptography (ML-KEM / Kyber-1024); if false, uses ECC
 //
 // Post-quantum cryptography provides resistance against quantum computer attacks
 // but results in larger key sizes and ciphertext.
