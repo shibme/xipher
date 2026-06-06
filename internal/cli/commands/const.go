@@ -100,7 +100,7 @@ var (
 		flagDef: flagDef{
 			name:      "quantum-safe",
 			shorthand: "q",
-			usage:     "Use quantum-safe cryptography",
+			usage:     "Use quantum-safe hybrid cryptography (X25519 + ML-KEM-1024)",
 		},
 	}
 

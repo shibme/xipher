@@ -9,7 +9,7 @@
 // Key features:
 //   - Password-based public key generation
 //   - Stream cipher with compression support
-//   - Post-quantum cryptography using ML-KEM (Kyber-1024)
+//   - Quantum-safe hybrid cryptography combining X25519 and ML-KEM-1024 (Kyber)
 //   - Stream processing for memory efficiency
 //
 // Example usage:

@@ -268,10 +268,11 @@ type PublicKey struct {
 // The public key can be used for encryption, while the secret key is needed for decryption.
 //
 // Parameters:
-//   - pq: If true, uses post-quantum cryptography (ML-KEM / Kyber-1024); if false, uses ECC
+//   - pq: If true, uses quantum-safe hybrid cryptography (X25519 + ML-KEM-1024); if false, uses ECC
 //
-// Post-quantum cryptography provides resistance against quantum computer attacks
-// but results in larger key sizes and ciphertext.
+// The hybrid mode combines classical X25519 with post-quantum ML-KEM-1024, providing
+// resistance against quantum computer attacks while retaining classical security if
+// either primitive is broken. It results in larger key sizes and ciphertext.
 //
 // Returns an error if key derivation fails.
 //
@@ -289,7 +290,7 @@ func (secretKey *SecretKey) PublicKey(pq bool) (*PublicKey, error) {
 	}
 	var asxPubKey *asx.PublicKey
 	if pq {
-		asxPubKey, err = asxPrivKey.PublicKeyKyber()
+		asxPubKey, err = asxPrivKey.PublicKeyHybrid()
 	} else {
 		asxPubKey, err = asxPrivKey.PublicKeyECC()
 	}

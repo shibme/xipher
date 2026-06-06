@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"golang.org/x/crypto/curve25519"
-	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 // KeyLength is the length of the ECC key.
@@ -21,13 +20,7 @@ type PrivateKey struct {
 
 // PublicKey represents a public key.
 type PublicKey struct {
-	key       []byte
-	encrypter *encrypter
-}
-
-type encrypter struct {
-	ephPubKey []byte
-	cipher    *xcp.SymmetricCipher
+	key []byte
 }
 
 // Bytes returns the bytes of the private key.
@@ -83,28 +76,29 @@ func (publicKey *PublicKey) Bytes() []byte {
 	return publicKey.key
 }
 
-func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
-	if publicKey.encrypter == nil {
-		ephPrivKey := make([]byte, KeyLength)
-		if _, err := rand.Read(ephPrivKey); err != nil {
-			return nil, err
-		}
-		ephPubKey, err := curve25519.X25519(ephPrivKey, curve25519.Basepoint)
-		if err != nil {
-			return nil, err
-		}
-		sharedKey, err := curve25519.X25519(ephPrivKey, publicKey.key)
-		if err != nil {
-			return nil, err
-		}
-		cipher, err := xcp.New(sharedKey)
-		if err != nil {
-			return nil, err
-		}
-		publicKey.encrypter = &encrypter{
-			ephPubKey: ephPubKey,
-			cipher:    cipher,
-		}
+// Encapsulate performs an ephemeral X25519 key agreement against the public key.
+// It generates a fresh ephemeral key pair on every call and returns the ephemeral
+// public key (to be sent to the recipient) along with the derived shared secret.
+func (publicKey *PublicKey) Encapsulate() (ephPubKey, sharedKey []byte, err error) {
+	ephPrivKey := make([]byte, KeyLength)
+	if _, err = rand.Read(ephPrivKey); err != nil {
+		return nil, nil, err
 	}
-	return publicKey.encrypter, nil
+	ephPubKey, err = curve25519.X25519(ephPrivKey, curve25519.Basepoint)
+	if err != nil {
+		return nil, nil, err
+	}
+	sharedKey, err = curve25519.X25519(ephPrivKey, publicKey.key)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ephPubKey, sharedKey, nil
+}
+
+// Decapsulate recovers the shared secret from an ephemeral X25519 public key using the private key.
+func (privateKey *PrivateKey) Decapsulate(ephPubKey []byte) (sharedKey []byte, err error) {
+	if len(ephPubKey) != KeyLength {
+		return nil, errInvalidKeyLength
+	}
+	return curve25519.X25519(privateKey.key, ephPubKey)
 }

@@ -19,7 +19,7 @@ Xipher is a collection of cryptographic primitives for key/password-based asymme
 
 - Asymmetric encryption using key/password-derived public keys
 - Stream processing with built-in compression
-- Post-quantum security (optional ML-KEM / Kyber-1024 support)
+- Quantum-safe security (optional hybrid X25519 + ML-KEM-1024 support)
 - Available as CLI tool, Go library, WebAssembly module, and web interface
 - Optimized for both small and large data
 
@@ -70,9 +70,11 @@ A bare domain resolves to `/.well-known/xipher`. See [key references](https://xi
 
 ## Technical Details
 
-Argon2id key derivation, Curve25519 (with optional ML-KEM / Kyber-1024 post-quantum), and XChaCha20-Poly1305. See the [cryptographic primitives](https://xipher.org/docs/#arch-primitives) for parameters, security levels, and the data format.
+Argon2id key derivation, Curve25519 / X25519 (with an optional quantum-safe hybrid that combines X25519 and ML-KEM-1024), and XChaCha20-Poly1305. See the [cryptographic primitives](https://xipher.org/docs/#arch-primitives) for parameters, security levels, and the data format.
 
 > **Note**: v1.19+ uses Go's native ML-KEM package for post-quantum crypto ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) compliant). This breaks compatibility with previous Kyber implementations. Standard ECC encryption is unaffected.
+>
+> **Note**: Quantum-safe mode now defaults to a hybrid of X25519 and ML-KEM-1024 instead of pure ML-KEM, so security holds as long as either primitive is unbroken. Ciphertexts and public keys self-describe their algorithm, so data produced with the earlier pure ML-KEM mode still decrypts.
 
 ## Documentation
 

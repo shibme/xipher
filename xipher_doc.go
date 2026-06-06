@@ -13,7 +13,7 @@ the data using the corresponding secret key or password.
 
 • Password-based public key generation using Argon2id key derivation
 • Stream cipher with optional compression for memory efficiency
-• Post-quantum cryptography support using ML-KEM (Kyber-1024)
+• Quantum-safe hybrid cryptography combining X25519 and ML-KEM-1024 (Kyber)
 • Stream processing for handling large files efficiently
 • Base32 encoding for human-readable ciphertext
 • Both symmetric and asymmetric encryption modes
@@ -49,9 +49,11 @@ This enables secure communication between different parties.
 
 # Post-Quantum Cryptography
 
-Xipher supports post-quantum cryptography using ML-KEM (Kyber-1024), providing
-resistance against quantum computer attacks. This can be enabled when generating
-public keys by setting the pq parameter to true.
+Xipher supports quantum-safe hybrid cryptography that combines classical X25519
+with post-quantum ML-KEM-1024 (Kyber), providing resistance against quantum
+computer attacks while retaining classical security if either primitive is
+broken. This can be enabled when generating public keys by setting the pq
+parameter to true.
 
 # Basic Usage Examples
 

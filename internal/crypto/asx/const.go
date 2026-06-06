@@ -14,8 +14,9 @@ const (
 	MinPublicKeyLength = ecc.KeyLength + 1 // +1 for the algorithm type
 
 	// Algorithm Types
-	algoECC   uint8 = 0
-	algoKyber uint8 = 1
+	algoECC    uint8 = 0
+	algoKyber  uint8 = 1
+	algoHybrid uint8 = 2
 )
 
 var (

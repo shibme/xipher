@@ -16,6 +16,11 @@ func (publicKey *PublicKey) NewEncryptingWriter(dst io.Writer, compress bool) (i
 			return nil, err
 		}
 		return publicKey.kPub.NewEncryptingWriter(dst, compress)
+	} else if publicKey.hPub != nil {
+		if _, err := dst.Write([]byte{algoHybrid}); err != nil {
+			return nil, err
+		}
+		return publicKey.hPub.NewEncryptingWriter(dst, compress)
 	} else {
 		return nil, errInvalidPublicKey
 	}
@@ -41,6 +46,12 @@ func (privateKey *PrivateKey) NewDecryptingReader(src io.Reader) (io.Reader, err
 			return nil, err
 		}
 		return kybPrivKey.NewDecryptingReader(src)
+	case algoHybrid:
+		hybPrivKey, err := privateKey.getHybPrivKey()
+		if err != nil {
+			return nil, err
+		}
+		return hybPrivKey.NewDecryptingReader(src)
 	default:
 		return nil, errInvalidAlgorithm
 	}

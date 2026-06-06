@@ -4,8 +4,6 @@ import (
 	"crypto/mlkem"
 	"crypto/rand"
 	"fmt"
-
-	"xipher.org/xipher/internal/crypto/xcp"
 )
 
 const (
@@ -13,7 +11,8 @@ const (
 	PrivateKeyLength = mlkem.SeedSize
 	// PublicKeyLength is the length of the Kyber-1024 public key.
 	PublicKeyLength = mlkem.EncapsulationKeySize1024
-	ctLength        = mlkem.CiphertextSize1024
+	// CiphertextLength is the length of the Kyber-1024 encapsulated key (ciphertext).
+	CiphertextLength = mlkem.CiphertextSize1024
 )
 
 var (
@@ -30,13 +29,7 @@ type PrivateKey struct {
 
 // PublicKey represents a public key.
 type PublicKey struct {
-	pk        *mlkem.EncapsulationKey1024
-	encrypter *encrypter
-}
-
-type encrypter struct {
-	keyEnc []byte
-	cipher *xcp.SymmetricCipher
+	pk *mlkem.EncapsulationKey1024
 }
 
 // Bytes returns the bytes of the private key.
@@ -101,17 +94,15 @@ func (publicKey *PublicKey) Bytes() []byte {
 	return publicKey.pk.Bytes()
 }
 
-func (publicKey *PublicKey) getEncrypter() (*encrypter, error) {
-	if publicKey.encrypter == nil {
-		sharedKey, keyEnc := publicKey.pk.Encapsulate()
-		cipher, err := xcp.New(sharedKey)
-		if err != nil {
-			return nil, err
-		}
-		publicKey.encrypter = &encrypter{
-			keyEnc: keyEnc,
-			cipher: cipher,
-		}
-	}
-	return publicKey.encrypter, nil
+// Encapsulate performs ML-KEM-1024 encapsulation against the public key.
+// It returns the encapsulated key (ciphertext, to be sent to the recipient)
+// along with the derived shared secret.
+func (publicKey *PublicKey) Encapsulate() (keyEnc, sharedKey []byte, err error) {
+	sharedKey, keyEnc = publicKey.pk.Encapsulate()
+	return keyEnc, sharedKey, nil
+}
+
+// Decapsulate recovers the shared secret from an ML-KEM-1024 encapsulated key using the private key.
+func (privateKey *PrivateKey) Decapsulate(keyEnc []byte) (sharedKey []byte, err error) {
+	return privateKey.sk.Decapsulate(keyEnc)
 }

@@ -330,8 +330,8 @@ func Example_postQuantumCryptography() {
 		log.Fatal(err)
 	}
 
-	// Generate post-quantum public key (ML-KEM / Kyber-1024)
-	pqPublicKey, err := secretKey.PublicKey(true) // true enables post-quantum
+	// Generate quantum-safe hybrid public key (X25519 + ML-KEM-1024)
+	pqPublicKey, err := secretKey.PublicKey(true) // true enables quantum-safe hybrid
 	if err != nil {
 		log.Fatal(err)
 	}
