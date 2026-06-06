@@ -110,6 +110,7 @@
                     <a href="#arch-primitives" class="docs-nav-link">Primitives</a>
                     <a href="#arch-format" class="docs-nav-link">Data format</a>
                     <a href="#arch-analysis" class="docs-nav-link">Security analysis</a>
+                    <a href="#acknowledgments" class="docs-nav-link">Acknowledgments</a>
                 </div>
             </nav>
         </aside>
@@ -377,7 +378,7 @@ xipher encrypt --help</code></pre>
                     <pre class="code-block" data-lang="bash"><code># Full URL to a published key
 xipher encrypt text -k "https://alice.example.com/.well-known/xipher" -t "Secret message"
 
-# A bare domain or URL — pass --fetch to fetch without a prompt
+# A bare domain or URL: pass --fetch to fetch without a prompt
 xipher encrypt text --fetch -k "alice.example.com" -t "Secret message"
 
 # Without --fetch, a domain-like value asks for confirmation before fetching,
@@ -396,14 +397,14 @@ xipher encrypt text -k "alice.example.com" -t "Secret message"
                             <code>http://</code> for local development.</li>
                         <li>In the <strong>web app</strong>, opening a link such as
                             <code>https://xipher.org/?xk=alice.example.com</code> resolves the key automatically. Only
-                            public keys and URLs are accepted through a link — secret keys and passwords are never read
+                            public keys and URLs are accepted through a link; secret keys and passwords are never read
                             from the URL.</li>
                     </ul>
                     <div class="docs-callout docs-callout-warn">
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
                             <p>A URL authenticates the <em>host</em> (via TLS), not the key's owner. Treat a key
-                                reference as a convenience, not a cryptographic identity guarantee — anyone who controls
+                                reference as a convenience, not a cryptographic identity guarantee. Anyone who controls
                                 the host (or its DNS) controls the key served there.</p>
                         </div>
                     </div>
@@ -413,12 +414,12 @@ xipher encrypt text -k "alice.example.com" -t "Secret message"
                     <h3>Published key format</h3>
                     <p>The URL should serve the public key in one of two forms. Xipher tries JSON first, then falls back
                         to plain text.</p>
-                    <p><strong>JSON</strong> (recommended — lets you attach a display name shown to the sender):</p>
+                    <p><strong>JSON</strong> (recommended, lets you attach a display name shown to the sender):</p>
                     <pre class="code-block" data-lang="json"><code>{
   "name": "Alice",
   "publicKey": "XPK_..."
 }</code></pre>
-                    <p><strong>Plain text</strong> — the response body is exactly the <code>XPK_…</code> string:</p>
+                    <p><strong>Plain text</strong>, where the response body is exactly the <code>XPK_…</code> string:</p>
                     <pre class="code-block" data-lang="text"><code>XPK_...</code></pre>
                     <div class="docs-table-wrap">
                         <table class="docs-table">
@@ -439,7 +440,7 @@ xipher encrypt text -k "alice.example.com" -t "Secret message"
                 <section id="keyref-hosting" class="docs-section">
                     <h3>Hosting a key</h3>
                     <p>Publish the JSON (or plain <code>XPK_…</code>) file at <code>/.well-known/xipher</code> on any
-                        static host — GitHub Pages, Cloudflare Pages, S3, your own server, etc. To host several keys
+                        static host such as GitHub Pages, Cloudflare Pages, S3, or your own server. To host several keys
                         under one domain, place each at <code>/&lt;name&gt;/.well-known/xipher</code> and share the path
                         (e.g. <code>example.com/alice</code>), which probes that location automatically.</p>
                     <div class="docs-callout docs-callout-warn">
@@ -454,7 +455,7 @@ xipher encrypt text -k "alice.example.com" -t "Secret message"
                     </div>
                     <pre class="code-block" data-lang="text"><code>Access-Control-Allow-Origin: *
 Content-Type: application/json</code></pre>
-                    <p>The CLI and Go library are not browsers and have no CORS restriction — they resolve any reachable
+                    <p>The CLI and Go library are not browsers and have no CORS restriction. They resolve any reachable
                         HTTPS URL regardless of headers.</p>
                 </section>
 
@@ -795,6 +796,20 @@ encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
                     <p>Standards: FIPS&nbsp;203 (ML-KEM), RFC&nbsp;8439 (ChaCha20-Poly1305), RFC&nbsp;7748
                         (Curve25519), RFC&nbsp;9106 (Argon2). All randomness comes from <code>crypto/rand</code> and
                         all primitives use constant-time implementations from the Go standard library.</p>
+                </section>
+
+                <!-- ACKNOWLEDGMENTS -->
+                <section id="acknowledgments" class="docs-section">
+                    <h2>Acknowledgments</h2>
+                    <p>Xipher builds on the ideas and work of these projects:</p>
+                    <ul>
+                        <li><a href="https://retriever.corgea.io/" target="_blank" rel="noopener">Retriever</a>:
+                            inspiration for web-based encryption concepts.</li>
+                        <li><a href="https://github.com/jimmywarting/StreamSaver.js" target="_blank" rel="noopener">StreamSaver.js</a>:
+                            browser file-saving capabilities used by the web app.</li>
+                        <li><a href="https://github.com/FiloSottile/age" target="_blank" rel="noopener">age</a>:
+                            inspiration for the Curve25519 and XChaCha20-Poly1305 usage.</li>
+                    </ul>
                 </section>
 
                 <footer class="docs-footer">

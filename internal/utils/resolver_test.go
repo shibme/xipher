@@ -452,7 +452,7 @@ func TestFetchPublicKeyLoopbackHTTP(t *testing.T) {
 	keyFetchClient = &http.Client{Timeout: keyFetchTimeout}
 	clearKeyCache()
 
-	// httptest.NewServer yields http://127.0.0.1:PORT — a loopback http endpoint.
+	// httptest.NewServer yields http://127.0.0.1:PORT, a loopback http endpoint.
 	got, _, err := fetchPublicKey(srv.URL)
 	if err != nil {
 		t.Fatalf("unexpected error fetching loopback http: %v", err)

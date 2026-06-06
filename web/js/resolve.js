@@ -19,7 +19,7 @@
     const statusEl = document.getElementById("status");
 
     function setStatus(text) {
-        // textContent only — never innerHTML — so untrusted text can't inject markup.
+        // textContent only, never innerHTML, so untrusted text can't inject markup.
         if (statusEl) {
             statusEl.textContent = text;
         }
@@ -98,7 +98,7 @@
                 }
             }
         } catch (e) {
-            // not JSON — fall through to plaintext
+            // not JSON, fall through to plaintext
         }
         const pk = body.trim();
         if (pk.startsWith(PUBKEY_PREFIX)) {

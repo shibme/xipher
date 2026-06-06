@@ -61,7 +61,7 @@ function redirectToResolver(url) {
 // classifyKeyRef decides what a URL-supplied key reference is. It returns
 // { pubKey } for a public key, { url } for a fetchable URL (https, or http for
 // loopback) or a bare domain (normalised to https://), or null for anything
-// else. Secret keys, passwords, and disallowed schemes are all rejected — only
+// else. Secret keys, passwords, and disallowed schemes are all rejected; only
 // public material may travel here.
 function classifyKeyRef(value) {
     if (!value) {
