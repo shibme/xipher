@@ -635,12 +635,34 @@
     }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 540px) {
+    /* Compact the top bar so its controls never overflow on phones. */
+    .docs-topbar {
+        gap: 8px;
+    }
+
     .topbar-link-label {
         display: none;
     }
 
+    .topbar-link {
+        padding: 8px 10px;
+        gap: 0;
+    }
+
+    .topbar-version,
     .docs-topbar-tag {
+        display: none;
+    }
+
+    .docs-topbar-actions {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 380px) {
+    /* Very narrow: keep the logo mark but drop the wordmark to save space. */
+    .app-title-text {
         display: none;
     }
 }

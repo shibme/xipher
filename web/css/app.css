@@ -110,8 +110,21 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
+    /* Fluid width: full-width (minus frame padding) on phones, growing with the
+       viewport up to a readable cap on wide displays. width:100% keeps it from
+       ever exceeding the available space, so it never scrolls horizontally. */
     width: 100%;
-    max-width: 440px;
+    max-width: clamp(420px, 52vw, 680px);
+    /* Grow to fill the height available below the top bar so the text area gets
+       as much room as the screen allows, but cap it (760px) so it doesn't become
+       unwieldy on large monitors. Bounded by the viewport, so the page never
+       scrolls; if content minimums don't fit (very short screens) the box itself
+       scrolls internally. */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    max-height: min(calc(100dvh - 64px - 2 * clamp(12px, 4vw, 40px)), 760px);
+    overflow-y: auto;
     transition: background-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
 
@@ -173,6 +186,10 @@
     letter-spacing: 0.06em;
     color: var(--text-faint);
     margin-bottom: 7px;
+}
+
+#link-label {
+    text-align: center;
 }
 
 .field-hint {
@@ -248,7 +265,20 @@
 
 /* ---- Input container & text view --------------------------------------- */
 
+/* The form and its text-input area grow to absorb the box's leftover height so
+   everything fits without page scroll; the textarea is the flexible element. */
+#crypto-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .input-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     margin-bottom: 12px;
 }
 
@@ -259,7 +289,9 @@
     padding: 14px;
     background: var(--input-bg-color);
     transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
-    height: clamp(150px, 28vh, 220px);
+    /* Flex to fill the leftover height in the box, with a usable minimum. */
+    flex: 1;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -575,9 +607,31 @@ textarea:focus::placeholder {
    Responsive
    ========================================================================== */
 
-@media (max-width: 420px) {
+@media (max-width: 540px) {
+    /* Compact the top bar so its controls never overflow on phones:
+       collapse the labelled links to icon-only buttons, drop the version
+       chip, and tighten spacing. */
+    .topbar {
+        gap: 8px;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
     .topbar-link-label {
         display: none;
+    }
+
+    .topbar-link {
+        padding: 8px 10px;
+        gap: 0;
+    }
+
+    .topbar-version {
+        display: none;
+    }
+
+    .topbar-actions {
+        gap: 6px;
     }
 
     .app-container {
@@ -590,14 +644,16 @@ textarea:focus::placeholder {
     }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 380px) {
+    /* Very narrow: keep the logo mark but drop the wordmark to save space. */
     .app-title-text {
-        font-size: 17px;
+        display: none;
     }
 }
 
-/* Short viewports (e.g. landscape phones): keep the card on-screen without scrolling. */
-@media (max-height: 640px) {
+/* Short viewports (most phones, short laptop windows): drop the decorative
+   description and tip, and top-align, so the box fits without scrolling. */
+@media (max-height: 720px) {
     .app-frame {
         justify-content: flex-start;
     }

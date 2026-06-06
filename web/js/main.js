@@ -406,8 +406,9 @@ function setupModeUI() {
             linkSection.hidden = true;
         }
     } else {
-        modeBadgeText.textContent = "Your private workspace · keys stay in this browser";
-        modeBadge.hidden = false;
+        // Default (receiver) view: the badge would just restate what the intro
+        // and link label already say, so leave it hidden to save vertical space.
+        modeBadge.hidden = true;
         if (linkLabel) {
             linkLabel.textContent = "Share this link so others can send you a secret";
         }
