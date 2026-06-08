@@ -1,4 +1,7 @@
-const CACHE_NAME = 'xipher-cache-v4';
+// The release workflow rewrites "xipher-cache" to "xipher-v<release-version>"
+// (see .github/workflows/release.yaml), so the cache name tracks the release and
+// busts on every version. Leave this placeholder as-is; do not hand-version it.
+const CACHE_NAME = 'xipher-cache';
 const urlsToCache = [
   '/',
   '/index.html',

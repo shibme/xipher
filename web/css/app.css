@@ -94,13 +94,15 @@
 
 /* ---- Profile button ----------------------------------------------------- */
 
-/* When a name is set the button widens from a circle into a pill with the name
-   beside the icon; with no name it stays the plain round icon button. */
+/* When a name is set (the .has-name class) the button widens from a circle into
+   a pill with the icon + name; with no name it stays the plain round icon button.
+   On narrow viewports the pill collapses back to a round badge showing initials
+   (see the mobile override) so a long name can't overflow the top bar. */
 .profile-button {
     gap: 7px;
 }
 
-.profile-button:has(.profile-button-name:not([hidden])) {
+.profile-button.has-name {
     width: auto;
     padding: 0 14px 0 11px;
 }
@@ -117,6 +119,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Initials badge: hidden by default (the name is shown instead); revealed only
+   in the narrow-viewport override below. */
+.profile-button-initials {
+    display: none;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1;
 }
 
 /* ---- Identity card (profile modal) -------------------------------------- */
@@ -721,6 +732,27 @@ textarea:focus::placeholder {
 
     .topbar-actions {
         gap: 6px;
+    }
+
+    /* Collapse the named profile pill back to a round badge so a long name can't
+       overflow the bar: hide the name, hide the person icon, show the initials
+       centred in the circular button. */
+    .profile-button.has-name {
+        width: 38px;
+        padding: 0;
+        gap: 0;
+    }
+
+    .profile-button.has-name .profile-button-name {
+        display: none;
+    }
+
+    .profile-button.has-name .profile-button-icon {
+        display: none;
+    }
+
+    .profile-button.has-name .profile-button-initials {
+        display: inline-flex;
     }
 
     .app-container {

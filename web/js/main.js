@@ -21,7 +21,6 @@ const publinkCopyButton = document.getElementById("publink-copy-button");
 const publinkShareButton = document.getElementById("publink-share-button");
 const modeBadge = document.getElementById("mode-badge");
 const modeBadgeText = document.getElementById("mode-badge-text");
-const { xk, xt, xn, redirecting } = initParams();
 
 // Matches a bare host (optionally with a port/path) that has no URL scheme,
 // e.g. "alice.com" or "alice.com/keys". Mirrors domainRegex in resolver.go.
@@ -114,6 +113,11 @@ function initParams() {
     }
     return { xk: null, xt: null };
 }
+
+// Resolve URL params now that initParams and the regexes/helpers it relies on are
+// all declared. (Calling it earlier hit the const temporal dead zone for the
+// regexes, throwing on bare-domain refs like ?xk=shib.me and halting startup.)
+const { xk, xt, xn, redirecting } = initParams();
 
 function getEncryptionTarget() {
     if (!xk) {
@@ -478,6 +482,13 @@ function setupModeUI() {
             ? `Encrypting for ${xn}`
             : "Encrypting for the shared recipient";
         modeBadge.hidden = false;
+        // Reflect the recipient in the page title so the tab is identifiable,
+        // preferring the resolved name when the key URL provided one.
+        if (xn) {
+            document.title = `Encrypting for ${xn} · Xipher`;
+        } else {
+            document.title = "Encrypting a secret · Xipher";
+        }
         // The visitor's own receive-link is not relevant in this flow.
         if (linkSection) {
             linkSection.hidden = true;

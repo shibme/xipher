@@ -610,7 +610,7 @@ Content-Type: application/json</code></pre>
                                 <tr><th>Parameter</th><th>Required</th><th>Description</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><code>provider</code></td><td>Yes</td><td>Your provider URL (HTTPS, or <code>http</code> only for loopback hosts). A bare domain is promoted to HTTPS.</td></tr>
+                                <tr><td><code>provider</code></td><td>Yes</td><td>Your provider URL. The scheme is optional: a bare host like <code>auth.example.com</code> is promoted to HTTPS automatically. If you do include a scheme it must be <code>https://</code> (only loopback hosts may use <code>http://</code>, for local development); any other scheme is rejected.</td></tr>
                                 <tr><td><code>provider_ecc</code></td><td>No</td><td>Set (e.g. <code>provider_ecc=1</code>) to request the compact X25519 key up front instead of the hybrid one. Use this when you know your server caps request URLs below ~4&nbsp;KB, to skip the hybrid attempt. Omit it to get the stronger hybrid key with automatic fallback.</td></tr>
                             </tbody>
                         </table>

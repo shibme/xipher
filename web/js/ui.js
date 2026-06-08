@@ -114,23 +114,45 @@ const keySecretInput = document.getElementById("key-secret-input");
 const keySecretReveal = document.getElementById("key-secret-reveal");
 const keySecretGenerate = document.getElementById("key-secret-generate");
 const quantumSafeToggle = document.getElementById("quantum-safe-toggle");
+const profileButton = document.getElementById("settings-button");
 const profileButtonName = document.getElementById("profile-button-name");
+const profileButtonInitials = document.getElementById("profile-button-initials");
 const identityName = document.getElementById("identity-name");
 const identityContact = document.getElementById("identity-contact");
 const identityProvider = document.getElementById("identity-provider");
 const identityNameInput = document.getElementById("identity-name-input");
 const identityNameManaged = document.getElementById("identity-name-managed");
 
-// Reflects the current identity onto the topbar profile button: shows the name
-// next to the icon when one is set, otherwise just the icon.
+// Derives up to two uppercase initials from a display name (e.g. "Alice Example"
+// -> "AE", "shibme" -> "S"). Falls back to "" when there's nothing usable.
+function initialsFromName(name) {
+    const words = (name || "").trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+        return "";
+    }
+    const first = Array.from(words[0])[0] || "";
+    const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] || "") : "";
+    return (first + last).toUpperCase();
+}
+
+// Reflects the current identity onto the topbar profile button. With a name set,
+// the button shows the name beside the icon on wider screens; on narrow viewports
+// it collapses to a round badge with the initials (see the has-name styles). With
+// no name it stays the plain round icon button.
 function renderProfileButton() {
     const { name } = getIdentity();
     if (name) {
         profileButtonName.textContent = name;
         profileButtonName.hidden = false;
+        profileButtonInitials.textContent = initialsFromName(name);
+        profileButton.classList.add("has-name");
+        profileButton.setAttribute("title", `${name} · open profile`);
     } else {
         profileButtonName.textContent = "";
         profileButtonName.hidden = true;
+        profileButtonInitials.textContent = "";
+        profileButton.classList.remove("has-name");
+        profileButton.setAttribute("title", "Your profile: identity, key, password, and encryption options");
     }
 }
 

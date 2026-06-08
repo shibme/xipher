@@ -56,27 +56,43 @@ function buildProviderUrl(providerUrl, publicKey, state) {
     return target.toString();
 }
 
-// normalizeProviderUrl applies the same scheme rules as key URLs (see main.js):
-// https anywhere, http only for loopback hosts, bare domains promoted to https.
-// Returns the absolute URL string, or null if not permitted.
+// normalizeProviderUrl resolves a provider reference to an absolute URL the app
+// will redirect to. A scheme is optional: a schemeless host is promoted to
+// https (http for loopback hosts during local development), so "shib.me" and
+// "shib.me/issue" both work. If a scheme IS given it must be https, since the
+// provider receives the ephemeral public key and we never want it sent in the
+// clear; the only exception is http to a loopback host for development.
+// Returns { url } on success or { error } with a short reason otherwise.
 function normalizeProviderUrl(value) {
     if (!value) {
-        return null;
+        return { error: "invalid" };
     }
     value = value.trim();
-    if (isFetchableUrl(value)) {
-        return value;
-    }
-    if (!SCHEME_REGEX.test(value)) {
-        const host = value.split("/")[0].split(":")[0];
-        if (isLoopbackHost(host)) {
-            return "http://" + value;
+
+    if (SCHEME_REGEX.test(value)) {
+        let u;
+        try {
+            u = new URL(value);
+        } catch (e) {
+            return { error: "invalid" };
         }
-        if (DOMAIN_REGEX.test(value)) {
-            return "https://" + value;
+        if (u.protocol === "https:" || (u.protocol === "http:" && isLoopbackHost(u.hostname))) {
+            return { url: value };
         }
+        // A scheme was supplied but it isn't allowed (e.g. http to a public host).
+        return { error: "insecure" };
     }
-    return null;
+
+    // Schemeless: promote to a scheme. Loopback hosts use http for local dev;
+    // everything else uses https.
+    const host = value.split("/")[0].split(":")[0];
+    if (isLoopbackHost(host)) {
+        return { url: "http://" + value };
+    }
+    if (DOMAIN_REGEX.test(value)) {
+        return { url: "https://" + value };
+    }
+    return { error: "invalid" };
 }
 
 // Maps a provider-returned error code to a user-facing message.
@@ -111,6 +127,12 @@ const providerModalClose = document.getElementById("provider-modal-close");
 // opts: { title, message, confirmLabel, confirmClass, detailLabel, detailValue }.
 function askProviderConsent(opts) {
     return new Promise((resolve) => {
+        // The provider flow runs during startup while the preloader is still up
+        // (z-index 2000). Hide it first so this modal (z-index 1500) is actually
+        // visible and clickable, otherwise the consent sits behind the loader.
+        if (typeof hidePreloader === "function") {
+            hidePreloader();
+        }
         providerModalTitle.textContent = opts.title;
         providerModalMessage.textContent = opts.message;
         providerModalConfirm.textContent = opts.confirmLabel || "Continue";
@@ -167,12 +189,18 @@ function clearProviderUrl() {
 // forceEcc is true the request uses the compact X25519 key directly. Returns
 // "redirecting" if it navigates away to the provider, otherwise null.
 async function initiateProviderFlow(rawProviderUrl, forceEcc) {
-    const providerUrl = normalizeProviderUrl(rawProviderUrl);
-    if (!providerUrl) {
-        showToast("That credential provider URL is not valid.", "error");
+    const resolved = normalizeProviderUrl(rawProviderUrl);
+    if (resolved.error) {
+        showToast(
+            resolved.error === "insecure"
+                ? "Credential providers must use https. That provider URL was rejected."
+                : "That credential provider URL is not valid.",
+            "error"
+        );
         clearProviderUrl();
         return null;
     }
+    const providerUrl = resolved.url;
 
     const host = new URL(providerUrl).host;
     const ok = await askProviderConsent({
