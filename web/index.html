@@ -64,9 +64,10 @@
                 <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">🌙</span>
                 <span class="theme-toggle-circle"></span>
             </button>
-            <button type="button" id="settings-button" class="topbar-icon-button"
-                title="Settings: your key, password, and encryption options" aria-label="Open settings">
-                <span aria-hidden="true">⚙️</span>
+            <button type="button" id="settings-button" class="topbar-icon-button profile-button"
+                title="Your profile: identity, key, password, and encryption options" aria-label="Open profile">
+                <svg class="profile-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
+                <span id="profile-button-name" class="profile-button-name" hidden></span>
             </button>
         </nav>
     </header>
@@ -139,11 +140,31 @@
     <div id="key-modal" class="modal-overlay" hidden>
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
             <div class="modal-header">
-                <h2 id="key-modal-title" class="modal-title">Settings</h2>
+                <h2 id="key-modal-title" class="modal-title">Profile</h2>
                 <button type="button" id="key-modal-close" class="modal-close" title="Close"
                     aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
+                <!-- Identity summary: who this browser is and who issued the key. -->
+                <div class="identity-card">
+                    <div class="identity-avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
+                    </div>
+                    <div class="identity-meta">
+                        <span id="identity-name" class="identity-name">Unnamed identity</span>
+                        <span id="identity-contact" class="identity-contact" hidden></span>
+                        <span id="identity-provider" class="identity-provider"></span>
+                    </div>
+                </div>
+
+                <label class="field-label" for="identity-name-input">Display name</label>
+                <input type="text" id="identity-name-input" class="text-field" maxlength="64"
+                    placeholder="Add a name for this identity" autocomplete="off" spellcheck="false">
+                <p id="identity-name-managed" class="field-hint" hidden>Your name is managed by your credential
+                    provider and can't be changed here.</p>
+
+                <hr class="settings-divider">
+
                 <p class="modal-intro">Your identity is stored only in this browser. Set a password or secret key to use
                     the same identity across devices. Anyone who knows it can decrypt secrets sent to you, so keep it
                     safe.</p>
@@ -188,6 +209,32 @@
         </div>
     </div>
 
+    <!-- Credential-provider consent modal (shared by before-redirect and after-return prompts) -->
+    <div id="provider-modal" class="modal-overlay" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="provider-modal-title">
+            <div class="modal-header">
+                <h2 id="provider-modal-title" class="modal-title"></h2>
+                <button type="button" id="provider-modal-close" class="modal-close" title="Close"
+                    aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="provider-modal-message" class="modal-intro"></p>
+                <div id="provider-modal-detail" hidden>
+                    <div class="link-viewbox">
+                        <input type="text" id="provider-modal-detail-value" class="shareable-link" readonly value=""
+                            aria-label="Details">
+                        <button type="button" class="icon-button" id="provider-modal-detail-copy" title="Copy"
+                            aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="provider-modal-cancel" class="app-button grey-button">Cancel</button>
+                <button type="button" id="provider-modal-confirm" class="app-button encrypt-button">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast notifications -->
     <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
@@ -195,6 +242,7 @@
     <script src="js/xipher.js" defer></script>
     <script src="js/datastore.js" defer></script>
     <script src="js/ui.js" defer></script>
+    <script src="js/provider.js" defer></script>
     <script src="js/main.js" defer></script>
     <script src="lib/StreamSaver/StreamSaver.js" defer></script>
 </body>

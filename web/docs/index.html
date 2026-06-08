@@ -91,6 +91,16 @@
                     <a href="#web-files" class="docs-nav-link">Encrypting files</a>
                 </div>
                 <div class="docs-nav-group">
+                    <p class="docs-nav-title">Credential providers</p>
+                    <a href="#provider-overview" class="docs-nav-link">Overview</a>
+                    <a href="#provider-flow" class="docs-nav-link">The exchange</a>
+                    <a href="#provider-open" class="docs-nav-link">Opening the app</a>
+                    <a href="#provider-request" class="docs-nav-link">Request parameters</a>
+                    <a href="#provider-seal" class="docs-nav-link">Sealing the key</a>
+                    <a href="#provider-callback" class="docs-nav-link">Callback &amp; errors</a>
+                    <a href="#provider-security" class="docs-nav-link">Security rules</a>
+                </div>
+                <div class="docs-nav-group">
                     <p class="docs-nav-title">Library</p>
                     <a href="#lib-install" class="docs-nav-link">Go package</a>
                     <a href="#lib-usage" class="docs-nav-link">Usage</a>
@@ -532,6 +542,206 @@ Content-Type: application/json</code></pre>
                         <li>Encrypted files are saved with a <code>.xipher</code> extension.</li>
                         <li>To decrypt, drop a <code>.xipher</code> file and press <strong>Decrypt</strong>.</li>
                     </ul>
+                </section>
+
+                <!-- CREDENTIAL PROVIDERS -->
+                <section id="provider-overview" class="docs-section">
+                    <h2>Credential providers</h2>
+                    <p>A <strong>credential provider</strong> is an external service that authenticates a user and
+                        issues them a xipher secret key, instead of the user generating one themselves. This lets an
+                        organization provision and manage identities for its members. For example, an internal portal
+                        that hands each employee the same xipher key on any device after they sign in.</p>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">🔑</span>
+                        <div>
+                            <p><strong>This is a key-escrow / custodial model, an opt-in departure from xipher's
+                                    default.</strong> A provider that issues the secret key necessarily knows it, and can
+                                therefore read everything sent to that user and impersonate them. Self-generated keys
+                                remain the default; the provider flow is only ever entered when the app is opened with an
+                                explicit <code>?provider=</code> parameter, and the user must confirm twice.</p>
+                        </div>
+                    </div>
+                    <p>The flow is modelled on the OAuth 2.0 Authorization Code grant, repurposed to deliver a secret
+                        key in place of a token. The browser binds the exchange with a one-time, single-use
+                        <code>state</code> and an ephemeral keypair, so the issued key can only be opened by the exact
+                        browser session that started the request, even if the return URL leaks.</p>
+                </section>
+
+                <section id="provider-flow" class="docs-section">
+                    <h3>The exchange</h3>
+                    <ol>
+                        <li><strong>Initiate.</strong> The app is opened at
+                            <code>https://xipher.org/?provider=&lt;your-provider-url&gt;</code>. After the user confirms
+                            the destination, the app generates a fresh ephemeral keypair, stores its secret half locally
+                            (in <code>sessionStorage</code>, bound to a random <code>state</code>), and redirects the
+                            browser to your provider URL with three query parameters.</li>
+                        <li><strong>Authenticate &amp; seal.</strong> Your provider authenticates the user, validates the
+                            supplied callback against its allowlist, looks up that user's xipher secret key (with an
+                            optional display name and identifier), and <em>seals</em> it to the supplied ephemeral public
+                            key.</li>
+                        <li><strong>Return.</strong> Your provider redirects the browser back to the callback URL with the
+                            sealed key and the original <code>state</code> in the <strong>URL fragment</strong>.</li>
+                        <li><strong>Install.</strong> The app verifies the <code>state</code> (single-use; absent or older
+                            than 60&nbsp;seconds is rejected), decrypts the sealed key with the matching ephemeral secret,
+                            warns the user if a key already exists, and on confirmation sets it as the active identity.</li>
+                    </ol>
+                    <pre class="code-block" data-lang="text"><code>Browser (xipher app)                         Credential provider
+  |                                                   |
+  |  generate ephemeral keypair + state              |
+  |  redirect: ?xipher_public_key&state&xipher_callback
+  |-------------------------------------------------->|
+  |                                          authenticate user
+  |                                          check callback allowlist
+  |                                          seal secret key to public key
+  |  redirect back: #xck=<sealed>&state=<state>       |
+  |<--------------------------------------------------|
+  |  verify state, decrypt with ephemeral secret      |
+  |  prompt, then set as identity                      |
+  v                                                   v</code></pre>
+                </section>
+
+                <section id="provider-open" class="docs-section">
+                    <h3>Opening the app</h3>
+                    <p>Send the user to the app with your provider URL in the <code>provider</code> query parameter:</p>
+                    <pre class="code-block" data-lang="text"><code>https://xipher.org/?provider=https%3A%2F%2Fyour-provider.example%2Fissue</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Parameter</th><th>Required</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>provider</code></td><td>Yes</td><td>Your provider URL (HTTPS, or <code>http</code> only for loopback hosts). A bare domain is promoted to HTTPS.</td></tr>
+                                <tr><td><code>provider_ecc</code></td><td>No</td><td>Set (e.g. <code>provider_ecc=1</code>) to request the compact X25519 key up front instead of the hybrid one. Use this when you know your server caps request URLs below ~4&nbsp;KB, to skip the hybrid attempt. Omit it to get the stronger hybrid key with automatic fallback.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="provider-request" class="docs-section">
+                    <h3>Request parameters</h3>
+                    <p>The app redirects to your provider URL, appending these query parameters (existing query
+                        parameters in your URL are preserved):</p>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Parameter</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>xipher_public_key</code></td><td>The ephemeral <code>XPK_…</code> public key to seal the user's secret key to. Fresh per request. Usually the hybrid (post-quantum) key; the app falls back to the compact X25519 key when the hybrid one would make the URL too long for your server.</td></tr>
+                                <tr><td><code>state</code></td><td>An opaque, URL-safe one-time token. Echo it back unchanged.</td></tr>
+                                <tr><td><code>xipher_callback</code></td><td>The absolute app URL to redirect back to. <strong>Validate this against your allowlist</strong> before honouring the request.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <pre class="code-block" data-lang="text"><code>https://your-provider.example/issue
+    ?xipher_public_key=XPK_...
+    &state=Yk9f...Q
+    &xipher_callback=https%3A%2F%2Fxipher.org%2F</code></pre>
+                </section>
+
+                <section id="provider-seal" class="docs-section">
+                    <h3>Sealing the key</h3>
+                    <p>"Sealing" is ordinary xipher public-key encryption: encrypt the user's credentials to the supplied
+                        <code>xipher_public_key</code>. Only the holder of the matching ephemeral secret (the browser
+                        session that initiated the request) can open the result, so a leaked callback URL is useless to
+                        anyone else. The output is a standard <code>XCT_…</code> ciphertext.</p>
+                    <p>Seal a small <strong>JSON document</strong> so you can attach the user's display name and an
+                        identifier alongside the key:</p>
+                    <pre class="code-block" data-lang="json"><code>{
+  "key": "XSK_...",
+  "name": "Alice Example",
+  "id": { "name": "Email", "value": "alice@acme.com" }
+}</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>key</code></td><td>Yes</td><td>The user's <code>XSK_…</code> secret key</td></tr>
+                                <tr><td><code>name</code></td><td>No</td><td>Display name; trimmed and capped at 64 characters</td></tr>
+                                <tr><td><code>id</code></td><td>No</td><td>A labelled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>For backward compatibility the app also accepts a bare <code>XSK_…</code> string as the sealed
+                        payload (no name or id). Seal with any xipher binding, such as the Go library:</p>
+                    <pre class="code-block" data-lang="go"><code>import (
+    "encoding/json"
+    "xipher.org/xipher"
+)
+
+// pubKeyStr is the xipher_public_key from the request.
+pubKey, err := xipher.ParsePublicKeyStr(pubKeyStr)
+if err != nil { /* reject: invalid public key */ }
+
+payload, _ := json.Marshal(map[string]any{
+    "key":  userSecretKey, // the XSK_… string you issue to this user
+    "name": "Alice Example",
+    "id":   map[string]string{"name": "Email", "value": "alice@acme.com"},
+})
+
+sealed, err := pubKey.Encrypt(payload, true, true)
+if err != nil { /* handle */ }
+// string(sealed) is an XCT_… value -> return it as #xck=</code></pre>
+                    <div class="docs-callout">
+                        <span class="docs-callout-icon">🛡️</span>
+                        <div>
+                            <p>The payload is a long-term secret key, so the app prefers a hybrid
+                                (X25519&nbsp;+&nbsp;ML-KEM-1024) public key to resist "harvest-now, decrypt-later"
+                                attacks. The hybrid key is around 2.5&nbsp;KB; if that would push the request URL past
+                                what your server accepts, the app instead sends the compact X25519 key. Either way, just
+                                encrypt to the key you are given. The algorithm is carried in the key, so you don't need
+                                to detect which one it is, and accepting request URLs up to about 4&nbsp;KB keeps you on
+                                the stronger hybrid key.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="provider-callback" class="docs-section">
+                    <h3>Callback &amp; errors</h3>
+                    <p>Redirect the browser to the exact <code>xipher_callback</code> URL, putting the result in the
+                        <strong>URL fragment</strong> (after <code>#</code>). The fragment is never sent to servers and
+                        never appears in <code>Referer</code> headers or server logs, keeping the sealed key out of
+                        request logs. Do <em>not</em> use a query parameter for the key.</p>
+                    <p><strong>Success:</strong> return the sealed key and the original state:</p>
+                    <pre class="code-block" data-lang="text"><code>https://xipher.org/#xck=XCT_...&state=Yk9f...Q</code></pre>
+                    <p><strong>Failure:</strong> return an error code (and the state) so the app can show a message:</p>
+                    <pre class="code-block" data-lang="text"><code>https://xipher.org/#xperr=denied&state=Yk9f...Q</code></pre>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Fragment field</th><th>Notes</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>xck</code></td><td>The sealed secret key (<code>XCT_…</code>) on success</td></tr>
+                                <tr><td><code>xperr</code></td><td>On failure: <code>denied</code>, <code>auth</code>, <code>callback</code>, or any other value (shown as a generic error)</td></tr>
+                                <tr><td><code>state</code></td><td>The unchanged <code>state</code> from the request, on both success and failure</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="provider-security" class="docs-section">
+                    <h3>Security rules</h3>
+                    <ul>
+                        <li><strong>Allowlist callbacks.</strong> Treat <code>xipher_callback</code> exactly like an
+                            OAuth <code>redirect_uri</code>: only redirect back to URLs you have pre-registered. This is
+                            your primary defence against an attacker tricking your provider into sealing a key to their
+                            own session. Reject unknown callbacks with <code>#xperr=callback</code>.</li>
+                        <li><strong>Always seal to the supplied public key.</strong> Never return a bare secret key in
+                            the URL. The seal is what binds the key to the requesting session.</li>
+                        <li><strong>Return via the fragment</strong>, never a query parameter, so the sealed key stays
+                            out of logs and <code>Referer</code> headers.</li>
+                        <li><strong>The browser side is one-time and short-lived.</strong> The app consumes
+                            <code>state</code> on first read and rejects any response whose exchange is missing or older
+                            than 60&nbsp;seconds. Redirect back promptly and don't expect replays to work.</li>
+                        <li>The flow uses top-level navigation only, so the app's strict
+                            <code>connect-src 'self'</code> CSP is unaffected; your provider is never fetched by script.</li>
+                    </ul>
+                    <p>For self-hosted xipher deployments, the callback is your own origin; register that origin's app
+                        URL with your provider. The app permits provider URLs over HTTPS (and <code>http</code> only for
+                        loopback hosts during local development), matching the rules for key URLs.</p>
                 </section>
 
                 <!-- LIBRARY -->

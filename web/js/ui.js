@@ -114,6 +114,47 @@ const keySecretInput = document.getElementById("key-secret-input");
 const keySecretReveal = document.getElementById("key-secret-reveal");
 const keySecretGenerate = document.getElementById("key-secret-generate");
 const quantumSafeToggle = document.getElementById("quantum-safe-toggle");
+const profileButtonName = document.getElementById("profile-button-name");
+const identityName = document.getElementById("identity-name");
+const identityContact = document.getElementById("identity-contact");
+const identityProvider = document.getElementById("identity-provider");
+const identityNameInput = document.getElementById("identity-name-input");
+const identityNameManaged = document.getElementById("identity-name-managed");
+
+// Reflects the current identity onto the topbar profile button: shows the name
+// next to the icon when one is set, otherwise just the icon.
+function renderProfileButton() {
+    const { name } = getIdentity();
+    if (name) {
+        profileButtonName.textContent = name;
+        profileButtonName.hidden = false;
+    } else {
+        profileButtonName.textContent = "";
+        profileButtonName.hidden = true;
+    }
+}
+
+// Fills the identity summary and name field in the modal from stored metadata.
+function renderIdentityCard() {
+    const identity = getIdentity();
+    identityName.textContent = identity.name || "Unnamed identity";
+    if (identity.id) {
+        identityContact.textContent = `${identity.id.name}: ${identity.id.value}`;
+        identityContact.hidden = false;
+    } else {
+        identityContact.textContent = "";
+        identityContact.hidden = true;
+    }
+    identityProvider.textContent = identity.managed
+        ? `Issued by ${identity.provider}`
+        : `Self-managed · ${identity.provider}`;
+
+    // The name is editable only for self-issued identities; a provider-managed
+    // one is the org's source of truth, so the field is locked.
+    identityNameInput.value = identity.name;
+    identityNameInput.disabled = identity.managed;
+    identityNameManaged.hidden = !identity.managed;
+}
 
 async function openKeyModal() {
     // Reset transient inputs. The field stays empty (we never load the saved
@@ -123,6 +164,7 @@ async function openKeyModal() {
     keySecretInput.type = "password";
     keySecretInput.placeholder = "••••••••••••  (leave blank to keep current)";
     quantumSafeToggle.checked = isQuantumSafe();
+    renderIdentityCard();
     try {
         keyCurrentPubkey.value = await getPublicKey();
     } catch (error) {
@@ -159,6 +201,29 @@ keySecretReveal.addEventListener("click", () => {
 
 keyPubkeyCopy.addEventListener("click", () => {
     copyToClipboard(keyCurrentPubkey.value, keyPubkeyCopy, "Public key copied.");
+});
+
+// Persist the display name as the user edits it (self-issued identities only;
+// the field is disabled when provider-managed). Commit on blur and on Enter.
+function commitSelfName() {
+    if (identityNameInput.disabled) {
+        return;
+    }
+    if (setSelfName(identityNameInput.value)) {
+        const { name } = getIdentity();
+        identityName.textContent = name || "Unnamed identity";
+        identityNameInput.value = name; // reflect sanitisation
+        renderProfileButton();
+    }
+}
+
+identityNameInput.addEventListener("blur", commitSelfName);
+identityNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        commitSelfName();
+        identityNameInput.blur();
+    }
 });
 
 // Fill the input with a fresh random secret key, revealed so it's visible.

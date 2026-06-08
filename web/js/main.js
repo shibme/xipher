@@ -460,11 +460,15 @@ async function getXipherPublicKeyUrl() {
     return `${urlWithoutFragment}#${publicKey}`;
 }
 
-// Re-derive and display the public link for the current identity. Called after
-// the key or password is changed via the key-management modal.
+// Re-derive and display the public link for the current identity, and refresh
+// the profile button. Called after the key or password is changed via the
+// key-management modal, after the provider flow installs a key, and on load.
 async function refreshIdentity() {
     const pubKeyUrl = await getXipherPublicKeyUrl();
     setPublicLink(pubKeyUrl);
+    if (typeof renderProfileButton === "function") {
+        renderProfileButton();
+    }
 }
 
 function setupModeUI() {
@@ -537,8 +541,13 @@ async function main() {
     }
     loadTheme();
     await loadXipherWASM();
-    const pubKeyUrl = await getXipherPublicKeyUrl();
-    setPublicLink(pubKeyUrl);
+    // The credential-provider flow may redirect away (when initiating) or update
+    // the stored identity in place (on return). Run it before deriving the public
+    // key so a freshly delivered key is reflected immediately.
+    if (await handleProviderFlow() === "redirecting") {
+        return;
+    }
+    await refreshIdentity();
     initApp();
     hidePreloader();
 }

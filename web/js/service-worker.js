@@ -1,4 +1,4 @@
-const CACHE_NAME = 'xipher-cache-v3';
+const CACHE_NAME = 'xipher-cache-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -13,6 +13,7 @@ const urlsToCache = [
   '/css/objects.css',
   '/js/datastore.js',
   '/js/main.js',
+  '/js/provider.js',
   '/js/ui.js',
   '/js/xipher.js',
   '/lib/StreamSaver/mitm.html',

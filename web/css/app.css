@@ -92,6 +92,95 @@
     filter: invert(1) brightness(1.4);
 }
 
+/* ---- Profile button ----------------------------------------------------- */
+
+/* When a name is set the button widens from a circle into a pill with the name
+   beside the icon; with no name it stays the plain round icon button. */
+.profile-button {
+    gap: 7px;
+}
+
+.profile-button:has(.profile-button-name:not([hidden])) {
+    width: auto;
+    padding: 0 14px 0 11px;
+}
+
+.profile-button-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.profile-button-name {
+    font-weight: 600;
+    font-size: 13.5px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- Identity card (profile modal) -------------------------------------- */
+
+.identity-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    margin-bottom: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+}
+
+.identity-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--brand-gradient);
+    color: #fff;
+}
+
+.identity-avatar svg {
+    width: 24px;
+    height: 24px;
+}
+
+.identity-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.identity-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.identity-contact {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.identity-provider {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ---- App frame ---------------------------------------------------------- */
 
 .app-frame {

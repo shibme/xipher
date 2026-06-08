@@ -2,6 +2,21 @@ const burialCache = new Map();
 const xipherSecretStoreId = "xipherSecret";
 const xipherPublicKeyStoreId = "xipherPublicKey";
 const xipherQuantumSafeStoreId = "xipherQuantumSafe";
+// Identity metadata sidecars (non-secret: a display name, an id/email, and the
+// host that issued the key). Stored in plain localStorage alongside the public
+// key. Absent provider => the key is self-issued by this deployment, and the
+// name is user-editable; a stored host => an external credential provider issued
+// it, and the name/id are managed (read-only).
+const xipherNameStoreId = "xipherName";
+// The id is a labelled identifier: a name (e.g. "Email", "Employee ID") and its
+// value. Stored as two fields so the provider chooses how it's labelled.
+const xipherIdNameStoreId = "xipherIdName";
+const xipherIdValueStoreId = "xipherIdValue";
+const xipherProviderStoreId = "xipherProvider";
+const MAX_IDENTITY_FIELD_LEN = 64;
+// C0 and C1 control characters, stripped from untrusted identity fields.
+// Matches CONTROL_CHARS in resolve.js.
+const IDENTITY_CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/g;
 
 async function bury(id, data) {
     const textEncoder = new TextEncoder();
@@ -99,6 +114,34 @@ async function setXipherSecret(xipherSecret) {
     if (currentXipherSecret !== xipherSecret) {
         await bury(xipherSecretStoreId, xipherSecret);
         localStorage.removeItem(xipherPublicKeyStoreId);
+        // A manual key/password change makes this a fresh self-issued identity:
+        // drop any provider metadata and let the name default again. (The
+        // provider flow uses setProviderIdentity instead, which sets these.)
+        localStorage.removeItem(xipherNameStoreId);
+        localStorage.removeItem(xipherIdNameStoreId);
+        localStorage.removeItem(xipherIdValueStoreId);
+        localStorage.removeItem(xipherProviderStoreId);
+    }
+}
+
+// Installs a secret key delivered by an external credential provider, recording
+// the issuing host and the managed name/id alongside it. Unlike setXipherSecret,
+// this marks the identity as provider-managed (name/id read-only in the UI).
+// `id` is an optional labelled identifier { name, value }.
+async function setProviderIdentity(xipherSecret, providerHost, name, id) {
+    await bury(xipherSecretStoreId, xipherSecret);
+    localStorage.removeItem(xipherPublicKeyStoreId);
+    localStorage.setItem(xipherProviderStoreId, providerHost);
+    setIdentityField(xipherNameStoreId, name);
+    // An id is only meaningful when it has a value; label defaults to "ID".
+    const idValue = id && typeof id.value === "string" ? id.value : "";
+    const idName = id && typeof id.name === "string" && id.name.trim() ? id.name : "ID";
+    if (sanitiseIdentityField(idValue)) {
+        setIdentityField(xipherIdNameStoreId, idName);
+        setIdentityField(xipherIdValueStoreId, idValue);
+    } else {
+        localStorage.removeItem(xipherIdNameStoreId);
+        localStorage.removeItem(xipherIdValueStoreId);
     }
 }
 
@@ -119,4 +162,139 @@ async function getPublicKey() {
         localStorage.setItem(xipherPublicKeyStoreId, xipherPublicKey);
     }
     return xipherPublicKey;
+}
+
+// Returns the stored secret key without generating one, or null if the browser
+// has no identity yet. Used by the provider flow to decide whether accepting a
+// delivered key would overwrite (and orphan) an existing identity.
+async function getExistingXipherSecret() {
+    return await dig(xipherSecretStoreId);
+}
+
+/* ==========================================================================
+   Identity metadata (name, id/email, issuing provider)
+   ========================================================================== */
+
+// The host serving this app: the default "self" provider (e.g. xipher.org, or
+// whatever a self-host runs on). An identity with no stored provider is treated
+// as issued by self, and its name is user-editable.
+function selfHost() {
+    return window.location.host;
+}
+
+// Sanitises an untrusted display field: strip control chars, trim, cap length.
+// Mirrors sanitiseName in resolve.js. Returns "" for empty/invalid input.
+function sanitiseIdentityField(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    value = value.replace(IDENTITY_CONTROL_CHARS, "").trim();
+    const chars = Array.from(value); // split by code point
+    if (chars.length > MAX_IDENTITY_FIELD_LEN) {
+        value = chars.slice(0, MAX_IDENTITY_FIELD_LEN).join("");
+    }
+    return value;
+}
+
+// Stores a sanitised identity field, or removes it when blank.
+function setIdentityField(storeId, value) {
+    const clean = sanitiseIdentityField(value);
+    if (clean) {
+        localStorage.setItem(storeId, clean);
+    } else {
+        localStorage.removeItem(storeId);
+    }
+}
+
+// Returns the current identity metadata for display. `provider` is the issuing
+// host (defaults to self). `managed` is true when an external provider issued
+// the key, in which case the name/id are read-only.
+function getIdentity() {
+    const provider = localStorage.getItem(xipherProviderStoreId) || selfHost();
+    const managed = !!localStorage.getItem(xipherProviderStoreId);
+    const idValue = localStorage.getItem(xipherIdValueStoreId) || "";
+    return {
+        name: localStorage.getItem(xipherNameStoreId) || "",
+        // Labelled identifier; null when none was issued.
+        id: idValue ? { name: localStorage.getItem(xipherIdNameStoreId) || "ID", value: idValue } : null,
+        provider,
+        managed,
+    };
+}
+
+// Updates the user-chosen display name. Only meaningful for self-issued
+// identities; rejected when the identity is provider-managed.
+function setSelfName(name) {
+    if (localStorage.getItem(xipherProviderStoreId)) {
+        return false;
+    }
+    setIdentityField(xipherNameStoreId, name);
+    return true;
+}
+
+/* ==========================================================================
+   Credential-provider exchange record
+
+   A single sessionStorage record, keyed by a random `state`, binds together the
+   provider URL and the ephemeral secret key generated for one exchange. The
+   public half is sent to the provider; the secret half stays here to open the
+   sealed key it returns. The record is strictly single-use (deleted the instant
+   it is read) and additionally expires after a short TTL to bound the exposure
+   of an abandoned exchange. See the design notes for the rationale.
+   ========================================================================== */
+
+const providerExchangePrefix = "xipherProviderExchange:";
+// Max lifetime of a pending exchange. Kept tight (<= 1 min) because the sealed
+// payload is a long-term secret key; a stale return is rejected as spoofed.
+const PROVIDER_EXCHANGE_TTL_MS = 60000;
+
+// Generates a random URL-safe state token.
+function newExchangeState() {
+    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    let binary = "";
+    for (const b of bytes) {
+        binary += String.fromCharCode(b);
+    }
+    // base64url, no padding.
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Creates a pending exchange and returns its state token. The caller sends the
+// ephemeral PUBLIC key and this state to the provider; the matching secret stays
+// in the record so the return blob can be opened.
+function createProviderExchange(providerUrl, ephemeralSecretKey) {
+    const state = newExchangeState();
+    const record = {
+        providerUrl,
+        ephemeralSecretKey,
+        createdAt: Date.now(),
+    };
+    sessionStorage.setItem(providerExchangePrefix + state, JSON.stringify(record));
+    return state;
+}
+
+// Reads and DELETES the exchange record for a returned state in one step. Returns
+// the record, or null if absent (spoofed/replayed) or expired (stale). Deleting
+// before use makes the exchange single-use even against an in-tab re-trigger.
+function consumeProviderExchange(state) {
+    if (!state) {
+        return null;
+    }
+    const id = providerExchangePrefix + state;
+    const raw = sessionStorage.getItem(id);
+    sessionStorage.removeItem(id);
+    if (!raw) {
+        return null;
+    }
+    let record;
+    try {
+        record = JSON.parse(raw);
+    } catch (error) {
+        return null;
+    }
+    if (!record || typeof record.createdAt !== "number" ||
+        Date.now() - record.createdAt > PROVIDER_EXCHANGE_TTL_MS) {
+        return null;
+    }
+    return record;
 }
