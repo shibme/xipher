@@ -18,7 +18,10 @@ const MAX_IDENTITY_FIELD_LEN = 64;
 // Matches CONTROL_CHARS in resolve.js.
 const IDENTITY_CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F]/g;
 
-async function bury(id, data) {
+// encryptForStorage obfuscates a string for at-rest storage using AES-GCM with
+// a key derived from the data itself (SHA-256). The IV and key-hash are packed
+// ahead of the ciphertext. Returns a binary string suitable for *Storage.
+async function encryptForStorage(data) {
     const textEncoder = new TextEncoder();
     const dataBytes = textEncoder.encode(data);
     const hashBuffer = await crypto.subtle.digest("SHA-256", dataBytes);
@@ -46,20 +49,16 @@ async function bury(id, data) {
     combinedData.set(iv);
     combinedData.set(hash, iv.length);
     combinedData.set(encryptedData, iv.length + hash.length);
-    localStorage.setItem(id, String.fromCharCode(...combinedData));
-    burialCache.set(id, data);
+    return String.fromCharCode(...combinedData);
 }
 
-async function dig(id) {
-    const cachedData = burialCache.get(id);
-    if (cachedData) {
-        return cachedData;
+// decryptFromStorage reverses encryptForStorage. Returns the original string, or
+// null if the input is missing or can't be decrypted.
+async function decryptFromStorage(storedData) {
+    if (!storedData) {
+        return null;
     }
     try {
-        const storedData = localStorage.getItem(id);
-        if (!storedData) {
-            return null;
-        }
         const combinedData = Uint8Array.from(storedData.split("").map(char => char.charCodeAt(0)));
         const iv = combinedData.slice(0, 12);
         const hash = combinedData.slice(12, 44);
@@ -79,14 +78,28 @@ async function dig(id) {
             key,
             encryptedData
         );
-        const textDecoder = new TextDecoder();
-        const originalData = textDecoder.decode(decryptedDataBuffer);
-        burialCache.set(id, originalData);
-        return originalData;
+        return new TextDecoder().decode(decryptedDataBuffer);
     } catch (error) {
-        console.error("Xipher dig failed!");
         return null;
     }
+}
+
+async function bury(id, data) {
+    localStorage.setItem(id, await encryptForStorage(data));
+    burialCache.set(id, data);
+}
+
+async function dig(id) {
+    const cachedData = burialCache.get(id);
+    if (cachedData) {
+        return cachedData;
+    }
+    const originalData = await decryptFromStorage(localStorage.getItem(id));
+    if (originalData === null) {
+        return null;
+    }
+    burialCache.set(id, originalData);
+    return originalData;
 }
 
 // Quantum-safe preference for public key derivation.
@@ -261,28 +274,31 @@ function newExchangeState() {
 
 // Creates a pending exchange and returns its state token. The caller sends the
 // ephemeral PUBLIC key and this state to the provider; the matching secret stays
-// in the record so the return blob can be opened.
-function createProviderExchange(providerUrl, ephemeralSecretKey) {
+// in the record so the return blob can be opened. The record holds the ephemeral
+// secret key, so it is encrypted at rest with the same scheme as the stored
+// identity key (encryptForStorage) rather than kept in plaintext.
+async function createProviderExchange(providerUrl, ephemeralSecretKey) {
     const state = newExchangeState();
     const record = {
         providerUrl,
         ephemeralSecretKey,
         createdAt: Date.now(),
     };
-    sessionStorage.setItem(providerExchangePrefix + state, JSON.stringify(record));
+    sessionStorage.setItem(providerExchangePrefix + state, await encryptForStorage(JSON.stringify(record)));
     return state;
 }
 
 // Reads and DELETES the exchange record for a returned state in one step. Returns
 // the record, or null if absent (spoofed/replayed) or expired (stale). Deleting
 // before use makes the exchange single-use even against an in-tab re-trigger.
-function consumeProviderExchange(state) {
+async function consumeProviderExchange(state) {
     if (!state) {
         return null;
     }
     const id = providerExchangePrefix + state;
-    const raw = sessionStorage.getItem(id);
+    const stored = sessionStorage.getItem(id);
     sessionStorage.removeItem(id);
+    const raw = await decryptFromStorage(stored);
     if (!raw) {
         return null;
     }

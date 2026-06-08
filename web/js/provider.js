@@ -198,7 +198,7 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc) {
     // ?provider_ecc). The same secret decrypts a blob sealed to either key (the
     // algorithm is carried in the ciphertext), so the return path is unchanged.
     const ephemeralSecretKey = await genXipherSecretKey();
-    const state = createProviderExchange(providerUrl, ephemeralSecretKey);
+    const state = await createProviderExchange(providerUrl, ephemeralSecretKey);
 
     let pubKey = await genXipherPublicKey(ephemeralSecretKey, !forceEcc);
     let target = buildProviderUrl(providerUrl, pubKey, state);
@@ -238,7 +238,7 @@ function parseProviderReturn() {
 // and (after consent) installs it as the active identity.
 async function completeProviderReturn(ret) {
     // Single-use: this reads AND deletes the record before we touch its contents.
-    const exchange = consumeProviderExchange(ret.state);
+    const exchange = await consumeProviderExchange(ret.state);
     // Always strip the payload from the address bar once we've taken it in hand.
     clearProviderUrl();
 
@@ -270,15 +270,15 @@ async function completeProviderReturn(ret) {
     const host = (() => { try { return new URL(exchange.providerUrl).host; } catch (e) { return "the provider"; } })();
     const ok = await askProviderConsent({
         title: "Use the key from your provider?",
+        // The existing key is never revealed here: this consent runs in a context
+        // reached by an external redirect, so showing or backing up the secret
+        // would widen its exposure. The user manages their own key in the profile.
         message: existing
             ? `Accepting this key from ${host} will REPLACE the secret key already in this browser. ` +
-              `Anything encrypted to your current key will no longer be readable here. ` +
-              `Copy your current key below to back it up first if you need it.`
+              `Anything encrypted to your current key will no longer be readable here.`
             : `Set the secret key issued by ${host} as this browser's identity?`,
         confirmLabel: existing ? "Replace my key" : "Use this key",
         confirmClass: existing ? "decrypt-button" : "encrypt-button",
-        detailLabel: existing ? "Your current secret key (back up first)" : "",
-        detailValue: existing || "",
     });
     if (!ok) {
         showToast("Kept your existing key. The provider's key was discarded.", "info");

@@ -573,8 +573,8 @@ Content-Type: application/json</code></pre>
                         <li><strong>Initiate.</strong> The app is opened at
                             <code>https://xipher.org/?provider=&lt;your-provider-url&gt;</code>. After the user confirms
                             the destination, the app generates a fresh ephemeral keypair, stores its secret half locally
-                            (in <code>sessionStorage</code>, bound to a random <code>state</code>), and redirects the
-                            browser to your provider URL with three query parameters.</li>
+                            (encrypted in <code>sessionStorage</code>, bound to a random <code>state</code>), and
+                            redirects the browser to your provider URL with three query parameters.</li>
                         <li><strong>Authenticate &amp; seal.</strong> Your provider authenticates the user, validates the
                             supplied callback against its allowlist, looks up that user's xipher secret key (with an
                             optional display name and identifier), and <em>seals</em> it to the supplied ephemeral public
