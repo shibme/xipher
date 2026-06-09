@@ -39002,7 +39002,7 @@ async function findInstalledVersion() {
     }
     saveState('XIPHER_VERSION_INSTALLED', installedVersion);
     return installedVersion;
-  } catch (error) {
+  } catch {
     return '';
   }
 }

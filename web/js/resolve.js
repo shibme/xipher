@@ -36,7 +36,7 @@
     // message. Reasons: invalid, network (likely CORS/unreachable), status,
     // toolarge, badkey, timeout.
     function fail(reason) {
-        backToApp("xkerr=" + encodeURIComponent(reason || "1"));
+        backToApp("xe=" + encodeURIComponent(reason || "1"));
     }
 
     function sanitiseName(name) {
@@ -160,7 +160,7 @@
     }
 
     async function resolve() {
-        const rawURL = new URLSearchParams(window.location.search).get("u");
+        const rawURL = new URLSearchParams(window.location.search).get("xu");
         if (!rawURL) {
             fail("invalid");
             return;

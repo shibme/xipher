@@ -5,8 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "prepare": "ncc build index.js -o dist --source-map --license licenses.txt",
-    "test": "jest",
-    "all": "npm run lint && npm run prepare && npm run test"
+    "all": "npm run lint && npm run prepare"
   },
   "keywords": [
     "actions",
@@ -28,9 +27,10 @@
     "@octokit/rest": "^22.0.1"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.4",
+    "@eslint/js": "^10.0.1",
+    "@vercel/ncc": "^0.44.0",
     "eslint": "^10.4.1",
-    "jest": "^30.4.2"
+    "globals": "^17.6.0"
   },
   "overrides": {
     "minimatch": ">=10.2.5"

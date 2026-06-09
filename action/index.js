@@ -56,7 +56,7 @@ async function findInstalledVersion() {
     }
     core.saveState('XIPHER_VERSION_INSTALLED', installedVersion);
     return installedVersion;
-  } catch (error) {
+  } catch {
     return '';
   }
 }

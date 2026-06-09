@@ -588,7 +588,7 @@ Content-Type: application/json</code></pre>
                     <pre class="code-block" data-lang="text"><code>Browser (xipher app)                         Credential provider
   |                                                   |
   |  generate ephemeral keypair + state              |
-  |  redirect: ?xipher_public_key&state&xipher_callback
+  |  redirect: ?xpk&state&xcb                         |
   |-------------------------------------------------->|
   |                                          authenticate user
   |                                          check callback allowlist
@@ -611,7 +611,7 @@ Content-Type: application/json</code></pre>
                             </thead>
                             <tbody>
                                 <tr><td><code>provider</code></td><td>Yes</td><td>Your provider URL. The scheme is optional: a bare host like <code>auth.example.com</code> is promoted to HTTPS automatically. If you do include a scheme it must be <code>https://</code> (only loopback hosts may use <code>http://</code>, for local development); any other scheme is rejected.</td></tr>
-                                <tr><td><code>provider_ecc</code></td><td>No</td><td>Set (e.g. <code>provider_ecc=1</code>) to request the compact X25519 key up front instead of the hybrid one. Use this when you know your server caps request URLs below ~4&nbsp;KB, to skip the hybrid attempt. Omit it to get the stronger hybrid key with automatic fallback.</td></tr>
+                                <tr><td><code>xecc</code></td><td>No</td><td>Set (e.g. <code>xecc=1</code>) to request the compact X25519 key up front instead of the hybrid one. Use this when you know your server caps request URLs below ~4&nbsp;KB, to skip the hybrid attempt. Omit it to get the stronger hybrid key with automatic fallback.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -627,22 +627,22 @@ Content-Type: application/json</code></pre>
                                 <tr><th>Parameter</th><th>Description</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><code>xipher_public_key</code></td><td>The ephemeral <code>XPK_…</code> public key to seal the user's secret key to. Fresh per request. Usually the hybrid (post-quantum) key; the app falls back to the compact X25519 key when the hybrid one would make the URL too long for your server.</td></tr>
+                                <tr><td><code>xpk</code></td><td>The ephemeral <code>XPK_…</code> public key to seal the user's secret key to. Fresh per request. Usually the hybrid (post-quantum) key; the app falls back to the compact X25519 key when the hybrid one would make the URL too long for your server.</td></tr>
                                 <tr><td><code>state</code></td><td>An opaque, URL-safe one-time token. Echo it back unchanged.</td></tr>
-                                <tr><td><code>xipher_callback</code></td><td>The absolute app URL to redirect back to. <strong>Validate this against your allowlist</strong> before honouring the request.</td></tr>
+                                <tr><td><code>xcb</code></td><td>The absolute app URL to redirect back to. <strong>Validate this against your allowlist</strong> before honouring the request.</td></tr>
                             </tbody>
                         </table>
                     </div>
                     <pre class="code-block" data-lang="text"><code>https://your-provider.example/issue
-    ?xipher_public_key=XPK_...
+    ?xpk=XPK_...
     &state=Yk9f...Q
-    &xipher_callback=https%3A%2F%2Fxipher.org%2F</code></pre>
+    &xcb=https%3A%2F%2Fxipher.org%2F</code></pre>
                 </section>
 
                 <section id="provider-seal" class="docs-section">
                     <h3>Sealing the key</h3>
                     <p>"Sealing" is ordinary xipher public-key encryption: encrypt the user's credentials to the supplied
-                        <code>xipher_public_key</code>. Only the holder of the matching ephemeral secret (the browser
+                        <code>xpk</code>. Only the holder of the matching ephemeral secret (the browser
                         session that initiated the request) can open the result, so a leaked callback URL is useless to
                         anyone else. The output is a standard <code>XCT_…</code> ciphertext.</p>
                     <p>Seal a small <strong>JSON document</strong> so you can attach the user's display name and an
@@ -671,7 +671,7 @@ Content-Type: application/json</code></pre>
     "xipher.org/xipher"
 )
 
-// pubKeyStr is the xipher_public_key from the request.
+// pubKeyStr is the xpk from the request.
 pubKey, err := xipher.ParsePublicKeyStr(pubKeyStr)
 if err != nil { /* reject: invalid public key */ }
 
@@ -700,14 +700,14 @@ if err != nil { /* handle */ }
 
                 <section id="provider-callback" class="docs-section">
                     <h3>Callback &amp; errors</h3>
-                    <p>Redirect the browser to the exact <code>xipher_callback</code> URL, putting the result in the
+                    <p>Redirect the browser to the exact <code>xcb</code> URL, putting the result in the
                         <strong>URL fragment</strong> (after <code>#</code>). The fragment is never sent to servers and
                         never appears in <code>Referer</code> headers or server logs, keeping the sealed key out of
                         request logs. Do <em>not</em> use a query parameter for the key.</p>
                     <p><strong>Success:</strong> return the sealed key and the original state:</p>
                     <pre class="code-block" data-lang="text"><code>https://xipher.org/#xck=XCT_...&state=Yk9f...Q</code></pre>
                     <p><strong>Failure:</strong> return an error code (and the state) so the app can show a message:</p>
-                    <pre class="code-block" data-lang="text"><code>https://xipher.org/#xperr=denied&state=Yk9f...Q</code></pre>
+                    <pre class="code-block" data-lang="text"><code>https://xipher.org/#xe=denied&state=Yk9f...Q</code></pre>
                     <div class="docs-table-wrap">
                         <table class="docs-table">
                             <thead>
@@ -715,7 +715,7 @@ if err != nil { /* handle */ }
                             </thead>
                             <tbody>
                                 <tr><td><code>xck</code></td><td>The sealed secret key (<code>XCT_…</code>) on success</td></tr>
-                                <tr><td><code>xperr</code></td><td>On failure: <code>denied</code>, <code>auth</code>, <code>callback</code>, or any other value (shown as a generic error)</td></tr>
+                                <tr><td><code>xe</code></td><td>On failure: <code>denied</code>, <code>auth</code>, <code>callback</code>, or any other value (shown as a generic error)</td></tr>
                                 <tr><td><code>state</code></td><td>The unchanged <code>state</code> from the request, on both success and failure</td></tr>
                             </tbody>
                         </table>
@@ -725,10 +725,10 @@ if err != nil { /* handle */ }
                 <section id="provider-security" class="docs-section">
                     <h3>Security rules</h3>
                     <ul>
-                        <li><strong>Allowlist callbacks.</strong> Treat <code>xipher_callback</code> exactly like an
+                        <li><strong>Allowlist callbacks.</strong> Treat <code>xcb</code> exactly like an
                             OAuth <code>redirect_uri</code>: only redirect back to URLs you have pre-registered. This is
                             your primary defence against an attacker tricking your provider into sealing a key to their
-                            own session. Reject unknown callbacks with <code>#xperr=callback</code>.</li>
+                            own session. Reject unknown callbacks with <code>#xe=callback</code>.</li>
                         <li><strong>Always seal to the supplied public key.</strong> Never return a bare secret key in
                             the URL. The seal is what binds the key to the requesting session.</li>
                         <li><strong>Return via the fragment</strong>, never a query parameter, so the sealed key stays

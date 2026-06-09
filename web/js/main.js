@@ -54,7 +54,7 @@ function isFetchableUrl(s) {
 // redirectToResolver hands a key URL off to the /resolve/ page, which can fetch
 // it (the main app's CSP forbids external connections).
 function redirectToResolver(url) {
-    window.location.replace("resolve/?u=" + encodeURIComponent(url));
+    window.location.replace("resolve/?xu=" + encodeURIComponent(url));
 }
 
 // classifyKeyRef decides what a URL-supplied key reference is. It returns
@@ -503,7 +503,7 @@ function setupModeUI() {
     }
 }
 
-// Maps a resolver failure reason (the xkerr value) to a user-facing message.
+// Maps a resolver failure reason (the xe value) to a user-facing message.
 function keyResolveErrorMessage(reason) {
     switch (reason) {
         case "network":
@@ -524,9 +524,9 @@ function keyResolveErrorMessage(reason) {
 }
 
 function initApp() {
-    const xkerr = new URLSearchParams(window.location.search).get("xkerr");
-    if (xkerr) {
-        showToast(keyResolveErrorMessage(xkerr), "error");
+    const xe = new URLSearchParams(window.location.search).get("xe");
+    if (xe) {
+        showToast(keyResolveErrorMessage(xe), "error");
     }
     setupModeUI();
     if (!xk) {

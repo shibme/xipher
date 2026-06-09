@@ -24,13 +24,13 @@
 // so it needs no relaxation of the app's strict connect-src CSP.
 
 // Query parameters we send to the provider.
-const PROVIDER_REQ_PUBKEY = "xipher_public_key";
+const PROVIDER_REQ_PUBKEY = "xpk";
 const PROVIDER_REQ_STATE = "state";
-const PROVIDER_REQ_CALLBACK = "xipher_callback";
+const PROVIDER_REQ_CALLBACK = "xcb";
 
 // Fragment parameters the provider returns on the callback URL.
 const PROVIDER_RES_KEY = "xck"; // sealed secret key (XCT_…)
-const PROVIDER_RES_ERR = "xperr"; // failure reason code
+const PROVIDER_RES_ERR = "xe"; // failure reason code
 const PROVIDER_RES_STATE = "state";
 
 // Largest outbound provider URL we send with the hybrid public key before
@@ -223,7 +223,7 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc) {
     // that easily, but a provider behind a strict proxy/WAF may cap the request
     // line, so we fall back to the compact X25519 key when the hybrid URL would
     // exceed PROVIDER_URL_BUDGET (or when the provider requested ECC via
-    // ?provider_ecc). The same secret decrypts a blob sealed to either key (the
+    // ?xecc). The same secret decrypts a blob sealed to either key (the
     // algorithm is carried in the ciphertext), so the return path is unchanged.
     const ephemeralSecretKey = await genXipherSecretKey();
     const state = await createProviderExchange(providerUrl, ephemeralSecretKey);
@@ -366,9 +366,9 @@ async function handleProviderFlow() {
     const params = new URLSearchParams(window.location.search);
     const rawProviderUrl = params.get("provider");
     if (rawProviderUrl) {
-        // provider_ecc lets a provider that knows it has a strict URL-length cap
+        // xecc lets a provider that knows it has a strict URL-length cap
         // ask for the compact X25519 key up front, skipping the hybrid attempt.
-        return await initiateProviderFlow(rawProviderUrl, isTruthyFlag(params.get("provider_ecc")));
+        return await initiateProviderFlow(rawProviderUrl, isTruthyFlag(params.get("xecc")));
     }
     return null;
 }
