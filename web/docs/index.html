@@ -863,15 +863,32 @@ console.log(pt.result); // "Hello"</code></pre>
                 <!-- SELF HOST -->
                 <section id="selfhost" class="docs-section">
                     <h2>Self-hosting the web app</h2>
-                    <p>Publish your own copy of the web interface to GitHub Pages using the reusable workflow:</p>
+                    <p>The web app is fully static and self-contained. Download the prebuilt
+                        <a href="https://github.com/shibme/xipher/releases/latest/download/xipher-web.zip"
+                            download><code>xipher-web.zip</code></a> from the latest release, extract it, and serve the
+                        contents from any static host:</p>
+                    <pre class="code-block" data-lang="bash"><code># Download and extract the prebuilt web app
+curl -fsSL -o xipher-web.zip \
+  https://github.com/shibme/xipher/releases/latest/download/xipher-web.zip
+unzip xipher-web.zip -d xipher-web
+
+# Serve it however you like, e.g. with a quick local server
+cd xipher-web
+python3 -m http.server 8080</code></pre>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>Serve it over HTTPS in production: the service worker and clipboard APIs only work on
+                                secure origins (HTTPS, or <code>localhost</code> for local testing).</p>
+                        </div>
+                    </div>
+                    <p>Prefer GitHub Pages? Publish your own copy with the reusable workflow:</p>
                     <pre class="code-block" data-lang="yaml"><code>name: Publish Xipher Web
 on:
   workflow_dispatch:
 jobs:
   pages:
     uses: shibme/xipher/.github/workflows/pages.yaml@main</code></pre>
-                    <p>The web app is fully static, so you can also serve the <code>web/</code> directory from any static
-                        host. It must be served over HTTPS for the service worker and clipboard APIs to work.</p>
                 </section>
 
                 <!-- SECURITY -->
