@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package main
 
 import (
@@ -12,7 +14,7 @@ import (
 
 const (
 	ctMinLengthRequired = 128 * 1024 // Arbitrary value based on max key length with generously possible header length
-	readableBlockSize  = 32 * 1024
+	readableBlockSize   = 32 * 1024
 )
 
 func decryptStr(args []js.Value) (any, error) {
