@@ -376,7 +376,7 @@ async function handleFileEncryption(key, file, compress) {
             actionButton.textContent = "Encrypting (" + Math.floor((processedSize / fileSize) * 100) + "%)";
         } else if (status === XipherStreamStatus.COMPLETED) {
             showActivitySuccessInView("Encrypted as: " + outFileName, "Encryption Complete");
-            showToast("File encrypted successfully.", "success");
+            showToast("File encrypted. Send the .xipher file to the recipient.", "success");
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Encryption Failed!", "Encryption Failed!");
             showToast("Encryption failed.", "error");
@@ -458,7 +458,13 @@ async function handleAction() {
                 const key = xk ? xk : await getXipherSecret();
                 const ct = await encryptStrToUrlCT(key, text);
                 setReadableTextView(ct, true, "Encrypted (" + getEncryptionTarget() + ")");
-                showToast("Encrypted successfully.", "success");
+                const isUrl = ct.startsWith("http://") || ct.startsWith("https://");
+                showToast(
+                    isUrl
+                        ? "Encrypted. Copy the link and send it to the recipient."
+                        : "Encrypted. Copy the text and send it to the recipient.",
+                    "success"
+                );
             } catch (error) {
                 showActivityErrorInView("Encryption Failed: " + error, "Encryption Failed!");
                 showToast("Encryption failed.", "error");
