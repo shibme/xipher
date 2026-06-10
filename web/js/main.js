@@ -21,6 +21,10 @@ const publinkCopyButton = document.getElementById("publink-copy-button");
 const publinkShareButton = document.getElementById("publink-share-button");
 const modeBadge = document.getElementById("mode-badge");
 const modeBadgeText = document.getElementById("mode-badge-text");
+const appContainer = document.querySelector(".app-container");
+const selfEncryptPanel = document.getElementById("self-encrypt-panel");
+const selfEncryptToggle = document.getElementById("self-encrypt-toggle");
+const selfEncryptDivider = document.getElementById("self-encrypt-divider");
 
 // Matches a bare host (optionally with a port/path) that has no URL scheme,
 // e.g. "alice.com" or "alice.com/keys". Mirrors domainRegex in resolver.go.
@@ -124,7 +128,10 @@ function getEncryptionTarget() {
         return "with your Key";
     }
     // xk is always a public key here (initParams rejects secret keys/passwords).
-    return xn ? `with ${xn}` : `with ${xk.substring(0, 16)}..`;
+    // Use "for {name}" when the recipient is a person (reads naturally and
+    // matches the "Encrypting for {xn}" mode badge), but "with {key}" when it's
+    // a raw key, since you encrypt *with* a key but *for* someone.
+    return xn ? `for ${xn}` : `with ${xk.substring(0, 16)}..`;
 }
 
 function disableActionButton(placeholderText) {
@@ -215,6 +222,11 @@ function resetView() {
     textActionButton.className = "app-button select-file-button";
     fileDisplay.style.display = "none";
     updateView();
+    // In self-view, collapsing back returns the screen to its minimal,
+    // link-focused default once the user is done.
+    if (!xk) {
+        collapseSelfEncryptPanel();
+    }
 }
 
 function setReadableTextView(text, enableShareButton, disabledActionButtonLabel) {
@@ -475,6 +487,32 @@ async function refreshIdentity() {
     }
 }
 
+// Reveal the encrypt/decrypt workspace (self-view). `animate` plays the reveal
+// transition; it's skipped when expanding silently (e.g. a pre-filled URL).
+function expandSelfEncryptPanel(animate = true) {
+    selfEncryptPanel.hidden = false;
+    selfEncryptToggle.hidden = true;
+    selfEncryptDivider.hidden = true;
+    selfEncryptToggle.setAttribute("aria-expanded", "true");
+    appContainer.classList.remove("is-collapsed");
+    if (animate) {
+        selfEncryptPanel.classList.add("is-revealing");
+        selfEncryptPanel.addEventListener("animationend", () => {
+            selfEncryptPanel.classList.remove("is-revealing");
+        }, { once: true });
+    }
+    textInput.focus();
+}
+
+// Collapse back to the minimal receive-link view (self-view only).
+function collapseSelfEncryptPanel() {
+    selfEncryptPanel.hidden = true;
+    selfEncryptToggle.hidden = false;
+    selfEncryptDivider.hidden = false;
+    selfEncryptToggle.setAttribute("aria-expanded", "false");
+    appContainer.classList.add("is-collapsed");
+}
+
 function setupModeUI() {
     if (xk) {
         // The visitor opened someone else's public-key link: they're the sender.
@@ -489,10 +527,14 @@ function setupModeUI() {
         } else {
             document.title = "Encrypting a secret · Xipher";
         }
-        // The visitor's own receive-link is not relevant in this flow.
+        // The visitor's own receive-link is not relevant in this flow; the
+        // workspace is always shown and the toggle stays hidden.
         if (linkSection) {
             linkSection.hidden = true;
         }
+        selfEncryptPanel.hidden = false;
+        selfEncryptToggle.hidden = true;
+        selfEncryptDivider.hidden = true;
     } else {
         // Default (receiver) view: the badge would just restate what the intro
         // and link label already say, so leave it hidden to save vertical space.
@@ -500,8 +542,12 @@ function setupModeUI() {
         if (linkLabel) {
             linkLabel.textContent = "Share this link so others can send you a secret";
         }
+        // Show only the shareable link; reveal the workspace on demand.
+        collapseSelfEncryptPanel();
     }
 }
+
+selfEncryptToggle.addEventListener("click", () => expandSelfEncryptPanel());
 
 // Maps a resolver failure reason (the xe value) to a user-facing message.
 function keyResolveErrorMessage(reason) {
@@ -535,6 +581,11 @@ function initApp() {
         disableActionButton("Encrypt (" + getEncryptionTarget() + ")");
     }
     if (isCT(xt)) {
+        // Arrived with ciphertext to decrypt: reveal the workspace immediately
+        // (no reveal animation, since it's the landing state) and pre-fill it.
+        if (!xk) {
+            expandSelfEncryptPanel(false);
+        }
         textInput.value = xt;
         updateView();
     }

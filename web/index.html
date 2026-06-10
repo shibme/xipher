@@ -102,38 +102,62 @@
                 </div>
             </div>
 
+            <!-- Self-view only: separates the two distinct actions — share your
+                 link to receive, OR open the workspace to encrypt for yourself. -->
+            <div id="self-encrypt-divider" class="or-divider" hidden>
+                <span class="or-divider-text">or</span>
+            </div>
+
+            <!-- Self-view only: reveals the encrypt/decrypt workspace on demand so
+                 the default receiver screen stays focused on the shareable link. -->
+            <button type="button" id="self-encrypt-toggle" class="self-encrypt-toggle" aria-expanded="false"
+                aria-controls="self-encrypt-panel" hidden>
+                <svg class="self-encrypt-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Encrypt something for yourself</span>
+                <svg class="self-encrypt-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6"></path>
+                </svg>
+            </button>
+
             <!-- Encrypt / decrypt workspace -->
-            <form id="crypto-form">
-                <div class="input-container">
-                    <div id="drop-area" class="text-view">
-                        <textarea id="text"
-                            placeholder="Type or paste text here, or drag &amp; drop a file to encrypt / decrypt"></textarea>
-                        <div class="text-view-actions">
-                            <button type="button" class="icon-button" id="text-copy-button" title="Copy"
-                                aria-label="Copy result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
-                            <button type="button" class="icon-button" id="text-share-button" title="Share"
-                                aria-label="Share result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
-                        </div>
-                        <div id="file-display" class="file-display">
-                            <div class="file-icon" aria-hidden="true">📄</div>
-                            <div class="file-details">
-                                <span id="file-name" class="file-name" title=""></span>
-                                <span id="file-size" class="file-size"></span>
+            <div id="self-encrypt-panel" class="self-encrypt-panel">
+                <form id="crypto-form">
+                    <div class="input-container">
+                        <div id="drop-area" class="text-view">
+                            <textarea id="text"
+                                placeholder="Type or paste text here, or drag &amp; drop a file to encrypt / decrypt"></textarea>
+                            <div class="text-view-actions">
+                                <button type="button" class="icon-button" id="text-copy-button" title="Copy"
+                                    aria-label="Copy result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                                <button type="button" class="icon-button" id="text-share-button" title="Share"
+                                    aria-label="Share result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
+                            </div>
+                            <div id="file-display" class="file-display">
+                                <div class="file-icon" aria-hidden="true">📄</div>
+                                <div class="file-details">
+                                    <span id="file-name" class="file-name" title=""></span>
+                                    <span id="file-size" class="file-size"></span>
+                                </div>
                             </div>
                         </div>
+                        <button type="button" class="app-button select-file-button" id="text-action-button">
+                            Pick a file
+                        </button>
+                        <input type="file" id="file" />
                     </div>
-                    <button type="button" class="app-button select-file-button" id="text-action-button">
-                        Pick a file
+                    <button type="button" id="action-button" class="app-button grey-button" disabled>
+                        Waiting for input
                     </button>
-                    <input type="file" id="file" />
-                </div>
-                <button type="button" id="action-button" class="app-button grey-button" disabled>
-                    Waiting for input
-                </button>
-            </form>
+                </form>
 
-            <p class="app-hint">Tip: open <span class="hint-key" aria-hidden="true">⚙️</span> Settings to set your own
-                password or secret key so you can decrypt on any device.</p>
+                <p class="app-hint">Tip: open <span class="hint-key" aria-hidden="true">⚙️</span> Settings to set your
+                    own password or secret key so you can decrypt on any device.</p>
+            </div>
         </section>
     </main>
 
