@@ -658,12 +658,22 @@ Content-Type: application/json</code></pre>
                                 <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><code>key</code></td><td>Yes</td><td>The user's <code>XSK_…</code> secret key</td></tr>
+                                <tr><td><code>key</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The user's <code>XSK_…</code> secret key</td></tr>
+                                <tr><td><code>seed</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The 64-byte seed the secret key is deterministically derived from, as <strong>standard base64</strong> (see below), an alternative to sending the key directly. If both <code>key</code> and <code>seed</code> are present, <code>key</code> takes precedence.</td></tr>
                                 <tr><td><code>name</code></td><td>No</td><td>Display name; trimmed and capped at 64 characters</td></tr>
                                 <tr><td><code>id</code></td><td>No</td><td>A labelled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
                             </tbody>
                         </table>
                     </div>
+                    <p>Instead of <code>key</code>, you may send a <code>seed</code> and let the app derive the secret
+                        key from it. This is useful when your provider stores or generates seeds rather than full keys.
+                        The same seed always yields the same key, so it must be kept as secret as the key itself. The
+                        seed is <strong>exactly 64 bytes of raw entropy, base64-encoded</strong> (standard or URL-safe
+                        base64; the app rejects anything that doesn't decode to 64 bytes).</p>
+                    <pre class="code-block" data-lang="json"><code>{
+  "seed": "3q2+7wAAAAB...<88 base64 chars total>...AAAA=",
+  "name": "Alice Example"
+}</code></pre>
                     <p>For backward compatibility the app also accepts a bare <code>XSK_…</code> string as the sealed
                         payload (no name or id). Seal with any xipher binding, such as the Go library:</p>
                     <pre class="code-block" data-lang="go"><code>import (
@@ -680,6 +690,8 @@ payload, _ := json.Marshal(map[string]any{
     "name": "Alice Example",
     "id":   map[string]string{"name": "Email", "value": "alice@acme.com"},
 })
+// Or, to send a seed instead of the key (seedBytes is [64]byte):
+//   "seed": base64.StdEncoding.EncodeToString(seedBytes[:]),
 
 sealed, err := pubKey.Encrypt(payload, true, true)
 if err != nil { /* handle */ }

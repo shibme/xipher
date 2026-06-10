@@ -18,6 +18,16 @@ async function genXipherSecretKey() {
     return xipherKeyOutput.result;
 }
 
+// Derives a secret key (XSK_…) from a 64-byte seed. The seed is passed as a
+// Uint8Array of exactly 64 bytes so raw entropy crosses into WASM intact.
+async function genXipherSecretKeyFromSeed(seed) {
+    const xipherKeyOutput = await window.xipherSecretKeyFromSeed(seed);
+    if (xipherKeyOutput.error || !xipherKeyOutput.result) {
+        throw new Error(xipherKeyOutput.error ? xipherKeyOutput.error : "Failed to get secret key");
+    }
+    return xipherKeyOutput.result;
+}
+
 async function genXipherPublicKey(xipherSecret, quantumSafe) {
     const xipherPublicKeyOutput = await window.xipherGetPublicKey(xipherSecret, !!quantumSafe);
     if (xipherPublicKeyOutput.error || !xipherPublicKeyOutput.result) {

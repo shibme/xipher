@@ -286,10 +286,19 @@ async function completeProviderReturn(ret) {
         showToast("Couldn't open the key from the provider (it wasn't sealed to this session).", "error");
         return;
     }
-    // The provider seals a JSON document {"key","name","id"} (name/id optional).
-    // For backward compatibility we also accept a bare XSK_ string.
+    // The provider seals a JSON document {"key"|"seed","name","id"} (only the
+    // secret material is required). For backward compatibility we also accept a
+    // bare XSK_ string. The secret may be a ready key or a seed it is derived
+    // from; key wins when both are present.
     const delivered = parseSealedIdentity(sealedPayload);
-    if (!delivered.key || !(await isValidSecretKey(delivered.key))) {
+    let deliveredKey;
+    try {
+        deliveredKey = await resolveDeliveredKey(delivered);
+    } catch (error) {
+        showToast("The provider returned a seed that couldn't be converted to a key.", "error");
+        return;
+    }
+    if (!deliveredKey || !(await isValidSecretKey(deliveredKey))) {
         showToast("The provider returned something that isn't a valid secret key.", "error");
         return;
     }
@@ -313,7 +322,7 @@ async function completeProviderReturn(ret) {
         return;
     }
 
-    await setProviderIdentity(delivered.key, host, delivered.name, delivered.id);
+    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id);
     if (typeof refreshIdentity === "function") {
         await refreshIdentity();
     }
@@ -324,15 +333,19 @@ async function completeProviderReturn(ret) {
 }
 
 // parseSealedIdentity reads the decrypted provider payload. It prefers a JSON
-// document { key, name, id: { name, value } } (name and id optional) and falls
-// back to a bare XSK_ string. Returns { key, name, id } where id is a labelled
-// identifier object or null.
+// document { key, seed, name, id: { name, value } } (all but the secret material
+// optional) and falls back to a bare XSK_ string. The secret may be supplied
+// either as a ready XSK_ key or as a seed it is derived from; if both are given,
+// key takes precedence. Returns { key, seed, name, id } where key/seed are
+// strings ("" if absent) and id is a labelled identifier object or null.
 function parseSealedIdentity(payload) {
     const trimmed = (payload || "").trim();
     if (trimmed.startsWith("{")) {
         try {
             const doc = JSON.parse(trimmed);
-            if (doc && typeof doc.key === "string") {
+            const hasKey = typeof doc.key === "string" && doc.key.trim();
+            const hasSeed = typeof doc.seed === "string" && doc.seed.trim();
+            if (doc && (hasKey || hasSeed)) {
                 let id = null;
                 if (doc.id && typeof doc.id === "object" && typeof doc.id.value === "string") {
                     id = {
@@ -341,7 +354,8 @@ function parseSealedIdentity(payload) {
                     };
                 }
                 return {
-                    key: doc.key.trim(),
+                    key: hasKey ? doc.key.trim() : "",
+                    seed: hasSeed ? doc.seed.trim() : "",
                     name: typeof doc.name === "string" ? doc.name : "",
                     id,
                 };
@@ -350,7 +364,46 @@ function parseSealedIdentity(payload) {
             // Not JSON; fall through to the bare-string form.
         }
     }
-    return { key: trimmed, name: "", id: null };
+    return { key: trimmed, seed: "", name: "", id: null };
+}
+
+// decodeSeed decodes a standard- or url-safe base64 seed string into the raw
+// 64 bytes the key is derived from. Throws if the input isn't valid base64 or
+// doesn't decode to exactly 64 bytes.
+function decodeSeed(seedB64) {
+    // Accept base64url and missing padding by normalising before atob.
+    let b64 = seedB64.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4 !== 0) {
+        b64 += "=";
+    }
+    let binary;
+    try {
+        binary = atob(b64);
+    } catch (e) {
+        throw new Error("seed is not valid base64");
+    }
+    if (binary.length !== 64) {
+        throw new Error("seed must decode to exactly 64 bytes, got " + binary.length);
+    }
+    const bytes = new Uint8Array(64);
+    for (let i = 0; i < 64; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+// resolveDeliveredKey turns a parsed payload into a concrete XSK_ secret key. A
+// ready key is used directly; otherwise the base64 seed is decoded to 64 bytes
+// and converted with the WASM helper. key takes precedence when both are
+// present. Throws if the seed is malformed or conversion fails.
+async function resolveDeliveredKey(delivered) {
+    if (delivered.key) {
+        return delivered.key;
+    }
+    if (delivered.seed) {
+        return await genXipherSecretKeyFromSeed(decodeSeed(delivered.seed));
+    }
+    return "";
 }
 
 // handleProviderFlow is the entry point called from main() after the WASM loads.

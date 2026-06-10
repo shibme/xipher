@@ -23,6 +23,7 @@ func exportJSFunc(name string, fn func(args []js.Value) (result any, err error))
 func main() {
 	// Keygen Functions
 	exportJSFunc("xipherNewSecretKey", newSecretKey)
+	exportJSFunc("xipherSecretKeyFromSeed", secretKeyFromSeed)
 	exportJSFunc("xipherGetPublicKey", getPublicKey)
 
 	// Encryption Functions
