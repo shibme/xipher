@@ -235,6 +235,8 @@ archives:
         dst: wasm/wasm_exec.js
       - src: .ignore/web/*
         dst: .
+      - src: .ignore/web/.well-known/*
+        dst: .well-known
     ids:
       - xipher-wasm
   - id: xipher-shared-lib

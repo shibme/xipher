@@ -1,0 +1,3 @@
+Contact: https://github.com/shibme/xipher/security/advisories/new
+Canonical: https://xipher.org/.well-known/security.txt
+Preferred-Languages: en

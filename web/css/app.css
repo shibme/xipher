@@ -540,6 +540,7 @@ textarea:focus::placeholder {
 .self-encrypt-toggle {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     width: 100%;
     padding: 13px 16px;
@@ -572,12 +573,11 @@ textarea:focus::placeholder {
     color: var(--button-select-file-bg);
 }
 
-/* Chevron sits at the far right and rotates when the panel is open. */
+/* Chevron rotates when the panel is open. */
 .self-encrypt-toggle-chevron {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    margin-left: auto;
     transition: transform 0.3s var(--ease);
 }
 
