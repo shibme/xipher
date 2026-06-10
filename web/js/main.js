@@ -540,7 +540,7 @@ function setupModeUI() {
         // and link label already say, so leave it hidden to save vertical space.
         modeBadge.hidden = true;
         if (linkLabel) {
-            linkLabel.textContent = "Share this link so others can send you a secret";
+            linkLabel.textContent = "Share this link to receive a secret";
         }
         // Show only the shareable link; reveal the workspace on demand.
         collapseSelfEncryptPanel();
