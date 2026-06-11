@@ -233,6 +233,14 @@ func encryptStreamCommand() *cobra.Command {
 							keyOrPwdFlag.name, envar_XIPHER_SECRET), jsonFormat)
 					}
 				}
+				// Resolve URL/domain key references (and embedded keys) up front;
+				// EncryptStream no longer fetches remote keys itself. The stream
+				// path is non-interactive, so this skips the confirmation prompts
+				// that getKeyPwdStr adds for the text/file commands.
+				keyPwdStr, err := utils.ResolveKeyForEncryption(keyPwdStr)
+				if err != nil {
+					exitOnError(err, jsonFormat)
+				}
 				compress, _ := cmd.Flags().GetBool(compressFlag.name)
 				if err := utils.EncryptStream(keyPwdStr, os.Stdout, os.Stdin, compress, toXipherTxt); err != nil {
 					exitOnError(err, jsonFormat)

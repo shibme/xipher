@@ -235,12 +235,19 @@ func TestFetchPublicKeyErrors(t *testing.T) {
 	})
 }
 
-func TestNewEncryptingWriterFetchesURL(t *testing.T) {
+func TestResolveKeyForEncryptionFetchesURL(t *testing.T) {
 	pubStr := newTestPubKey(t)
 	srv := serveBody(t, pubStr)
 
+	// URL resolution now happens in ResolveKeyForEncryption; the resolved key is
+	// then handed to NewEncryptingWriter (which no longer fetches).
+	resolved, err := ResolveKeyForEncryption(srv.URL)
+	if err != nil {
+		t.Fatalf("ResolveKeyForEncryption returned error: %v", err)
+	}
+
 	var buf bytes.Buffer
-	wc, err := NewEncryptingWriter(srv.URL, &buf, true, true)
+	wc, err := NewEncryptingWriter(resolved, &buf, true, true)
 	if err != nil {
 		t.Fatalf("NewEncryptingWriter returned error: %v", err)
 	}
@@ -255,11 +262,10 @@ func TestNewEncryptingWriterFetchesURL(t *testing.T) {
 	}
 }
 
-func TestNewEncryptingWriterBadURLHardErrors(t *testing.T) {
+func TestResolveKeyForEncryptionBadURLHardErrors(t *testing.T) {
 	srv := serveBody(t, "garbage")
 
-	var buf bytes.Buffer
-	if _, err := NewEncryptingWriter(srv.URL, &buf, true, true); err == nil {
+	if _, err := ResolveKeyForEncryption(srv.URL); err == nil {
 		t.Error("expected hard error for bad URL, got nil (would have been treated as password)")
 	}
 }

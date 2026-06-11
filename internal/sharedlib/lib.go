@@ -48,7 +48,17 @@ func xipherGetPublicKey(secretKeyOrPassword *C.char, quantumSafe C.int, publicKe
 
 func xipherEncryptData(keyOrPassword *C.char, data *C.char, cipherText **C.char, cipherTextLength *C.int, errMessage **C.char, errLength *C.int) {
 	dataBytes := C.GoBytes(unsafe.Pointer(data), C.int(len(C.GoString(data))))
-	if ct, _, err := utils.EncryptData(C.GoString(keyOrPassword), dataBytes, true); err != nil {
+	// Resolve URL/domain key references before encrypting; EncryptData no longer
+	// fetches remote keys itself (the HTTP path was moved out for the WASM build).
+	keyOrPwd, err := utils.ResolveKeyForEncryption(C.GoString(keyOrPassword))
+	if err != nil {
+		*cipherText = nil
+		*cipherTextLength = 0
+		*errMessage = C.CString(err.Error())
+		*errLength = C.int(len(err.Error()))
+		return
+	}
+	if ct, _, err := utils.EncryptData(keyOrPwd, dataBytes, true); err != nil {
 		*cipherText = nil
 		*cipherTextLength = 0
 		*errMessage = C.CString(err.Error())

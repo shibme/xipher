@@ -47,7 +47,7 @@ jobs:
       run: |
         mkdir -p .ignore
         cp -r web .ignore
-        sed -i "s/xipher-cache/xipher-v${{ env.XIPHER_VERSION }}/g" .ignore/web/js/service-worker.js
+        sed -i "s/xipher-cache/xipher-v${{ env.XIPHER_VERSION }}/g" .ignore/web/js/service-worker.js .ignore/web/js/xipher.js
         sed -i "s|<span class=\"xipher-version\">[^<]*</span>|<span class=\"xipher-version\">${{ env.XIPHER_VERSION }}</span>|g" .ignore/web/index.html .ignore/web/docs/index.html
     - name: Download llvm-mingw latest version
       env:

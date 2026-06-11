@@ -29,21 +29,14 @@ func getSanitisedValue(strOrUrl string, patternVerifier func(string) bool) strin
 	return strings.TrimSpace(strOrUrl)
 }
 
-// resolveOrSanitise resolves an https:// key-serving URL to the XPK_ public key
-// it serves. For any other input it falls back to getSanitisedValue, preserving
-// the existing password / key / embedded-key-in-URL behavior.
-func resolveOrSanitise(strOrUrl string, patternVerifier func(string) bool) (string, error) {
-	if isKeyURL(strOrUrl) {
-		pubKey, _, err := fetchPublicKey(strOrUrl)
-		return pubKey, err
-	}
-	return getSanitisedValue(strOrUrl, patternVerifier), nil
-}
-
+// NewEncryptingWriter builds an encrypting writer for keyOrPwd, which may be a
+// public key, secret key, password, or a URL/text carrying an embedded key in
+// its fragment/query. It does NOT fetch remote key URLs — that resolution lives
+// in ResolveKeyForEncryption (resolver.go) so the network/HTTP stack stays out
+// of callers like the WASM build that never fetch. Callers needing URL/domain
+// resolution should resolve first and pass the resolved value here.
 func NewEncryptingWriter(keyOrPwd string, dst io.Writer, compress, encode bool) (encryptingWriteCloser io.WriteCloser, err error) {
-	if keyOrPwd, err = resolveOrSanitise(keyOrPwd, xipher.IsPubKeyStr); err != nil {
-		return nil, err
-	}
+	keyOrPwd = getSanitisedValue(keyOrPwd, xipher.IsPubKeyStr)
 	if xipher.IsPubKeyStr(keyOrPwd) {
 		var pubKey *xipher.PublicKey
 		if pubKey, err = xipher.ParsePublicKeyStr(keyOrPwd); err != nil {

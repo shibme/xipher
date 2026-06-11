@@ -281,3 +281,23 @@ func LooksLikeDomain(raw string) bool {
 func FetchPublicKeyFromURL(rawURL string) (pubKey, name string, err error) {
 	return fetchPublicKey(normaliseKeyURL(rawURL))
 }
+
+// resolveOrSanitise resolves an https:// key-serving URL to the XPK_ public key
+// it serves. For any other input it falls back to getSanitisedValue, preserving
+// the existing password / key / embedded-key-in-URL behavior.
+func resolveOrSanitise(strOrUrl string, patternVerifier func(string) bool) (string, error) {
+	if isKeyURL(strOrUrl) {
+		pubKey, _, err := fetchPublicKey(strOrUrl)
+		return pubKey, err
+	}
+	return getSanitisedValue(strOrUrl, patternVerifier), nil
+}
+
+// ResolveKeyForEncryption prepares keyOrPwd for NewEncryptingWriter: it resolves
+// an https:// key-serving URL to the XPK_ public key it serves, and otherwise
+// sanitises an inline key/password (extracting an embedded key from a URL
+// fragment/query). It lives here, not in crypto.go, so the HTTP fetch path stays
+// out of callers that never resolve URLs (e.g. the WASM build).
+func ResolveKeyForEncryption(keyOrPwd string) (string, error) {
+	return resolveOrSanitise(keyOrPwd, xipher.IsPubKeyStr)
+}

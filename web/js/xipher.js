@@ -1,3 +1,52 @@
+// The release workflow rewrites "xipher-cache" to "xipher-v<release-version>"
+// (see .github/workflows/release.yaml), so this key tracks the release and
+// busts the IndexedDB WASM module cache on every version. Leave as-is.
+const WASM_CACHE_KEY = 'xipher-cache';
+const WASM_IDB_NAME = 'xipher-wasm';
+
+function _openWasmIDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(WASM_IDB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(WASM_IDB_NAME);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+    });
+}
+
+function _getFromIDB(db, key) {
+    return new Promise((resolve, reject) => {
+        const req = db.transaction(WASM_IDB_NAME).objectStore(WASM_IDB_NAME).get(key);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+    });
+}
+
+function _putInIDB(db, key, value) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(WASM_IDB_NAME, 'readwrite');
+        tx.objectStore(WASM_IDB_NAME).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = e => reject(e.target.error);
+    });
+}
+
+// Deletes all keys in the WASM IDB store except the current version key,
+// mirroring what the service worker does for HTTP caches on activate.
+function _pruneWasmIDB(db) {
+    return new Promise((resolve) => {
+        const tx = db.transaction(WASM_IDB_NAME, 'readwrite');
+        const store = tx.objectStore(WASM_IDB_NAME);
+        const req = store.getAllKeys();
+        req.onsuccess = e => {
+            e.target.result
+                .filter(k => k !== WASM_CACHE_KEY)
+                .forEach(k => store.delete(k));
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve(); // non-fatal
+    });
+}
+
 async function loadXipherWASM() {
     if (!WebAssembly.instantiateStreaming) {
         WebAssembly.instantiateStreaming = async (resp, importObject) => {
@@ -6,8 +55,23 @@ async function loadXipherWASM() {
         };
     }
     const go = new Go();
-    const result = await WebAssembly.instantiateStreaming(fetch("wasm/xipher.wasm"), go.importObject);
-    go.run(result.instance);
+    try {
+        const db = await _openWasmIDB();
+        _pruneWasmIDB(db); // fire-and-forget cleanup of stale version entries
+        const cached = await _getFromIDB(db, WASM_CACHE_KEY);
+        if (cached) {
+            const result = await WebAssembly.instantiate(cached, go.importObject);
+            go.run(result.instance);
+            return;
+        }
+        const result = await WebAssembly.instantiateStreaming(fetch('wasm/xipher.wasm'), go.importObject);
+        go.run(result.instance);
+        _putInIDB(db, WASM_CACHE_KEY, result.module).catch(() => {}); // fire-and-forget
+    } catch (_) {
+        // IDB unavailable (e.g. private browsing) — fall back to normal load
+        const result = await WebAssembly.instantiateStreaming(fetch('wasm/xipher.wasm'), go.importObject);
+        go.run(result.instance);
+    }
 }
 
 async function genXipherSecretKey() {
