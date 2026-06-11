@@ -108,8 +108,6 @@ const keySettingsButton = document.getElementById("settings-button");
 const keyModalClose = document.getElementById("key-modal-close");
 const keyModalCancel = document.getElementById("key-modal-cancel");
 const keySaveButton = document.getElementById("key-save-button");
-const keyCurrentPubkey = document.getElementById("key-current-pubkey");
-const keyPubkeyCopy = document.getElementById("key-pubkey-copy");
 const keySecretInput = document.getElementById("key-secret-input");
 const keySecretReveal = document.getElementById("key-secret-reveal");
 const keySecretGenerate = document.getElementById("key-secret-generate");
@@ -184,14 +182,9 @@ async function openKeyModal() {
     // leaving it blank keeps the current key.
     keySecretInput.value = "";
     keySecretInput.type = "password";
-    keySecretInput.placeholder = "••••••••••••  (leave blank to keep current)";
+    keySecretInput.placeholder = "Leave blank to keep current";
     quantumSafeToggle.checked = isQuantumSafe();
     renderIdentityCard();
-    try {
-        keyCurrentPubkey.value = await getPublicKey();
-    } catch (error) {
-        keyCurrentPubkey.value = "";
-    }
     keyModal.hidden = false;
     document.body.style.overflow = "hidden";
 }
@@ -221,9 +214,6 @@ keySecretReveal.addEventListener("click", () => {
     keySecretInput.type = keySecretInput.type === "password" ? "text" : "password";
 });
 
-keyPubkeyCopy.addEventListener("click", () => {
-    copyToClipboard(keyCurrentPubkey.value, keyPubkeyCopy, "Public key copied.");
-});
 
 // Persist the display name as the user edits it (self-issued identities only;
 // the field is disabled when provider-managed). Commit on blur and on Enter.
@@ -297,8 +287,6 @@ async function handleKeySave() {
 
         await setXipherSecret(value);
 
-        // Refresh the shareable link and the public key shown in the modal.
-        keyCurrentPubkey.value = await getPublicKey();
         if (typeof refreshIdentity === "function") {
             await refreshIdentity();
         }
@@ -314,6 +302,10 @@ async function handleKeySave() {
 
 keySaveButton.addEventListener("click", handleKeySave);
 
+// The toggle lives on the homepage and is visible from load, so reflect the
+// stored preference immediately (not just when the profile modal opens).
+quantumSafeToggle.checked = isQuantumSafe();
+
 // Quantum-safe is a standalone derivation preference, independent of the key
 // setup above: the public key is always re-derived from the stored identity, so
 // toggling it re-derives the current key immediately (no "Save & apply" needed).
@@ -321,7 +313,6 @@ quantumSafeToggle.addEventListener("change", async () => {
     quantumSafeToggle.disabled = true;
     try {
         setQuantumSafe(quantumSafeToggle.checked);
-        keyCurrentPubkey.value = await getPublicKey();
         if (typeof refreshIdentity === "function") {
             await refreshIdentity();
         }

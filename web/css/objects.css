@@ -117,6 +117,16 @@
     box-shadow: var(--shadow-sm);
     transition: filter 0.2s var(--ease), transform 0.1s var(--ease), background 0.3s var(--ease), color 0.3s var(--ease);
     line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.action-button-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .app-button:hover:not(:disabled) {

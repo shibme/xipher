@@ -88,6 +88,7 @@
                     <a href="#web-receive" class="docs-nav-link">Receiving a secret</a>
                     <a href="#web-send" class="docs-nav-link">Sending a secret</a>
                     <a href="#web-keys" class="docs-nav-link">Keys & passwords</a>
+                    <a href="#post-quantum" class="docs-nav-link">Post-quantum</a>
                     <a href="#web-files" class="docs-nav-link">Encrypting files</a>
                 </div>
                 <div class="docs-nav-group">
@@ -521,9 +522,6 @@ Content-Type: application/json</code></pre>
                             CLI).</li>
                         <li><strong>Random</strong>: generate a fresh, ephemeral key for one-off use.</li>
                     </ul>
-                    <p>Settings also has a <strong>quantum-safe</strong> toggle under Encryption. Because the public key
-                        is always re-derived from your stored identity, you can switch it on or off at any time, and your
-                        shareable link updates immediately.</p>
                     <div class="docs-callout docs-callout-warn">
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
@@ -531,6 +529,20 @@ Content-Type: application/json</code></pre>
                                 identity can still be decrypted only with that previous key or password.</p>
                         </div>
                     </div>
+                </section>
+
+                <section id="post-quantum" class="docs-section">
+                    <h3>Post-quantum encryption</h3>
+                    <p>Next to your shareable link is a <strong>Post-quantum encryption</strong> toggle. When on, Xipher
+                        uses a hybrid key exchange that combines Curve25519 (X25519) with ML-KEM-1024 (FIPS&nbsp;203 /
+                        Kyber) instead of X25519 alone. The hybrid stays secure as long as <em>either</em> primitive is
+                        unbroken, which guards against "harvest-now, decrypt-later" attacks — where an adversary records
+                        ciphertext today to decrypt once a quantum computer can break classical ECC.</p>
+                    <p>Because your public key is always re-derived from your stored identity, you can switch it on or off
+                        at any time without changing your password or secret key; your shareable link updates instantly.
+                        The tradeoff is a larger public key and ciphertext (~1600 bytes vs ~32 bytes for the key-exchange
+                        portion). See the <a href="#arch-primitives">architecture</a> section for the full cryptographic
+                        details.</p>
                 </section>
 
                 <section id="web-files" class="docs-section">

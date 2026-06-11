@@ -100,9 +100,23 @@
                     <button type="button" class="icon-button" id="publink-share-button" title="Share link"
                         aria-label="Share link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
                 </div>
+                <div class="quantum-safe-row">
+                    <div class="quantum-safe-label-row">
+                        <label class="quantum-safe-label" for="quantum-safe-toggle">
+                            <input type="checkbox" id="quantum-safe-toggle" class="settings-switch-input">
+                            <span class="settings-switch" aria-hidden="true"></span>
+                            <span class="quantum-safe-text">Post-quantum encryption</span>
+                        </label>
+                        <a href="docs/#post-quantum" target="_blank" rel="noopener" class="quantum-docs-link" title="Learn about post-quantum encryption" aria-label="Learn about post-quantum encryption">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        </a>
+                    </div>
+                    <p class="quantum-safe-note">Post-quantum protection using ML-KEM. Re-derives your public key
+                        instantly. No need to change your password or secret key.</p>
+                </div>
             </div>
 
-            <!-- Self-view only: separates the two distinct actions — share your
+            <!-- Self-view only: separates the two distinct actions - share your
                  link to receive, OR open the workspace to encrypt for yourself. -->
             <div id="self-encrypt-divider" class="or-divider" hidden>
                 <span class="or-divider-text">or</span>
@@ -112,16 +126,7 @@
                  the default receiver screen stays focused on the shareable link. -->
             <button type="button" id="self-encrypt-toggle" class="self-encrypt-toggle" aria-expanded="false"
                 aria-controls="self-encrypt-panel" hidden>
-                <svg class="self-encrypt-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="3" y="11" width="18" height="11" rx="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                <span>Encrypt / Decrypt with your key</span>
-                <svg class="self-encrypt-toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M6 9l6 6 6-6"></path>
-                </svg>
+                <span>Decrypt or Encrypt with your key</span>
             </button>
 
             <!-- Encrypt / decrypt workspace -->
@@ -181,50 +186,25 @@
                     </div>
                 </div>
 
-                <label class="field-label" for="identity-name-input">Display name</label>
+                <label class="field-label" for="identity-name-input">Your name</label>
                 <input type="text" id="identity-name-input" class="text-field" maxlength="64"
-                    placeholder="Add a name for this identity" autocomplete="off" spellcheck="false">
+                    placeholder="Add a name for this identity" autocomplete="name" spellcheck="false">
                 <p id="identity-name-managed" class="field-hint" hidden>Your name is managed by your credential
                     provider and can't be changed here.</p>
 
                 <hr class="settings-divider">
 
-                <p class="modal-intro">Your identity is stored only in this browser. Set a password or secret key to use
-                    the same identity across devices. Anyone who knows it can decrypt secrets sent to you, so keep it
-                    safe.</p>
-
-                <label class="field-label" for="key-current-pubkey">Current public key</label>
-                <div class="link-viewbox">
-                    <input type="text" id="key-current-pubkey" class="shareable-link" readonly value=""
-                        aria-label="Current public key">
-                    <button type="button" class="icon-button" id="key-pubkey-copy" title="Copy public key"
-                        aria-label="Copy public key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
-                </div>
-
-                <label class="settings-row" for="quantum-safe-toggle">
-                    <span class="settings-row-text">
-                        <span class="settings-row-label">Quantum-safe</span>
-                        <span class="settings-row-sub">Post-quantum protection (ML-KEM). Applies instantly and re-derives
-                            the public key above; no need to change your key.</span>
-                    </span>
-                    <input type="checkbox" id="quantum-safe-toggle" class="settings-switch-input">
-                    <span class="settings-switch" aria-hidden="true"></span>
-                </label>
-
-                <hr class="settings-divider">
-
-                <label class="field-label" for="key-secret-input">Change password or secret key</label>
+                <p class="modal-intro">Your identity is your key, stored only in this browser. Set a password or secret key to use it across devices.</p>
+                <label class="field-label" for="key-secret-input">Update your password or secret key</label>
                 <div class="password-field">
                     <input type="password" id="key-secret-input" class="text-field"
-                        placeholder="••••••••••••  (leave blank to keep current)" autocomplete="off" spellcheck="false">
+                        placeholder="Leave blank to keep current" autocomplete="off" spellcheck="false">
                     <button type="button" class="icon-button" id="key-secret-reveal" title="Show / hide"
                         aria-label="Show or hide value">👁️</button>
                     <button type="button" class="icon-button" id="key-secret-generate"
                         title="Generate a random secret key" aria-label="Generate a random secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg></button>
                 </div>
-                <p class="field-hint">Your saved key is never shown. Leave this blank to keep it, or enter a new
-                    password or secret key to change it. Use a long passphrase, or generate a random secret key; a secret
-                    key starts with <code>XSK_</code>.</p>
+                <p class="field-hint">Your saved key is never shown here.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" id="key-modal-cancel" class="app-button grey-button">Cancel</button>

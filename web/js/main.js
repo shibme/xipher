@@ -112,7 +112,9 @@ function initParams() {
                 redirectToResolver(fragRef.url);
                 return { xk: null, xt: null, xn: null, redirecting: true };
             }
-            return { xk: fragRef.pubKey, xt: null };
+            // A bare public key in the fragment may be paired with a ?xn= name
+            // (added by getXipherPublicKeyUrl) so the sender sees the recipient.
+            return { xk: fragRef.pubKey, xt: null, xn };
         }
     }
     return { xk: null, xt: null };
@@ -134,15 +136,19 @@ function getEncryptionTarget() {
     return xn ? `for ${xn}` : `with ${xk.substring(0, 16)}..`;
 }
 
+const ICON_LOCK_OPEN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="action-button-icon"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
+const ICON_LOCK_CLOSED = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="action-button-icon"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+
 function disableActionButton(placeholderText) {
     actionButton.disabled = true;
-    actionButton.textContent = placeholderText;
+    actionButton.innerHTML = `<span>${placeholderText}</span>`;
     actionButton.className = "app-button grey-button";
 }
 
 function enableActionButton(isDecryptMode) {
     actionButton.disabled = false;
-    actionButton.textContent = isDecryptMode ? "Decrypt with Your Key" : "Encrypt (" + getEncryptionTarget() + ")";
+    const label = isDecryptMode ? "Decrypt with Your Key" : "Encrypt (" + getEncryptionTarget() + ")";
+    actionButton.innerHTML = `${isDecryptMode ? ICON_LOCK_OPEN : ICON_LOCK_CLOSED}<span>${label}</span>`;
     actionButton.className = `app-button ${isDecryptMode ? "decrypt-button" : "encrypt-button"}`;
     actionButton.hidden = false;
 }
@@ -222,6 +228,10 @@ function resetView() {
     textActionButton.className = "app-button select-file-button";
     fileDisplay.style.display = "none";
     updateView();
+    // Clear any ciphertext from the URL (fragment or ?xt= param) so the address
+    // bar goes back to the clean home state and a refresh doesn't re-trigger.
+    const cleanUrl = window.location.pathname + window.location.search.replace(/[?&]xt=[^&]*/g, "").replace(/^&/, "?").replace(/\?$/, "");
+    history.replaceState(null, "", cleanUrl || window.location.pathname);
     // In self-view, collapsing back returns the screen to its minimal,
     // link-focused default once the user is done.
     if (!xk) {
@@ -486,7 +496,13 @@ async function getXipherPublicKeyUrl() {
     const url = window.location.href.split("?")[0];
     const urlWithoutFragment = url.split("#")[0];
     const publicKey = await getPublicKey();
-    return `${urlWithoutFragment}#${publicKey}`;
+    // Carry the identity's display name along with the bare public key so the
+    // sender's "Encrypting for {name}" badge can show who they're encrypting for.
+    // The key itself stays in the fragment (never sent to a server); the name
+    // rides in the query string, so it is visible to anyone who sees the link.
+    const name = (getIdentity().name || "").trim();
+    const query = name ? `?xn=${encodeURIComponent(name)}` : "";
+    return `${urlWithoutFragment}${query}#${publicKey}`;
 }
 
 // Re-derive and display the public link for the current identity, and refresh
@@ -506,6 +522,11 @@ function expandSelfEncryptPanel(animate = true) {
     selfEncryptPanel.hidden = false;
     selfEncryptToggle.hidden = true;
     selfEncryptDivider.hidden = true;
+    // The shareable receive-link (and its quantum-safe toggle) isn't relevant
+    // while encrypting/decrypting in the workspace, so hide it for focus.
+    if (linkSection) {
+        linkSection.hidden = true;
+    }
     selfEncryptToggle.setAttribute("aria-expanded", "true");
     appContainer.classList.remove("is-collapsed");
     if (animate) {
@@ -524,6 +545,10 @@ function collapseSelfEncryptPanel() {
     selfEncryptDivider.hidden = false;
     selfEncryptToggle.setAttribute("aria-expanded", "false");
     appContainer.classList.add("is-collapsed");
+    // Restore the receive-link view we hid on expand.
+    if (linkSection) {
+        linkSection.hidden = false;
+    }
 }
 
 function setupModeUI() {
@@ -531,7 +556,7 @@ function setupModeUI() {
         // The visitor opened someone else's public-key link: they're the sender.
         modeBadgeText.textContent = xn
             ? `Encrypting for ${xn}`
-            : "Encrypting for the shared recipient";
+            : "Encrypting for the recipient";
         modeBadge.hidden = false;
         // Reflect the recipient in the page title so the tab is identifiable,
         // preferring the resolved name when the key URL provided one.
@@ -594,13 +619,14 @@ function initApp() {
         disableActionButton("Encrypt (" + getEncryptionTarget() + ")");
     }
     if (isCT(xt)) {
-        // Arrived with ciphertext to decrypt: reveal the workspace immediately
-        // (no reveal animation, since it's the landing state) and pre-fill it.
+        // Arrived with ciphertext to decrypt: reveal the workspace, pre-fill it,
+        // then fire decryption automatically so the user doesn't have to click.
         if (!xk) {
             expandSelfEncryptPanel(false);
         }
         textInput.value = xt;
         updateView();
+        handleAction();
     }
 }
 

@@ -177,7 +177,7 @@
 }
 
 .identity-contact {
-    font-size: 12.5px;
+    font-size: 13.5px;
     color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -185,7 +185,7 @@
 }
 
 .identity-provider {
-    font-size: 11.5px;
+    font-size: 13.5px;
     color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -297,7 +297,7 @@
 }
 
 .field-hint {
-    font-size: 12px;
+    font-size: 13.5px;
     color: var(--text-muted);
     line-height: 1.5;
     margin: 8px 0 0;
@@ -337,6 +337,60 @@
 
 .link-section {
     margin-bottom: 18px;
+}
+
+/* Quantum-safe control directly under the shareable link: switch + label on
+   one line, with the explanatory note below it. */
+.quantum-safe-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.quantum-safe-row > .quantum-safe-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quantum-safe-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.quantum-safe-text {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.quantum-docs-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-faint);
+    transition: color 0.15s var(--ease);
+}
+
+.quantum-docs-link:hover {
+    color: var(--button-select-file-bg);
+}
+
+.quantum-docs-link svg {
+    width: 15px;
+    height: 15px;
+}
+
+.quantum-safe-note {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+    text-align: center;
 }
 
 .link-viewbox {
@@ -566,24 +620,6 @@ textarea:focus::placeholder {
     display: none;
 }
 
-.self-encrypt-toggle-icon {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    color: var(--button-select-file-bg);
-}
-
-/* Chevron rotates when the panel is open. */
-.self-encrypt-toggle-chevron {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    transition: transform 0.3s var(--ease);
-}
-
-.self-encrypt-toggle[aria-expanded="true"] .self-encrypt-toggle-chevron {
-    transform: rotate(180deg);
-}
 
 /* The panel grows to fill the box's leftover height when shown (matching the
    form's flex layout), and collapses entirely when hidden. */
@@ -619,15 +655,12 @@ textarea:focus::placeholder {
         animation: none;
     }
 
-    .self-encrypt-toggle-chevron {
-        transition: none;
-    }
 }
 
 /* ---- Hints & footer ----------------------------------------------------- */
 
 .app-hint {
-    font-size: 12px;
+    font-size: 13.5px;
     color: var(--text-faint);
     text-align: center;
     margin: 16px 0 0;
@@ -721,9 +754,9 @@ textarea:focus::placeholder {
 }
 
 .modal-intro {
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--text-muted);
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0 0 18px;
 }
 
@@ -760,7 +793,7 @@ textarea:focus::placeholder {
 .settings-row-sub {
     display: block;
     margin-top: 2px;
-    font-size: 11.5px;
+    font-size: 13.5px;
     color: var(--text-muted);
     line-height: 1.45;
 }
