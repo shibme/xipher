@@ -376,7 +376,11 @@ async function handleFileEncryption(key, file, compress) {
             actionButton.textContent = "Encrypting (" + Math.floor((processedSize / fileSize) * 100) + "%)";
         } else if (status === XipherStreamStatus.COMPLETED) {
             showActivitySuccessInView("Encrypted as: " + outFileName, "Encryption Complete");
-            showToast("File encrypted. Send the .xipher file to the recipient.", "success");
+            const isSelfEncryption = !xk;
+            const msg = isSelfEncryption
+                ? "File encrypted. Store the .xipher file anywhere."
+                : `File encrypted. Send the .xipher file to ${xn || "the recipient"}.`;
+            showToast(msg, "success");
         } else if (status === XipherStreamStatus.FAILED) {
             showActivityErrorInView("Encryption Failed!", "Encryption Failed!");
             showToast("Encryption failed.", "error");
@@ -459,12 +463,15 @@ async function handleAction() {
                 const ct = await encryptStrToUrlCT(key, text);
                 setReadableTextView(ct, true, "Encrypted (" + getEncryptionTarget() + ")");
                 const isUrl = ct.startsWith("http://") || ct.startsWith("https://");
-                showToast(
-                    isUrl
-                        ? "Encrypted. Copy the link and send it to the recipient."
-                        : "Encrypted. Copy the text and send it to the recipient.",
-                    "success"
-                );
+                const isSelfEncryption = !xk;
+                let toastMsg;
+                if (isSelfEncryption) {
+                    toastMsg = isUrl ? "Encrypted. Store the link anywhere." : "Encrypted. Store the text anywhere.";
+                } else {
+                    const recipientName = xn || "recipient";
+                    toastMsg = isUrl ? `Encrypted. Copy the link and send it to ${recipientName}.` : `Encrypted. Copy the text and send it to ${recipientName}.`;
+                }
+                showToast(toastMsg, "success");
             } catch (error) {
                 showActivityErrorInView("Encryption Failed: " + error, "Encryption Failed!");
                 showToast("Encryption failed.", "error");
