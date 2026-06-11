@@ -16,6 +16,7 @@ const urlsToCache = [
   '/css/objects.css',
   '/js/datastore.js',
   '/js/main.js',
+  '/js/passkey.js',
   '/js/provider.js',
   '/js/ui.js',
   '/js/xipher.js',

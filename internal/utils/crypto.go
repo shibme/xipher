@@ -31,7 +31,7 @@ func getSanitisedValue(strOrUrl string, patternVerifier func(string) bool) strin
 
 // NewEncryptingWriter builds an encrypting writer for keyOrPwd, which may be a
 // public key, secret key, password, or a URL/text carrying an embedded key in
-// its fragment/query. It does NOT fetch remote key URLs — that resolution lives
+// its fragment/query. It does NOT fetch remote key URLs - that resolution lives
 // in ResolveKeyForEncryption (resolver.go) so the network/HTTP stack stays out
 // of callers like the WASM build that never fetch. Callers needing URL/domain
 // resolution should resolve first and pass the resolved value here.

@@ -137,6 +137,7 @@ function askProviderConsent(opts) {
         providerModalMessage.textContent = opts.message;
         providerModalConfirm.textContent = opts.confirmLabel || "Continue";
         providerModalConfirm.className = "app-button " + (opts.confirmClass || "encrypt-button");
+        providerModalCancel.textContent = opts.cancelLabel || "Cancel";
         if (opts.detailValue) {
             providerModalDetailValue.value = opts.detailValue;
             providerModalDetailValue.setAttribute("aria-label", opts.detailLabel || "Details");
@@ -151,14 +152,16 @@ function askProviderConsent(opts) {
             document.body.style.overflow = "";
             providerModalConfirm.removeEventListener("click", onConfirm);
             providerModalCancel.removeEventListener("click", onCancel);
-            providerModalClose.removeEventListener("click", onCancel);
+            providerModalClose.removeEventListener("click", onDismiss);
             providerModal.removeEventListener("click", onBackdrop);
             document.removeEventListener("keydown", onKeydown);
         };
+        const dismissValue = opts.dismissValue !== undefined ? opts.dismissValue : false;
         const onConfirm = () => { cleanup(); resolve(true); };
         const onCancel = () => { cleanup(); resolve(false); };
-        const onBackdrop = (event) => { if (event.target === providerModal) { onCancel(); } };
-        const onKeydown = (event) => { if (event.key === "Escape") { onCancel(); } };
+        const onDismiss = () => { cleanup(); resolve(dismissValue); };
+        const onBackdrop = (event) => { if (event.target === providerModal) { onDismiss(); } };
+        const onKeydown = (event) => { if (event.key === "Escape") { onDismiss(); } };
 
         providerModalConfirm.addEventListener("click", onConfirm);
         providerModalCancel.addEventListener("click", onCancel);

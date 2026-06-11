@@ -13,6 +13,7 @@ const xipherNameStoreId = "xipherName";
 const xipherIdNameStoreId = "xipherIdName";
 const xipherIdValueStoreId = "xipherIdValue";
 const xipherProviderStoreId = "xipherProvider";
+const xipherSecretKindStoreId = "xipherSecretKind"; // "key" | "password"
 const MAX_IDENTITY_FIELD_LEN = 64;
 // C0 and C1 control characters, stripped from untrusted identity fields.
 // Matches CONTROL_CHARS in resolve.js.
@@ -134,6 +135,7 @@ async function setXipherSecret(xipherSecret) {
         localStorage.removeItem(xipherIdNameStoreId);
         localStorage.removeItem(xipherIdValueStoreId);
         localStorage.removeItem(xipherProviderStoreId);
+        localStorage.removeItem(xipherSecretKindStoreId);
     }
 }
 
@@ -141,8 +143,22 @@ async function setXipherSecret(xipherSecret) {
 // the issuing host and the managed name/id alongside it. Unlike setXipherSecret,
 // this marks the identity as provider-managed (name/id read-only in the UI).
 // `id` is an optional labelled identifier { name, value }.
-async function setProviderIdentity(xipherSecret, providerHost, name, id) {
-    await bury(xipherSecretStoreId, xipherSecret);
+//
+// `persist` defaults to true: the key is written to localStorage so it survives
+// across sessions. When false (the passkey "re-derive each time" option), the
+// secret lives only in the in-memory burial cache for this tab -it is never
+// written to localStorage, so it vanishes on reload and must be re-derived. The
+// non-secret identity metadata is removed from localStorage in that case too, so
+// a closed tab leaves no trace of a passkey-only identity.
+async function setProviderIdentity(xipherSecret, providerHost, name, id, persist = true) {
+    if (persist) {
+        await bury(xipherSecretStoreId, xipherSecret);
+    } else {
+        // Session-only: hold the secret in memory for this tab, and make sure no
+        // stale copy lingers in localStorage from a previous persisted identity.
+        burialCache.set(xipherSecretStoreId, xipherSecret);
+        localStorage.removeItem(xipherSecretStoreId);
+    }
     localStorage.removeItem(xipherPublicKeyStoreId);
     localStorage.setItem(xipherProviderStoreId, providerHost);
     setIdentityField(xipherNameStoreId, name);

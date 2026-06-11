@@ -77,7 +77,7 @@
     <main class="app-frame">
         <section class="app-container">
             <div class="app-intro">
-                <h1 class="app-heading">Share secrets, securely.</h1>
+                <h1 class="app-heading">Share secrets, Securely!</h1>
                 <p class="description">Xipher is a lightweight, no-install, server-free encryption tool. Everything
                     happens right here in your browser, so your data never leaves your device unencrypted.</p>
             </div>
@@ -174,41 +174,82 @@
                     aria-label="Close">✕</button>
             </div>
             <div class="modal-body">
-                <!-- Identity summary: who this browser is and who issued the key. -->
+                <!-- Identity summary with inline name editing. The name shows as
+                     text with a pencil to edit; clicking swaps to an input that
+                     commits on Enter/blur. The pencil is hidden when the identity
+                     is provider-managed (name is read-only). -->
                 <div class="identity-card">
                     <div class="identity-avatar" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
                     </div>
                     <div class="identity-meta">
-                        <span id="identity-name" class="identity-name">Unnamed identity</span>
+                        <div class="identity-name-row">
+                            <span id="identity-name" class="identity-name">Unnamed identity</span>
+                            <button type="button" id="identity-name-edit" class="icon-button identity-name-edit"
+                                title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                            <input type="text" id="identity-name-input" class="text-field identity-name-input"
+                                maxlength="64" placeholder="Set your name" autocomplete="name" spellcheck="false" hidden>
+                        </div>
                         <span id="identity-contact" class="identity-contact" hidden></span>
                         <span id="identity-provider" class="identity-provider"></span>
                     </div>
                 </div>
-
-                <label class="field-label" for="identity-name-input">Your name</label>
-                <input type="text" id="identity-name-input" class="text-field" maxlength="64"
-                    placeholder="Add a name for this identity" autocomplete="name" spellcheck="false">
                 <p id="identity-name-managed" class="field-hint" hidden>Your name is managed by your credential
                     provider and can't be changed here.</p>
 
                 <hr class="settings-divider">
 
-                <p class="modal-intro">Your identity is your key, stored only in this browser. Set a password or secret key to use it across devices.</p>
-                <label class="field-label" for="key-secret-input">Update your password or secret key</label>
-                <div class="password-field">
-                    <input type="password" id="key-secret-input" class="text-field"
-                        placeholder="Leave blank to keep current" autocomplete="off" spellcheck="false">
-                    <button type="button" class="icon-button" id="key-secret-reveal" title="Show / hide"
-                        aria-label="Show or hide value">👁️</button>
-                    <button type="button" class="icon-button" id="key-secret-generate"
-                        title="Generate a random secret key" aria-label="Generate a random secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg></button>
+                <!-- Method selector: choose how this browser unlocks. Passkey is
+                     passwordless/keyless; Password covers password or secret key. -->
+                <div class="method-selector" role="tablist" aria-label="Unlock method">
+                    <button type="button" id="method-tab-passkey" class="method-tab" role="tab" aria-selected="false">
+                        <span class="method-tab-icon" aria-hidden="true">🔑</span>
+                        <span class="method-tab-label">Passkey</span>
+                    </button>
+                    <button type="button" id="method-tab-password" class="method-tab" role="tab" aria-selected="true">
+                        <span class="method-tab-icon" aria-hidden="true">🔒</span>
+                        <span class="method-tab-label">Password or key</span>
+                    </button>
                 </div>
-                <p class="field-hint">Your saved key is never shown here.</p>
+
+                <!-- Passkey view -->
+                <div id="method-view-passkey" class="method-view" hidden>
+                    <p class="modal-intro">Device-backed key unlock. No password needed.</p>
+                    <div class="passkey-buttons">
+                        <button type="button" id="passkey-setup-button" class="app-button passkey-button passkey-outline">Set-up new</button>
+                        <button type="button" id="passkey-use-button" class="app-button passkey-button passkey-outline">Use existing</button>
+                    </div>
+                    <div class="quantum-safe-row" style="margin-top:14px">
+                        <div class="quantum-safe-label-row">
+                            <label class="quantum-safe-label" for="passkey-store-toggle">
+                                <input type="checkbox" id="passkey-store-toggle" class="settings-switch-input">
+                                <span class="settings-switch" aria-hidden="true"></span>
+                                <span class="quantum-safe-text">Stay unlocked</span>
+                            </label>
+                        </div>
+                        <p class="quantum-safe-note">Off by default. Enabling stores the key in this browser. Convenient but less secure.</p>
+                    </div>
+                    <p id="passkey-status" class="field-hint passkey-status"></p>
+                    <p id="passkey-unsupported" class="field-hint" hidden>Passkeys aren't available in this browser. Use a password or secret key instead.</p>
+                </div>
+
+                <!-- Password / secret key view -->
+                <div id="method-view-password" class="method-view">
+                    <p class="modal-intro">Your identity is your key, stored only in this browser. Set a password or secret key to use it across devices.</p>
+                    <label class="field-label" for="key-secret-input">Update your password or secret key</label>
+                    <div class="password-field">
+                        <input type="password" id="key-secret-input" class="text-field"
+                            placeholder="Leave blank to keep current" autocomplete="off" spellcheck="false">
+                        <button type="button" class="icon-button" id="key-secret-reveal" title="Show / hide"
+                            aria-label="Show or hide value">👁️</button>
+                        <button type="button" class="icon-button" id="key-secret-generate"
+                            title="Generate a random secret key" aria-label="Generate a random secret key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg></button>
+                    </div>
+                    <p class="field-hint">Your saved key is never shown here.</p>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" id="key-modal-cancel" class="app-button grey-button">Cancel</button>
-                <button type="button" id="key-save-button" class="app-button encrypt-button">Save &amp; apply</button>
+                <button type="button" id="key-save-button" class="app-button grey-button">Cancel</button>
             </div>
         </div>
     </div>
@@ -246,6 +287,7 @@
     <script src="js/xipher.js" defer></script>
     <script src="js/datastore.js" defer></script>
     <script src="js/ui.js" defer></script>
+    <script src="js/passkey.js" defer></script>
     <script src="js/provider.js" defer></script>
     <script src="js/main.js" defer></script>
     <script src="lib/StreamSaver/StreamSaver.js" defer></script>

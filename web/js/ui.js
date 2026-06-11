@@ -106,7 +106,6 @@ dropArea.addEventListener("drop", (event) => {
 const keyModal = document.getElementById("key-modal");
 const keySettingsButton = document.getElementById("settings-button");
 const keyModalClose = document.getElementById("key-modal-close");
-const keyModalCancel = document.getElementById("key-modal-cancel");
 const keySaveButton = document.getElementById("key-save-button");
 const keySecretInput = document.getElementById("key-secret-input");
 const keySecretReveal = document.getElementById("key-secret-reveal");
@@ -119,6 +118,7 @@ const identityName = document.getElementById("identity-name");
 const identityContact = document.getElementById("identity-contact");
 const identityProvider = document.getElementById("identity-provider");
 const identityNameInput = document.getElementById("identity-name-input");
+const identityNameEdit = document.getElementById("identity-name-edit");
 const identityNameManaged = document.getElementById("identity-name-managed");
 
 // Derives up to two uppercase initials from a display name (e.g. "Alice Example"
@@ -154,10 +154,11 @@ function renderProfileButton() {
     }
 }
 
-// Fills the identity summary and name field in the modal from stored metadata.
+// Fills the identity summary from stored metadata and resets the name row to
+// its display (non-editing) state.
 function renderIdentityCard() {
     const identity = getIdentity();
-    identityName.textContent = identity.name || "Unnamed identity";
+    identityName.textContent = identity.name || "Anonymous";
     if (identity.id) {
         identityContact.textContent = `${identity.id.name}: ${identity.id.value}`;
         identityContact.hidden = false;
@@ -165,15 +166,43 @@ function renderIdentityCard() {
         identityContact.textContent = "";
         identityContact.hidden = true;
     }
-    identityProvider.textContent = identity.managed
-        ? `Issued by ${identity.provider}`
-        : `Self-managed · ${identity.provider}`;
+    const backingLabel = (() => {
+        if (identity.managed) {
+            return identity.provider === "passkey" ? "Passkey" : `Provider · ${identity.provider}`;
+        }
+        const kind = localStorage.getItem("xipherSecretKind");
+        return kind === "password" ? "Password" : "Secret key";
+    })();
+    identityProvider.innerHTML = `Backed by <strong class="identity-provider-label">${backingLabel}</strong>`;
 
-    // The name is editable only for self-issued identities; a provider-managed
-    // one is the org's source of truth, so the field is locked.
-    identityNameInput.value = identity.name;
-    identityNameInput.disabled = identity.managed;
+    // The name is editable only for self-issued identities; for a provider-
+    // managed one the pencil is hidden and a note explains why.
+    exitNameEdit();
+    identityNameEdit.hidden = identity.managed;
     identityNameManaged.hidden = !identity.managed;
+}
+
+// Switches the name row into edit mode: hide the text + pencil, show the input
+// prefilled with the current name, and focus it. No-op for managed identities.
+function enterNameEdit() {
+    if (getIdentity().managed) {
+        return;
+    }
+    identityNameInput.value = getIdentity().name || "";
+    identityName.hidden = true;
+    identityNameEdit.hidden = true;
+    identityNameInput.hidden = false;
+    identityNameInput.focus();
+    identityNameInput.select();
+}
+
+// Switches the name row back to display mode (text + pencil).
+function exitNameEdit() {
+    identityNameInput.hidden = true;
+    identityName.hidden = false;
+    if (!getIdentity().managed) {
+        identityNameEdit.hidden = false;
+    }
 }
 
 async function openKeyModal() {
@@ -185,6 +214,13 @@ async function openKeyModal() {
     keySecretInput.placeholder = "Leave blank to keep current";
     quantumSafeToggle.checked = isQuantumSafe();
     renderIdentityCard();
+    // Disable save button and set to Cancel since no changes have been made yet.
+    setKeySaveReady(false);
+    // Default to the method matching the current identity: passkey if this
+    // browser's key came from a passkey (and passkeys are available), else the
+    // password/key view.
+    const usesPasskey = passkeyAvailable && getIdentity().provider === "passkey";
+    selectMethod(usesPasskey ? "passkey" : "password");
     keyModal.hidden = false;
     document.body.style.overflow = "hidden";
 }
@@ -196,7 +232,6 @@ function closeKeyModal() {
 
 keySettingsButton.addEventListener("click", openKeyModal);
 keyModalClose.addEventListener("click", closeKeyModal);
-keyModalCancel.addEventListener("click", closeKeyModal);
 
 keyModal.addEventListener("click", (event) => {
     if (event.target === keyModal) {
@@ -214,26 +249,47 @@ keySecretReveal.addEventListener("click", () => {
     keySecretInput.type = keySecretInput.type === "password" ? "text" : "password";
 });
 
-
-// Persist the display name as the user edits it (self-issued identities only;
-// the field is disabled when provider-managed). Commit on blur and on Enter.
-function commitSelfName() {
-    if (identityNameInput.disabled) {
-        return;
-    }
-    if (setSelfName(identityNameInput.value)) {
-        const { name } = getIdentity();
-        identityName.textContent = name || "Unnamed identity";
-        identityNameInput.value = name; // reflect sanitisation
-        renderProfileButton();
-    }
+function setKeySaveReady(ready) {
+    keySaveButton.disabled = !ready;
+    keySaveButton.textContent = ready ? "Ok" : "Cancel";
+    keySaveButton.classList.toggle("encrypt-button", ready);
+    keySaveButton.classList.toggle("grey-button", !ready);
 }
 
+keySecretInput.addEventListener("input", () => {
+    setKeySaveReady(!!keySecretInput.value.trim());
+});
+
+quantumSafeToggle.addEventListener("change", () => {
+    setKeySaveReady(true);
+});
+
+
+// Persist the display name from the inline editor (self-issued identities only),
+// then return the row to display mode. Committed on blur and on Enter.
+function commitSelfName() {
+    if (setSelfName(identityNameInput.value)) {
+        const { name } = getIdentity();
+        identityName.textContent = name || "Anonymous";
+        renderProfileButton();
+    }
+    exitNameEdit();
+}
+
+identityNameEdit.addEventListener("click", enterNameEdit);
+identityName.addEventListener("click", () => {
+    if (!getIdentity().managed) {
+        enterNameEdit();
+    }
+});
 identityNameInput.addEventListener("blur", commitSelfName);
 identityNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
         event.preventDefault();
-        commitSelfName();
+        identityNameInput.blur(); // triggers commitSelfName via blur handler
+    } else if (event.key === "Escape") {
+        event.preventDefault();
+        identityNameInput.value = getIdentity().name || ""; // discard edits
         identityNameInput.blur();
     }
 });
@@ -244,7 +300,8 @@ keySecretGenerate.addEventListener("click", async () => {
     try {
         keySecretInput.value = await genXipherSecretKey();
         keySecretInput.type = "text";
-        showToast("Random secret key generated. Click Save & apply to use it.", "info", 3200);
+        setKeySaveReady(true);
+        showToast("Random secret key generated. Click Ok to use it.", "info", 3200);
     } catch (error) {
         showToast("Failed to generate key.", "error");
     } finally {
@@ -261,15 +318,17 @@ function validatePassword(pwd) {
 }
 
 async function handleKeySave() {
+    if (keySaveButton.textContent === "Continue") {
+        pendingPasskeyAction === "unlock" ? runPasskeyUnlock() : runPasskeySetup();
+        return;
+    }
+    if (keySaveButton.textContent === "Cancel") {
+        closeKeyModal();
+        return;
+    }
     keySaveButton.disabled = true;
     try {
         const value = keySecretInput.value.trim();
-        // Blank means "keep the current key" so the modal can be used just to
-        // change the quantum-safe toggle (which already applied on change).
-        if (!value) {
-            closeKeyModal();
-            return;
-        }
         // A value with the secret-key prefix is validated as a key; anything
         // else is treated as a password and held to the strength policy.
         if (value.startsWith("XSK_")) {
@@ -286,6 +345,7 @@ async function handleKeySave() {
         }
 
         await setXipherSecret(value);
+        localStorage.setItem("xipherSecretKind", value.startsWith("XSK_") ? "key" : "password");
 
         if (typeof refreshIdentity === "function") {
             await refreshIdentity();
@@ -295,12 +355,201 @@ async function handleKeySave() {
     } catch (error) {
         console.error("Failed to save key:", error);
         showToast("Failed to update key.", "error");
-    } finally {
-        keySaveButton.disabled = false;
+        setKeySaveReady(true);
     }
 }
 
 keySaveButton.addEventListener("click", handleKeySave);
+
+/* ==========================================================================
+   Passkey UI
+   ========================================================================== */
+
+const methodTabPasskey = document.getElementById("method-tab-passkey");
+const methodTabPassword = document.getElementById("method-tab-password");
+const methodViewPasskey = document.getElementById("method-view-passkey");
+const methodViewPassword = document.getElementById("method-view-password");
+const passkeyUseButton = document.getElementById("passkey-use-button");
+const passkeySetupButton = document.getElementById("passkey-setup-button");
+const passkeyStatus = document.getElementById("passkey-status");
+const passkeyStoreToggle = document.getElementById("passkey-store-toggle");
+const passkeyUnsupported = document.getElementById("passkey-unsupported");
+
+// Whether the platform authenticator check has passed. Determined once at
+// startup; gates the passkey tab.
+let passkeyAvailable = false;
+// The default WebAuthn label when the user declines to set a name.
+const PASSKEY_DEFAULT_NAME = "Xipher";
+
+// Selects a method tab ("passkey" or "password") and shows its view.
+function selectMethod(method) {
+    const passkey = method === "passkey";
+    methodTabPasskey.setAttribute("aria-selected", String(passkey));
+    methodTabPassword.setAttribute("aria-selected", String(!passkey));
+    methodTabPasskey.classList.toggle("is-active", passkey);
+    methodTabPassword.classList.toggle("is-active", !passkey);
+    methodViewPasskey.hidden = !passkey;
+    methodViewPassword.hidden = passkey;
+    if (passkey) {
+        resetPasskeyView();
+    } else {
+        setKeySaveReady(false);
+    }
+}
+
+// Resets the passkey view to its idle state.
+function resetPasskeyView() {
+    passkeyUnsupported.hidden = passkeyAvailable;
+    passkeyUseButton.hidden = !passkeyAvailable;
+    passkeySetupButton.hidden = !passkeyAvailable;
+    passkeyUseButton.disabled = false;
+    passkeySetupButton.disabled = false;
+    passkeyUseButton.classList.remove("is-active");
+    passkeySetupButton.classList.remove("is-active");
+    passkeyStatus.textContent = passkeyAvailable ? "Use an existing passkey or set a new one." : "";
+    setKeySaveReady(false);
+    keySaveButton.hidden = false;
+    keySaveButton.textContent = "Cancel";
+    keySaveButton.classList.remove("encrypt-button");
+    keySaveButton.classList.add("grey-button");
+    keySaveButton.disabled = false;
+}
+
+// Initialises passkey availability. Called once after WASM loads (from main).
+async function initPasskeyUI() {
+    passkeyAvailable = await isPlatformAuthenticatorAvailable();
+}
+
+methodTabPasskey.addEventListener("click", () => selectMethod("passkey"));
+methodTabPassword.addEventListener("click", () => selectMethod("password"));
+
+let pendingPasskeyAction = "setup"; // "setup" | "unlock"
+
+function activatePasskeyButton(action) {
+    pendingPasskeyAction = action;
+    passkeySetupButton.classList.toggle("is-active", action === "setup");
+    passkeyUseButton.classList.toggle("is-active", action === "unlock");
+    // Switch footer button to "Continue"
+    keySaveButton.hidden = false;
+    keySaveButton.disabled = false;
+    keySaveButton.textContent = "Continue";
+    keySaveButton.classList.add("encrypt-button");
+    keySaveButton.classList.remove("grey-button");
+}
+
+passkeyUseButton.addEventListener("click", () => activatePasskeyButton("unlock"));
+passkeySetupButton.addEventListener("click", () => activatePasskeyButton("setup"));
+
+// Shared replace-key consent: returns true to proceed, false to abort.
+async function confirmPasskeyReplace() {
+    const existing = await getExistingXipherSecret();
+    if (!existing) {
+        return true;
+    }
+    return await askProviderConsent({
+        title: "Replace your current key?",
+        message: "Using your passkey will derive and replace the key stored in this browser. Anything encrypted to your current key will no longer be readable here.",
+        confirmLabel: "Replace my key",
+        confirmClass: "decrypt-button",
+    });
+}
+
+async function resolvePasskeyName() {
+    const { name, managed } = getIdentity();
+    if (!managed && (name || "").trim()) {
+        return name.trim();
+    }
+    // No name set -ask via consent popup.
+    const result = await askProviderConsent({
+        title: "Name this passkey?",
+        message: "A name labels this passkey in your device or password manager. You can skip this and use the default name \"Xipher\".",
+        confirmLabel: "Set a name",
+        cancelLabel: "Use \"Xipher\"",
+        confirmClass: "encrypt-button",
+        dismissValue: null,
+    });
+    if (result === null) return null; // dismissed -abort entirely
+    if (result === true) {
+        enterNameEdit();
+        return null; // user chose to set a name -abort, let them re-click Continue
+    }
+    return PASSKEY_DEFAULT_NAME;
+}
+
+async function runPasskeySetup() {
+    const storeKey = passkeyStoreToggle.checked;
+    const passkeyName = await resolvePasskeyName();
+    if (passkeyName === null) {
+        resetPasskeyView();
+        return;
+    }
+    passkeyUseButton.disabled = true;
+    passkeySetupButton.disabled = true;
+    keySaveButton.disabled = true;
+    if (!(await confirmPasskeyReplace())) {
+        resetPasskeyView();
+        return;
+    }
+    passkeyStatus.textContent = "Follow your passkey prompts (some providers ask twice)…";
+    try {
+        await setupPasskey(storeKey, passkeyName);
+        if (typeof refreshIdentity === "function") await refreshIdentity();
+        showToast("Passkey set up. Your key is now derived from this passkey.", "success", 3500);
+        resetPasskeyView();
+        closeKeyModal();
+    } catch (err) {
+        handlePasskeyError(err, "setup");
+    }
+}
+
+async function runPasskeyUnlock() {
+    const storeKey = passkeyStoreToggle.checked;
+    passkeyUseButton.disabled = true;
+    passkeySetupButton.disabled = true;
+    keySaveButton.disabled = true;
+    if (!(await confirmPasskeyReplace())) {
+        resetPasskeyView();
+        return;
+    }
+    passkeyStatus.textContent = "Waiting for your passkey…";
+    try {
+        await unlockWithPasskey(storeKey);
+        if (typeof refreshIdentity === "function") await refreshIdentity();
+        showToast("Key derived from your passkey.", "success");
+        resetPasskeyView();
+        closeKeyModal();
+    } catch (err) {
+        handlePasskeyError(err, "unlock");
+    }
+}
+
+// Maps a passkey failure to user feedback. `phase` is "setup" or "unlock".
+function handlePasskeyError(err, phase) {
+    resetPasskeyView();
+    if (err && err.name === "PRFNotSupported") {
+        // The chosen authenticator completed but returned no PRF output. The
+        // user picked something that can't derive keys (an older or misconfigured
+        // password-manager extension, or a security key without PRF firmware).
+        // Point them at an authenticator that works rather than implying the
+        // whole device is unsupported.
+        passkeyStatus.textContent = "That passkey can't derive a key. Try your device's built-in passkey (Touch ID / Windows Hello), or update your password manager.";
+        showToast("That authenticator didn't return a derivation key (PRF). Try a different passkey.", "error", 5000);
+    } else if (err && err.name === "NotAllowedError") {
+        // User dismissed the OS prompt, or (on unlock) no matching passkey
+        // existed and the picker timed out / was cancelled.
+        passkeyStatus.textContent = phase === "setup"
+            ? "Passkey setup was cancelled."
+            : "No passkey was selected. Set one up if you don't have one yet.";
+    } else if (err && (err.message === "Registration cancelled." || err.message === "Authentication cancelled.")) {
+        passkeyStatus.textContent = "Cancelled.";
+    } else {
+        passkeyStatus.textContent = phase === "setup"
+            ? "Passkey setup failed. Try again."
+            : "Couldn't use a passkey. Try again or set one up.";
+        showToast("Passkey operation failed.", "error");
+    }
+}
+
 
 // The toggle lives on the homepage and is visible from load, so reflect the
 // stored preference immediately (not just when the profile modal opens).

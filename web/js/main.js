@@ -650,6 +650,11 @@ async function main() {
     }
     await refreshIdentity();
     initApp();
+    // Passkey UI needs WASM loaded (genXipherSecretKeyFromSeed) and a platform
+    // authenticator check - run it after the app is ready, non-blocking.
+    if (typeof initPasskeyUI === "function") {
+        initPasskeyUI();
+    }
     hidePreloader();
 }
 
