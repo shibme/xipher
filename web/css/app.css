@@ -601,17 +601,21 @@ textarea:focus::placeholder {
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius-md);
     background: var(--surface-2);
-    color: var(--text-muted);
+    /* Brightest legible text per theme: pure black in light, pure white in dark. */
+    color: #000;
     font-family: inherit;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
 }
 
+[data-theme="dark"] .self-encrypt-toggle {
+    color: #fff;
+}
+
 .self-encrypt-toggle:hover {
     background: var(--surface-color);
-    color: var(--text-color);
     border-color: var(--button-select-file-bg);
     border-style: solid;
 }
