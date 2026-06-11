@@ -1084,3 +1084,52 @@ textarea:focus::placeholder {
         margin-bottom: 12px;
     }
 }
+
+/* ---- Web-auth page (/web-auth/) ----------------------------------------- */
+
+.web-auth-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.web-auth-inner {
+    text-align: center;
+    padding: 2.5rem 2rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    max-width: 400px;
+    width: 100%;
+}
+
+.web-auth-logo {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1rem;
+}
+
+.web-auth-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+}
+
+.web-auth-intro {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0 0 0.25rem;
+}
+
+.web-auth-buttons {
+    margin-top: 1.25rem;
+    justify-content: center;
+}
+
+.web-auth-status {
+    margin-top: 14px;
+    min-height: 1.2em;
+}

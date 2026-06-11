@@ -192,6 +192,23 @@ var (
 		},
 	}
 
+	// Web Auth Flag
+	webAuthFlag = boolFlag{
+		flagDef: flagDef{
+			name:      "web-auth",
+			shorthand: "w",
+			usage:     "Authenticate via browser to derive the secret key",
+		},
+	}
+
+	// Xipher URL Flag (used with --web-auth)
+	xipherURLFlag = strFlag{
+		flagDef: flagDef{
+			name:  "xipher-url",
+			usage: "Base URL of the Xipher web app to use for --web-auth (default: https://xipher.org)",
+		},
+	}
+
 	// Force Flag
 	overwriteFlag = boolFlag{
 		flagDef: flagDef{

@@ -190,6 +190,10 @@ async function authenticatePasskey(credentialId) {
             rpId: location.hostname,
             allowCredentials,
             userVerification: "required",
+            // Prefer the platform authenticator (Touch ID, Face ID, Windows Hello)
+            // over roaming/extension authenticators. Advisory only — the browser
+            // may still show other options, but this surfaces the system prompt first.
+            hints: ["client-device"],
             extensions: {
                 prf: { eval: { first: PRF_INPUT } },
             },

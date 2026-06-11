@@ -30,6 +30,13 @@ func encryptCommand() *cobra.Command {
 }
 
 func getKeyPwdStr(cmd *cobra.Command) (string, error) {
+	// --web-auth short-circuits the normal key/password prompt: derive the key
+	// from the browser instead and use it directly as the encryption key.
+	if webAuth, _ := cmd.Flags().GetBool(webAuthFlag.name); webAuth {
+		xipherURL, _ := cmd.Flags().GetString(xipherURLFlag.name)
+		return getSecretKeyFromWebAuth(xipherURL)
+	}
+
 	keyPwdStr := cmd.Flag(keyOrPwdFlag.name).Value.String()
 	keyFlagInput := false
 	if keyPwdStr == "" {
@@ -137,6 +144,8 @@ func encryptTextCommand() *cobra.Command {
 			},
 		}
 		encryptTxtCmd.Flags().StringP(textFlag.fields())
+		encryptTxtCmd.Flags().BoolP(webAuthFlag.fields())
+		encryptTxtCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return encryptTxtCmd
 }
@@ -212,6 +221,8 @@ func encryptFileCommand() *cobra.Command {
 		encryptFileCmd.Flags().StringP(outputFileFlag.fields())
 		encryptFileCmd.Flags().BoolP(compressFlag.fields())
 		encryptFileCmd.MarkFlagRequired(sourceFileFlag.name)
+		encryptFileCmd.Flags().BoolP(webAuthFlag.fields())
+		encryptFileCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return encryptFileCmd
 }
@@ -225,12 +236,21 @@ func encryptStreamCommand() *cobra.Command {
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				toXipherTxt, _ := cmd.Flags().GetBool(toXipherTxtFlag.name)
-				keyPwdStr := cmd.Flag(keyOrPwdFlag.name).Value.String()
-				if keyPwdStr == "" {
-					if keyPwdStr, _ = getSecretKeyOrPwd(false); keyPwdStr == "" {
-						exitOnErrorWithMessage(fmt.Sprintf(
-							"set a public key using --%s, or provide a secret key or password via the %s environment variable",
-							keyOrPwdFlag.name, envar_XIPHER_SECRET), jsonFormat)
+				var keyPwdStr string
+				if webAuth, _ := cmd.Flags().GetBool(webAuthFlag.name); webAuth {
+					xipherURL, _ := cmd.Flags().GetString(xipherURLFlag.name)
+					var err error
+					if keyPwdStr, err = getSecretKeyFromWebAuth(xipherURL); err != nil {
+						exitOnError(err, jsonFormat)
+					}
+				} else {
+					keyPwdStr = cmd.Flag(keyOrPwdFlag.name).Value.String()
+					if keyPwdStr == "" {
+						if keyPwdStr, _ = getSecretKeyOrPwd(false); keyPwdStr == "" {
+							exitOnErrorWithMessage(fmt.Sprintf(
+								"set a public key using --%s, provide a secret key or password via the %s environment variable, or use --web-auth",
+								keyOrPwdFlag.name, envar_XIPHER_SECRET), jsonFormat)
+						}
 					}
 				}
 				// Resolve URL/domain key references (and embedded keys) up front;
@@ -249,6 +269,8 @@ func encryptStreamCommand() *cobra.Command {
 		}
 		encryptStreamCmd.Flags().BoolP(compressFlag.fields())
 		encryptStreamCmd.Flags().BoolP(toXipherTxtFlag.fields())
+		encryptStreamCmd.Flags().BoolP(webAuthFlag.fields())
+		encryptStreamCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return encryptStreamCmd
 }

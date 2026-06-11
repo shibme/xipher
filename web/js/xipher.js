@@ -64,12 +64,14 @@ async function loadXipherWASM() {
             go.run(result.instance);
             return;
         }
-        const result = await WebAssembly.instantiateStreaming(fetch('wasm/xipher.wasm'), go.importObject);
+        const wasmPath = window.XIPHER_WASM_PATH || 'wasm/xipher.wasm';
+        const result = await WebAssembly.instantiateStreaming(fetch(wasmPath), go.importObject);
         go.run(result.instance);
         _putInIDB(db, WASM_CACHE_KEY, result.module).catch(() => {}); // fire-and-forget
     } catch (_) {
         // IDB unavailable (e.g. private browsing) - fall back to normal load
-        const result = await WebAssembly.instantiateStreaming(fetch('wasm/xipher.wasm'), go.importObject);
+        const wasmPath = window.XIPHER_WASM_PATH || 'wasm/xipher.wasm';
+        const result = await WebAssembly.instantiateStreaming(fetch(wasmPath), go.importObject);
         go.run(result.instance);
     }
 }

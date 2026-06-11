@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        script-src 'self' 'unsafe-eval' 'unsafe-inline';
+        style-src 'self';
+        img-src 'self';
+        font-src 'self';
+        connect-src 'self' http://127.0.0.1:*;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'none';
+        ">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a84ff">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="../assets/images/logo.svg" />
+    <title>CLI Web Auth · Xipher</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/objects.css">
+</head>
+
+<body>
+    <!-- Preloader -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-container">
+            <img src="../assets/images/logo.svg" alt="Xipher logo" class="preloader-logo">
+            <div class="preloader-spinner"></div>
+        </div>
+        <p class="preloader-text">Loading Xipher</p>
+    </div>
+
+    <!-- Top navigation bar -->
+    <header class="topbar">
+        <a href="../" class="app-title-logo" title="Xipher home">
+            <img src="../assets/images/logo.svg" alt="Xipher logo">
+            <span class="app-title-text">XIPHER</span>
+        </a>
+        <nav class="topbar-actions">
+            <button type="button" id="theme-toggle" class="theme-toggle" title="Switch between dark and light mode"
+                aria-label="Toggle dark or light mode">
+                <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">☀️</span>
+                <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">🌙</span>
+                <span class="theme-toggle-circle"></span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Web auth card -->
+    <main class="web-auth-card">
+        <div id="web-auth-inner" class="web-auth-inner" hidden>
+            <h1 class="web-auth-title">CLI Web Auth</h1>
+            <p class="web-auth-intro">The Xipher CLI is requesting your key.<br>Choose how to authenticate.</p>
+            <div class="passkey-buttons web-auth-buttons">
+                <button type="button" id="wa-use-current" class="app-button passkey-button passkey-outline" hidden>Use current browser key</button>
+                <button type="button" id="wa-use-passkey" class="app-button passkey-button passkey-outline" hidden>Use a different passkey</button>
+            </div>
+            <p id="wa-status" class="field-hint web-auth-status"></p>
+            <div class="modal-footer" style="margin-top:1.5rem;padding:0">
+                <button type="button" id="wa-cancel" class="app-button reset-content-button">Cancel</button>
+            </div>
+        </div>
+
+        <div id="web-auth-error" class="web-auth-inner" hidden>
+            <h1 class="web-auth-title">Invalid Request</h1>
+            <p class="web-auth-intro" id="wa-error-message">This page must be opened by the Xipher CLI.</p>
+        </div>
+    </main>
+
+    <!-- Toast notifications -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <script>window.XIPHER_WASM_PATH = "../wasm/xipher.wasm";</script>
+    <script src="../wasm/wasm_exec.js" defer></script>
+    <script src="../js/xipher.js" defer></script>
+    <script src="../js/datastore.js" defer></script>
+    <script src="../js/passkey.js" defer></script>
+    <script src="../js/web-auth.js" defer></script>
+</body>
+
+</html>

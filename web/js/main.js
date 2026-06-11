@@ -642,6 +642,7 @@ async function main() {
     }
     loadTheme();
     await loadXipherWASM();
+
     // The credential-provider flow may redirect away (when initiating) or update
     // the stored identity in place (on return). Run it before deriving the public
     // key so a freshly delivered key is reflected immediately.

@@ -43,6 +43,18 @@ func getSecretKeyOrPwd(interactive bool) (string, error) {
 	return *secret, nil
 }
 
+// resolveSecretKey returns the secret key to use for the operation. When the
+// --web-auth flag is set it launches the browser-assisted flow; otherwise it
+// falls back to the normal env-var / interactive prompt path.
+func resolveSecretKey(cmd *cobra.Command, interactive bool) (string, error) {
+	webAuth, _ := cmd.Flags().GetBool(webAuthFlag.name)
+	if webAuth {
+		xipherURL, _ := cmd.Flags().GetString(xipherURLFlag.name)
+		return getSecretKeyFromWebAuth(xipherURL)
+	}
+	return getSecretKeyOrPwd(interactive)
+}
+
 func decryptTextCommand() *cobra.Command {
 	if decryptTxtCmd == nil {
 		decryptTxtCmd = &cobra.Command{
@@ -52,7 +64,7 @@ func decryptTextCommand() *cobra.Command {
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
 				xipherText := cmd.Flag(ciphertextFlag.name).Value.String()
-				secretKeyOrPwd, err := getSecretKeyOrPwd(true)
+				secretKeyOrPwd, err := resolveSecretKey(cmd, true)
 				if err != nil {
 					exitOnError(err, jsonFormat)
 				}
@@ -71,6 +83,8 @@ func decryptTextCommand() *cobra.Command {
 		}
 		decryptTxtCmd.Flags().StringP(ciphertextFlag.fields())
 		decryptTxtCmd.MarkFlagRequired(ciphertextFlag.name)
+		decryptTxtCmd.Flags().BoolP(webAuthFlag.fields())
+		decryptTxtCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return decryptTxtCmd
 }
@@ -117,7 +131,7 @@ func decryptFileCommand() *cobra.Command {
 					exitOnError(err, jsonFormat)
 				}
 				dst := utils.NewThresholdFileWriter(dstPath, fileWriteThreshold)
-				secretKeyOrPwd, err := getSecretKeyOrPwd(true)
+				secretKeyOrPwd, err := resolveSecretKey(cmd, true)
 				if err != nil {
 					dst.Discard()
 					exitOnError(err, jsonFormat)
@@ -142,6 +156,8 @@ func decryptFileCommand() *cobra.Command {
 		decryptFileCmd.Flags().StringP(sourceFileFlag.fields())
 		decryptFileCmd.Flags().StringP(outputFileFlag.fields())
 		decryptFileCmd.MarkFlagRequired(sourceFileFlag.name)
+		decryptFileCmd.Flags().BoolP(webAuthFlag.fields())
+		decryptFileCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return decryptFileCmd
 }
@@ -154,16 +170,28 @@ func decryptStreamCommand() *cobra.Command {
 			Short:   "Decrypt data from stdin to stdout",
 			Run: func(cmd *cobra.Command, args []string) {
 				jsonFormat, _ := cmd.Flags().GetBool(jsonFlag.name)
-				secretKeyOrPwd, _ := getSecretKeyOrPwd(false)
-				if secretKeyOrPwd == "" {
-					exitOnErrorWithMessage(fmt.Sprintf(
-						"provide a secret key or password via the %s environment variable", envar_XIPHER_SECRET), jsonFormat)
+				webAuth, _ := cmd.Flags().GetBool(webAuthFlag.name)
+				var secretKeyOrPwd string
+				if webAuth {
+					xipherURL, _ := cmd.Flags().GetString(xipherURLFlag.name)
+					var err error
+					if secretKeyOrPwd, err = getSecretKeyFromWebAuth(xipherURL); err != nil {
+						exitOnError(err, jsonFormat)
+					}
+				} else {
+					secretKeyOrPwd, _ = getSecretKeyOrPwd(false)
+					if secretKeyOrPwd == "" {
+						exitOnErrorWithMessage(fmt.Sprintf(
+							"provide a secret key or password via the %s environment variable or use --web-auth", envar_XIPHER_SECRET), jsonFormat)
+					}
 				}
 				if err := utils.DecryptStream(secretKeyOrPwd, os.Stdout, os.Stdin); err != nil {
 					exitOnError(err, jsonFormat)
 				}
 			},
 		}
+		decryptStreamCmd.Flags().BoolP(webAuthFlag.fields())
+		decryptStreamCmd.Flags().StringP(xipherURLFlag.fields())
 	}
 	return decryptStreamCmd
 }
