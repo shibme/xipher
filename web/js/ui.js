@@ -213,6 +213,11 @@ let keyModalSetupMode = false;
 
 const keyModalTitle = document.getElementById("key-modal-title");
 
+// Resolver for the promise returned by a mandatory Setup open. ensureLocalIdentity
+// awaits that promise so it only proceeds (e.g. to auto-decryption) once the user
+// has actually committed a key via finishKeySetup. Null when no Setup is pending.
+let setupResolve = null;
+
 async function openKeyModal(setupMode = false) {
     keyModalSetupMode = setupMode;
     // In setup the modal is mandatory: title reads "Setup", and the dismiss
@@ -235,7 +240,12 @@ async function openKeyModal(setupMode = false) {
     const usesPasskey = passkeyAvailable && getIdentity().provider === "passkey";
     selectMethod(usesPasskey ? "passkey" : "password");
     keyModal.hidden = false;
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("no-scroll");
+    // A mandatory Setup resolves only when the user commits a key (finishKeySetup).
+    // Non-setup (Profile) opens have nothing to await, so resolve immediately.
+    if (setupMode) {
+        return new Promise((resolve) => { setupResolve = resolve; });
+    }
 }
 
 function closeKeyModal() {
@@ -244,7 +254,7 @@ function closeKeyModal() {
         return;
     }
     keyModal.hidden = true;
-    document.body.style.overflow = "";
+    document.body.classList.remove("no-scroll");
 }
 
 // Marks a key as successfully set from the modal: leave setup mode and close.
@@ -254,7 +264,12 @@ function finishKeySetup() {
     keyModalClose.hidden = false;
     keyModalTitle.textContent = "Profile";
     keyModal.hidden = true;
-    document.body.style.overflow = "";
+    document.body.classList.remove("no-scroll");
+    // Unblock any ensureLocalIdentity() awaiting this Setup.
+    if (setupResolve) {
+        setupResolve();
+        setupResolve = null;
+    }
 }
 
 keySettingsButton.addEventListener("click", () => openKeyModal(false));

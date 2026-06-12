@@ -180,7 +180,7 @@ function askProviderConsent(opts) {
 
         const cleanup = () => {
             providerModal.hidden = true;
-            document.body.style.overflow = "";
+            document.body.classList.remove("no-scroll");
             providerModalConfirm.removeEventListener("click", onConfirm);
             providerModalCancel.removeEventListener("click", onCancel);
             providerModalClose.removeEventListener("click", onDismiss);
@@ -200,7 +200,11 @@ function askProviderConsent(opts) {
 
         providerModalConfirm.addEventListener("click", onConfirm);
         providerModalCancel.addEventListener("click", onCancel);
-        providerModalClose.addEventListener("click", onCancel);
+        // The close (X) button dismisses: it's a "back out" action, distinct from
+        // the explicit Cancel button. onDismiss returns dismissValue so callers can
+        // tell an abort apart from an active Cancel (e.g. passkey naming aborts on
+        // dismiss but uses the default name on Cancel). Matches the cleanup remover.
+        providerModalClose.addEventListener("click", onDismiss);
         providerModal.addEventListener("click", onBackdrop);
         document.addEventListener("keydown", onKeydown);
 
@@ -209,7 +213,7 @@ function askProviderConsent(opts) {
         };
 
         providerModal.hidden = false;
-        document.body.style.overflow = "hidden";
+        document.body.classList.add("no-scroll");
     });
 }
 

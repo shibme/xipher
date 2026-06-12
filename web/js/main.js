@@ -207,7 +207,7 @@ function handleFileSelect() {
         fileNameElement.textContent = file.name;
         fileNameElement.title = file.name;
         fileSizeElement.textContent = fileSize;
-        fileDisplay.style.display = "flex";
+        fileDisplay.hidden = false;
         textActionButton.textContent = "Reset";
         textActionButton.className = "app-button reset-content-button";
         updateView();
@@ -217,8 +217,8 @@ function handleFileSelect() {
 fileInput.addEventListener("change", handleFileSelect);
 
 function resetView() {
-    textCopyButton.style.display = "none";
-    textShareButton.style.display = "none";
+    textCopyButton.hidden = true;
+    textShareButton.hidden = true;
     fileInput.value = "";
     textInput.value = "";
     textInput.classList.remove("text-error", "text-success");
@@ -226,7 +226,7 @@ function resetView() {
     textInput.placeholder = "Type or paste text here, or drag & drop a file to encrypt / decrypt";
     textActionButton.textContent = "Pick a file";
     textActionButton.className = "app-button select-file-button";
-    fileDisplay.style.display = "none";
+    fileDisplay.hidden = true;
     updateView();
     // Clear any ciphertext from the URL (fragment or ?xt= param) so the address
     // bar goes back to the clean home state and a refresh doesn't re-trigger.
@@ -244,9 +244,9 @@ function setReadableTextView(text, enableShareButton, disabledActionButtonLabel)
         fileInput.value = "";
         textInput.value = text;
         textInput.setAttribute("readonly", true);
-        textCopyButton.style.display = "inline-flex";
+        textCopyButton.hidden = false;
         if (enableShareButton) {
-            textShareButton.style.display = "inline-flex";
+            textShareButton.hidden = false;
         }
         textActionButton.textContent = "Reset";
         textActionButton.className = "app-button reset-content-button";
@@ -530,7 +530,11 @@ async function refreshIdentity() {
     }
     const pubKeyUrl = await getXipherPublicKeyUrl();
     setPublicLink(pubKeyUrl);
-    if (linkSection && !xk) {
+    // Reveal the receive-link only in the collapsed self-view. When the workspace
+    // is expanded (e.g. decrypting a ciphertext URL after a just-completed Setup),
+    // the link is irrelevant and must stay hidden - expandSelfEncryptPanel hid it,
+    // and a key-set triggered refreshIdentity must not un-hide it here.
+    if (linkSection && !xk && selfEncryptPanel.hidden) {
         linkSection.hidden = false;
     }
 }
@@ -640,14 +644,24 @@ function initApp() {
         disableActionButton("Encrypt (" + getEncryptionTarget() + ")");
     }
     if (isCT(xt)) {
-        // Arrived with ciphertext to decrypt: reveal the workspace, pre-fill it,
-        // then fire decryption automatically so the user doesn't have to click.
+        // Arrived with ciphertext to decrypt: reveal the workspace and pre-fill it.
+        // Decryption itself is fired later (see autoDecryptIfCT) only after the
+        // identity gate has a key, so a fresh browser sees Setup first instead of
+        // a spurious "Decryption Failed!" toast.
         if (!xk) {
             expandSelfEncryptPanel(false);
         }
         textInput.value = xt;
         updateView();
-        handleAction();
+    }
+}
+
+// Fires the automatic decryption for a ciphertext URL. Called after the identity
+// gate (ensureLocalIdentity) so a key/passkey is in place; otherwise the decrypt
+// would fail and toast before the user ever got to Setup.
+async function autoDecryptIfCT() {
+    if (isCT(xt)) {
+        await handleAction();
     }
 }
 
@@ -721,20 +735,29 @@ async function main() {
     }
     await refreshIdentity();
     initApp();
+    // Passkey UI needs WASM loaded (genXipherSecretKeyFromSeed) and a platform
+    // authenticator check. Run it before the gate so the Setup modal's passkey tab
+    // is ready when the user interacts with it.
+    if (typeof initPasskeyUI === "function") {
+        initPasskeyUI();
+    }
+    // Hide the preloader BEFORE the identity gate. ensureLocalIdentity may block on
+    // the mandatory Setup modal, which the user can only complete once it's visible
+    // -leaving the preloader up here would cover the modal and deadlock the load.
+    hidePreloader();
     // Gate the receiver view on having a key: a fresh browser must consciously
     // set one (no silently-generated random secret). A non-persisted passkey
     // identity must be re-unlocked on every open, since its key lives only in
     // memory. The sender view (xk present) encrypts with the recipient's public
     // key and needs no local key, so it's exempt.
+    //
+    // The gate runs BEFORE auto-decryption so a ciphertext URL opened in a fresh
+    // browser shows Setup (or the passkey-unlock prompt) first, then decrypts once
+    // a key exists - rather than firing decryption immediately and failing.
     if (!xk) {
         await ensureLocalIdentity();
     }
-    // Passkey UI needs WASM loaded (genXipherSecretKeyFromSeed) and a platform
-    // authenticator check - run it after the app is ready, non-blocking.
-    if (typeof initPasskeyUI === "function") {
-        initPasskeyUI();
-    }
-    hidePreloader();
+    await autoDecryptIfCT();
 }
 
 if ('serviceWorker' in navigator) {
@@ -753,6 +776,19 @@ window.addEventListener("beforeunload", function (e) {
     if (currentProcessor && !currentProcessor.isEnded()) {
         e.preventDefault();
     }
+});
+
+// The URL params (xk/xt/xn) are resolved once at load, so pasting a new fragment
+// link into the address bar of an already-open app wouldn't switch the view
+// (encrypt vs decrypt) on its own. A fragment change is only ever user-driven
+// here - programmatic resets use history.replaceState, which doesn't fire
+// hashchange - so reloading lets the normal load flow re-resolve everything.
+// If a file transfer is mid-flight, leave it alone rather than interrupting it.
+window.addEventListener("hashchange", function () {
+    if (currentProcessor && !currentProcessor.isEnded()) {
+        return;
+    }
+    window.location.reload();
 });
 
 main();

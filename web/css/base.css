@@ -128,6 +128,17 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+/* Scroll-lock for open modals. Toggled by JS via classList instead of an inline
+   style on body (CSP-safe under style-src 'self'). */
+body.no-scroll {
+    overflow: hidden;
+}
+
+/* Small spacing utility replacing inline style="margin-top:14px" (CSP-safe). */
+.mt-14 {
+    margin-top: 14px;
+}
+
 a {
     color: inherit;
 }

@@ -138,11 +138,11 @@
                                 placeholder="Type or paste text here, or drag &amp; drop a file to encrypt / decrypt"></textarea>
                             <div class="text-view-actions">
                                 <button type="button" class="icon-button" id="text-copy-button" title="Copy"
-                                    aria-label="Copy result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
+                                    aria-label="Copy result" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
                                 <button type="button" class="icon-button" id="text-share-button" title="Share"
-                                    aria-label="Share result"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
+                                    aria-label="Share result" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg></button>
                             </div>
-                            <div id="file-display" class="file-display">
+                            <div id="file-display" class="file-display" hidden>
                                 <div class="file-icon" aria-hidden="true">📄</div>
                                 <div class="file-details">
                                     <span id="file-name" class="file-name" title=""></span>
@@ -219,7 +219,7 @@
                         <button type="button" id="passkey-setup-button" class="app-button passkey-button passkey-outline">Set-up new</button>
                         <button type="button" id="passkey-use-button" class="app-button passkey-button passkey-outline">Use existing</button>
                     </div>
-                    <div class="quantum-safe-row" style="margin-top:14px">
+                    <div class="quantum-safe-row mt-14">
                         <div class="quantum-safe-label-row">
                             <label class="quantum-safe-label" for="passkey-store-toggle">
                                 <input type="checkbox" id="passkey-store-toggle" class="settings-switch-input">
@@ -277,7 +277,7 @@
                 </div>
                 <!-- Optional opt-in toggle (e.g. "Stay unlocked" on the passkey
                      re-unlock prompt). Shown only when the caller provides it. -->
-                <div id="provider-modal-toggle-row" class="quantum-safe-row" style="margin-top:14px" hidden>
+                <div id="provider-modal-toggle-row" class="quantum-safe-row mt-14" hidden>
                     <div class="quantum-safe-label-row">
                         <label class="quantum-safe-label" for="provider-modal-toggle">
                             <input type="checkbox" id="provider-modal-toggle" class="settings-switch-input">

@@ -197,9 +197,11 @@
     color: var(--success-color);
 }
 
-/* Result action buttons hidden until there's a result */
-#text-copy-button,
-#text-share-button {
+/* Result action buttons hidden until there's a result. Toggled via the [hidden]
+   attribute (CSP-safe) rather than inline style; the override beats .icon-button's
+   display:inline-flex. */
+#text-copy-button[hidden],
+#text-share-button[hidden] {
     display: none;
 }
 

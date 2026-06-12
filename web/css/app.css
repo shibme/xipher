@@ -560,7 +560,7 @@ textarea:focus::placeholder {
 /* ---- File display ------------------------------------------------------- */
 
 .file-display {
-    display: none;
+    display: flex;
     align-items: center;
     gap: 12px;
     background: var(--file-bg);
@@ -568,6 +568,12 @@ textarea:focus::placeholder {
     border-radius: var(--radius-sm);
     padding: 12px 14px;
     margin-top: 10px;
+}
+
+/* Hidden until a file is selected. Toggled via the [hidden] attribute (CSP-safe)
+   instead of an inline style. */
+.file-display[hidden] {
+    display: none;
 }
 
 .file-icon {
@@ -904,6 +910,13 @@ textarea:focus::placeholder {
 .modal-footer .app-button {
     margin-top: 0;
     flex: 1;
+}
+
+/* Footer used outside a bordered modal body (e.g. web-auth) - spaced from the
+   content above, no inner padding. Replaces an inline style (CSP-safe). */
+.modal-footer-flush {
+    margin-top: 1.5rem;
+    padding: 0;
 }
 
 /* ---- Key modal tabs ----------------------------------------------------- */
