@@ -88,6 +88,19 @@ function isLoopbackHost(host) {
     return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
 }
 
+// canonicalLoopback maps a parsed hostname to a fixed loopback literal, or
+// returns "" if it isn't a recognised loopback host. Returning a constant (not
+// the input) means callers build redirect URLs purely from trusted literals.
+function canonicalLoopback(host) {
+    switch ((host || "").toLowerCase()) {
+        case "localhost":  return "localhost";
+        case "127.0.0.1":  return "127.0.0.1";
+        case "::1":
+        case "[::1]":      return "[::1]";
+        default:           return "";
+    }
+}
+
 function parseParams() {
     const p = new URLSearchParams(window.location.search);
     const pubKey = p.get(WA_PARAM_PUBKEY);
@@ -97,10 +110,18 @@ function parseParams() {
     if (!pubKey.startsWith("XPK_")) return null;
     let cbUrl;
     try { cbUrl = new URL(cb); } catch (e) { return null; }
-    if (cbUrl.protocol !== "http:" || !isLoopbackHost(cbUrl.hostname)) return null;
-    // Use the parsed URL's canonical origin (scheme + loopback host + port only)
-    // so downstream navigation can never carry attacker-controlled path/query/fragment.
-    return { pubKey, state, cb: cbUrl.origin };
+    if (cbUrl.protocol !== "http:") return null;
+    // Map the parsed host to a fixed canonical literal — the redirect base is then
+    // built entirely from constants (scheme + literal host) plus a numeric port,
+    // so no user-controlled string ever flows into window.location. Anything that
+    // isn't an exact loopback match is rejected.
+    const host = canonicalLoopback(cbUrl.hostname);
+    if (!host) return null;
+    // Port must be a plain integer in range; reject anything else.
+    const portNum = cbUrl.port === "" ? 0 : Number(cbUrl.port);
+    if (!Number.isInteger(portNum) || portNum < 0 || portNum > 65535) return null;
+    const cbBase = "http://" + host + (portNum ? ":" + portNum : "");
+    return { pubKey, state, cbBase };
 }
 
 function setStatus(msg) {
@@ -126,9 +147,11 @@ function showError(msg) {
 async function deliverKey(params, xsk) {
     const sealed = await encryptStr(params.pubKey, xsk);
     const theme = document.documentElement.getAttribute("data-theme") || "light";
-    window.location.replace(
-        `${params.cb}/deliver?xck=${encodeURIComponent(sealed)}&state=${encodeURIComponent(params.state)}&theme=${theme}`
-    );
+    const url = new URL("/deliver", params.cbBase);
+    url.searchParams.set("xck", sealed);
+    url.searchParams.set("state", params.state);
+    url.searchParams.set("theme", theme);
+    window.location.replace(url.href);
 }
 
 /* ==========================================================================
@@ -166,9 +189,10 @@ async function main() {
 
     cancelBtn && cancelBtn.addEventListener("click", () => {
         const theme = document.documentElement.getAttribute("data-theme") || "light";
-        window.location.replace(
-            `${params.cb}/cancel?state=${encodeURIComponent(params.state)}&theme=${theme}`
-        );
+        const url = new URL("/cancel", params.cbBase);
+        url.searchParams.set("state", params.state);
+        url.searchParams.set("theme", theme);
+        window.location.replace(url.href);
     });
 
     useCurrentBtn.addEventListener("click", async () => {
