@@ -427,7 +427,6 @@ const methodViewPassword = document.getElementById("method-view-password");
 const passkeyUseButton = document.getElementById("passkey-use-button");
 const passkeySetupButton = document.getElementById("passkey-setup-button");
 const passkeyStatus = document.getElementById("passkey-status");
-const passkeyStoreToggle = document.getElementById("passkey-store-toggle");
 const passkeyUnsupported = document.getElementById("passkey-unsupported");
 
 // Whether the platform authenticator check has passed. Determined once at
@@ -461,7 +460,7 @@ function resetPasskeyView() {
     passkeySetupButton.disabled = false;
     passkeyUseButton.classList.remove("is-active");
     passkeySetupButton.classList.remove("is-active");
-    passkeyStatus.textContent = passkeyAvailable ? "Use an existing passkey or set a new one." : "";
+    passkeyStatus.textContent = "";
     setKeySaveReady(false);
     keySaveButton.hidden = false;
     keySaveButton.textContent = keyModalSetupMode ? "Set up" : "Cancel";
@@ -533,7 +532,6 @@ async function resolvePasskeyName() {
 }
 
 async function runPasskeySetup() {
-    const storeKey = passkeyStoreToggle.checked;
     const passkeyName = await resolvePasskeyName();
     if (passkeyName === null) {
         resetPasskeyView();
@@ -548,7 +546,7 @@ async function runPasskeySetup() {
     }
     passkeyStatus.textContent = "Follow your passkey prompts (some providers ask twice)…";
     try {
-        await setupPasskey(storeKey, passkeyName);
+        await setupPasskey(passkeyName);
         const wasSetup = keyModalSetupMode;
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Passkey set up. Your key is now derived from this passkey.", "success", 3500);
@@ -560,7 +558,6 @@ async function runPasskeySetup() {
 }
 
 async function runPasskeyUnlock() {
-    const storeKey = passkeyStoreToggle.checked;
     passkeyUseButton.disabled = true;
     passkeySetupButton.disabled = true;
     keySaveButton.disabled = true;
@@ -570,7 +567,7 @@ async function runPasskeyUnlock() {
     }
     passkeyStatus.textContent = "Waiting for your passkey…";
     try {
-        await unlockWithPasskey(storeKey);
+        await unlockWithPasskey();
         const wasSetup = keyModalSetupMode;
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Key derived from your passkey.", "success");

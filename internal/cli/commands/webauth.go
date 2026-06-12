@@ -3,7 +3,7 @@ package commands
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
@@ -50,7 +50,9 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 		return "", fmt.Errorf("deriving ephemeral public key: %w", err)
 	}
 
-	state, err := randomWebAuthToken(18)
+	// 8 random bytes -> 16 hex chars: short enough to compare by eye, still 64
+	// bits of entropy (unguessable within the single-use 3-minute window).
+	state, err := randomWebAuthToken(8)
 	if err != nil {
 		return "", fmt.Errorf("generating state token: %w", err)
 	}
@@ -71,9 +73,27 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 	mux := http.NewServeMux()
 	srv := &http.Server{Handler: mux}
 
+	// The web app is served from baseURL; only that exact origin may call the
+	// loopback endpoints cross-origin. setCORS echoes it and answers preflight.
+	allowedOrigin := baseURL
+	setCORS := func(w http.ResponseWriter) {
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		w.Header().Set("Vary", "Origin")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	}
+
 	mux.HandleFunc("/deliver", func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		if q.Get(webAuthParamState) != state {
+		setCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if r.FormValue(webAuthParamState) != state {
 			http.Error(w, "invalid state", http.StatusBadRequest)
 			select {
 			case errCh <- fmt.Errorf("state mismatch - possible CSRF"):
@@ -81,7 +101,7 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 			}
 			return
 		}
-		sealedKey := q.Get(webAuthParamKey)
+		sealedKey := r.FormValue(webAuthParamKey)
 		if sealedKey == "" {
 			http.Error(w, "missing key", http.StatusBadRequest)
 			select {
@@ -100,8 +120,7 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 			return
 		}
 		xsk := strings.TrimSpace(string(plaintext))
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, webAuthSuccessPage(q.Get("theme") == "dark"))
+		w.WriteHeader(http.StatusNoContent)
 		select {
 		case resultCh <- xsk:
 		default:
@@ -110,14 +129,22 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 	})
 
 	mux.HandleFunc("/cancel", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get(webAuthParamState) != state {
+		setCORS(w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if r.FormValue(webAuthParamState) != state {
 			http.Error(w, "invalid state", http.StatusBadRequest)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, webAuthCancelledPage(r.URL.Query().Get("theme") == "dark"))
+		w.WriteHeader(http.StatusNoContent)
 		select {
-		case errCh <- fmt.Errorf("cancelled"):
+		case errCh <- fmt.Errorf("web auth request declined"):
 		default:
 		}
 		cancel()
@@ -156,6 +183,10 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 
 	fmt.Fprintln(os.Stderr, "Opening browser for web authentication...")
 	fmt.Fprintf(os.Stderr, "If the browser doesn't open, visit:\n  %s\n", color.HiCyanString(browserURL))
+	// Show the state token so the user can confirm the browser page displays the
+	// same value before approving - guards against a spoofed/look-alike page.
+	fmt.Fprintf(os.Stderr, "\nVerification code: %s\n", color.HiYellowString(state))
+	fmt.Fprintln(os.Stderr, "Make sure this matches the code shown in the browser before approving.")
 
 	if err := openBrowser(browserURL); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not open browser automatically: %v\n", err)
@@ -171,12 +202,15 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 	}
 }
 
+// randomWebAuthToken returns a hex string of 2*n chars (n random bytes). Hex
+// keeps the state token to [0-9a-f] only, so it carries no special characters
+// that could trip up display, copy/paste, or URL handling.
 func randomWebAuthToken(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
+	return hex.EncodeToString(b), nil
 }
 
 func openBrowser(url string) error {
@@ -192,56 +226,6 @@ func openBrowser(url string) error {
 		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}
 	return cmd.Start()
-}
-
-func webAuthSuccessPage(dark bool) string {
-	theme := "light"
-	bg, surface, border, text, muted := "#eef2f7", "#ffffff", "#d7dee8", "#1c2430", "#5a6677"
-	if dark {
-		theme = "dark"
-		bg, surface, border, text, muted = "#0b0e14", "#151a23", "#2a323f", "#e7ecf3", "#a3afc0"
-	}
-	return fmt.Sprintf(`<!DOCTYPE html><html lang="en" data-theme="%s"><head><meta charset="utf-8">
-<title>Xipher · Done</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;
-justify-content:center;min-height:100vh;background:%s;color:%s}
-.card{text-align:center;padding:2.5rem 2rem;border-radius:14px;background:%s;
-border:1px solid %s;max-width:380px;width:90%%}
-.check{font-size:2.5rem;margin-bottom:1rem;color:#1faa53}
-h1{font-size:1.3rem;font-weight:600;margin-bottom:.6rem}
-p{color:%s;font-size:.9rem;line-height:1.5}
-</style></head><body>
-<div class="card">
-  <div class="check">&#10003;</div>
-  <h1>Authenticated</h1>
-  <p>Your key has been delivered to the CLI.<br>You can close this tab.</p>
-</div></body></html>`, theme, bg, text, surface, border, muted)
-}
-
-func webAuthCancelledPage(dark bool) string {
-	bg, surface, border, text, muted := "#eef2f7", "#ffffff", "#d7dee8", "#1c2430", "#5a6677"
-	if dark {
-		bg, surface, border, text, muted = "#0b0e14", "#151a23", "#2a323f", "#e7ecf3", "#a3afc0"
-	}
-	return fmt.Sprintf(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<title>Xipher · Cancelled</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;
-justify-content:center;min-height:100vh;background:%s;color:%s}
-.card{text-align:center;padding:2.5rem 2rem;border-radius:14px;background:%s;
-border:1px solid %s;max-width:380px;width:90%%}
-.icon{font-size:2.5rem;margin-bottom:1rem}
-h1{font-size:1.3rem;font-weight:600;margin-bottom:.6rem}
-p{color:%s;font-size:.9rem;line-height:1.5}
-</style></head><body>
-<div class="card">
-  <div class="icon">✕</div>
-  <h1>Cancelled</h1>
-  <p>The CLI web auth request was cancelled.<br>You can close this tab.</p>
-</div></body></html>`, bg, text, surface, border, muted)
 }
 
 func webAuthWaitingPage() string {

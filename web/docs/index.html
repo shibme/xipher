@@ -576,7 +576,7 @@ Content-Type: application/json</code></pre>
                     <div id="stay-unlocked" class="docs-callout">
                         <span class="docs-callout-icon">💡</span>
                         <div>
-                            <p><strong>Stay unlocked.</strong> The derived key can be persisted to local storage (faster, works offline) or re-derived on every visit (key never at rest in the browser). Leaving "Stay unlocked" off keeps the key only in memory for the tab, so you re-authenticate with your passkey each time you open the app. The preference is set during registration and can be changed when you next unlock.</p>
+                            <p><strong>Never at rest.</strong> The passkey-derived key is never written to local storage. It is held only in memory for the current tab and is re-derived from your passkey each time you open the app, so you re-authenticate on every visit.</p>
                         </div>
                     </div>
                     <div class="docs-callout docs-callout-warn">

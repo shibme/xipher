@@ -668,42 +668,24 @@ async function autoDecryptIfCT() {
 // Drives the startup identity gate for the receiver view. Three cases:
 //  1. A session already exists (persisted key, or in-memory passkey key) -nothing
 //     to do.
-//  2. A passkey is registered but its key wasn't persisted ("Stay unlocked" off):
-//     ask the user (Use passkey / Cancel) before invoking the authenticator, so
-//     the prompt is a conscious choice. On confirm, run the passkey unlock; if it
-//     is cancelled or fails, fall back to the mandatory Setup modal.
+//  2. A passkey is registered (its key is never persisted): invoke the
+//     authenticator directly to re-derive the key. If the user cancels or it
+//     fails, fall back to the mandatory Setup modal.
 //  3. Nothing set yet: open the mandatory Setup modal so the user picks a method.
 async function ensureLocalIdentity() {
     if (await hasXipherSession()) {
         return;
     }
-    if (typeof hasNonPersistedPasskey === "function" && hasNonPersistedPasskey()) {
-        const result = await askProviderConsent({
-            title: "Unlock with your passkey",
-            message: "This browser uses a passkey that isn't kept unlocked, so your key must be re-derived. Use your passkey to continue, or set up a different method.",
-            confirmLabel: "Use passkey",
-            cancelLabel: "Cancel",
-            confirmClass: "encrypt-button",
-            toggle: {
-                label: "Stay unlocked",
-                note: "Off by default. Enabling stores the key in this browser. Convenient but less secure.",
-                checked: false,
-                docsHref: "docs/#stay-unlocked",
-                docsTitle: "Learn about staying unlocked",
-            },
-        });
-        if (result.confirmed) {
-            try {
-                // Honour the toggle: only persist if the user opted in this time.
-                await unlockWithPasskey(result.checked);
-                await refreshIdentity();
-                showToast("Key derived from your passkey.", "success");
-                return;
-            } catch (err) {
-                if (typeof handlePasskeyError === "function") {
-                    // Surface the failure, then fall through to Setup.
-                    handlePasskeyError(err, "unlock");
-                }
+    if (typeof hasPasskeyConfigured === "function" && hasPasskeyConfigured()) {
+        try {
+            await unlockWithPasskey();
+            await refreshIdentity();
+            showToast("Key derived from your passkey.", "success");
+            return;
+        } catch (err) {
+            if (typeof handlePasskeyError === "function") {
+                // Surface the failure, then fall through to Setup.
+                handlePasskeyError(err, "unlock");
             }
         }
         // Cancelled or failed: let the user choose a method.
@@ -726,6 +708,11 @@ async function main() {
     }
     loadTheme();
     await loadXipherWASM();
+
+    // Idle-expiry: wipe a stored key/identity if the site hasn't been opened in
+    // over a week. Runs before the provider flow so a key freshly delivered in
+    // this same load (which writes after this point) is never collected.
+    enforceIdleExpiry();
 
     // The credential-provider flow may redirect away (when initiating) or update
     // the stored identity in place (on return). Run it before deriving the public

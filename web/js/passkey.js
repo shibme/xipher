@@ -2,13 +2,13 @@
 // PRF extension. The PRF output is a deterministic 32-byte HMAC computed
 // inside the authenticator, scoped to this origin. We HKDF-expand it to the
 // 64 bytes that xipher's seed path requires. No server is involved; the seed
-// is derived client-side and never stored (unless the user opts in).
+// is derived client-side and never stored -it is re-derived from the passkey
+// on every window open.
 //
 // Browser support: Chrome 108+, Safari 17+, Firefox 119+.
 // Older browsers/devices that don't support PRF show a graceful error.
 
 const PASSKEY_CREDENTIAL_ID_KEY = "xipherPasskeyCredentialId";
-const PASSKEY_STORE_KEY_PREF_KEY = "xipherPasskeyStoreKey";
 
 // The fixed PRF input string. Changing this would invalidate all existing keys.
 const PRF_INPUT = new TextEncoder().encode("xipher");
@@ -68,25 +68,11 @@ function clearStoredCredentialId() {
     localStorage.removeItem(PASSKEY_CREDENTIAL_ID_KEY);
 }
 
-// Returns whether the user opted to store the derived key in localStorage.
-function getPasskeyStoreKeyPref() {
-    return localStorage.getItem(PASSKEY_STORE_KEY_PREF_KEY) === "true";
-}
-
-function setPasskeyStoreKeyPref(store) {
-    if (store) {
-        localStorage.setItem(PASSKEY_STORE_KEY_PREF_KEY, "true");
-    } else {
-        localStorage.removeItem(PASSKEY_STORE_KEY_PREF_KEY);
-    }
-}
-
-// Reports whether this browser has a passkey credential registered but the
-// derived key was NOT persisted ("Stay unlocked" off). In that state the secret
-// lives only in memory and is gone after a reload, so the user must re-derive it
-// via the passkey on every window open.
-function hasNonPersistedPasskey() {
-    return !!getStoredCredentialId() && !getPasskeyStoreKeyPref();
+// Reports whether this browser has a passkey credential registered. The derived
+// key is never persisted, so the secret lives only in memory and is gone after a
+// reload -the user must re-derive it via the passkey on every window open.
+function hasPasskeyConfigured() {
+    return !!getStoredCredentialId();
 }
 
 // Stretches a 32-byte PRF output to a 64-byte xipher seed using HKDF-SHA-256.
@@ -233,38 +219,28 @@ async function seedKeyFromPrf(prfOutput) {
    Public entry points called from ui.js
    ========================================================================== */
 
-// Registers a NEW passkey and installs the key derived from it. `storeKey`
-// records the user's choice: true persists the key across sessions; false keeps
-// it only for this tab (re-derive via passkey on next visit). `name` (optional)
-// is the user's display name: it labels the credential in their passkey manager
-// and is stored as the local identity name. Since WebAuthn won't return it on a
-// later login, an existing passkey used on another device will have no name
-// until set again there.
-async function setupPasskey(storeKey, name) {
+// Registers a NEW passkey and installs the key derived from it. The derived key
+// is never persisted: it lives only in this tab and is re-derived via the passkey
+// on next visit. `name` (optional) is the user's display name: it labels the
+// credential in their passkey manager and is stored as the local identity name.
+// Since WebAuthn won't return it on a later login, an existing passkey used on
+// another device will have no name until set again there.
+async function setupPasskey(name) {
     const { credentialId, prfOutput } = await registerPasskey(name);
     storeCredentialId(credentialId);
-    setPasskeyStoreKeyPref(storeKey);
     const xsk = await seedKeyFromPrf(prfOutput);
-    await setProviderIdentity(xsk, "passkey", (name || "").trim() || null, null, storeKey);
+    await setProviderIdentity(xsk, "passkey", (name || "").trim() || null, null, false);
     return xsk;
 }
 
 // Uses an EXISTING passkey. Always runs the discoverable flow (null credential
 // ID) so it finds any xipher passkey on this device regardless of localStorage
 // state -robust against a cleared store, a new browser, or a stale stored ID.
-// authenticatePasskey records the selected credential's ID for next time.
-async function unlockWithPasskey(storeKey) {
+// authenticatePasskey records the selected credential's ID for next time. The
+// derived key is never persisted -re-derived from the passkey on every visit.
+async function unlockWithPasskey() {
     const prfOutput = await authenticatePasskey(null);
     const xsk = await seedKeyFromPrf(prfOutput);
-    // Use the explicitly passed preference; fall back to the stored one, and to
-    // false when none was ever recorded. Never default to persisting: an absent
-    // preference means the user left "Stay unlocked" off, so a re-unlock must not
-    // silently start storing the key.
-    const store = storeKey !== undefined ? storeKey
-        : localStorage.getItem(PASSKEY_STORE_KEY_PREF_KEY) !== null
-            ? getPasskeyStoreKeyPref()
-            : false;
-    setPasskeyStoreKeyPref(store);
-    await setProviderIdentity(xsk, "passkey", null, null, store);
+    await setProviderIdentity(xsk, "passkey", null, null, false);
     return xsk;
 }

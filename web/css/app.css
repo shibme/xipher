@@ -1153,3 +1153,39 @@ textarea:focus::placeholder {
     margin-top: 14px;
     min-height: 1.2em;
 }
+
+.web-auth-verify {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-color);
+}
+
+.web-auth-verify .field-hint {
+    margin: 0 0 8px;
+}
+
+.web-auth-verify-code {
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    word-break: break-all;
+    color: var(--brand-2, #0044ff);
+}
+
+.web-auth-result-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    line-height: 1;
+}
+
+.web-auth-result-icon.ok {
+    color: #1faa53;
+}
+
+.web-auth-result-icon.declined {
+    color: #e5484d;
+}

@@ -74,9 +74,25 @@ const innerEl        = document.getElementById("web-auth-inner");
 const errorEl        = document.getElementById("web-auth-error");
 const errorMsg       = document.getElementById("wa-error-message");
 const statusEl       = document.getElementById("wa-status");
-const useCurrentBtn  = document.getElementById("wa-use-current");
-const usePasskeyBtn  = document.getElementById("wa-use-passkey");
-const cancelBtn      = document.getElementById("wa-cancel");
+const allowBtn       = document.getElementById("wa-allow");
+const denyBtn        = document.getElementById("wa-deny");
+const verifyEl       = document.getElementById("wa-verify");
+const verifyCodeEl   = document.getElementById("wa-verify-code");
+const resultEl       = document.getElementById("web-auth-result");
+const resultIconEl   = document.getElementById("wa-result-icon");
+const resultTitleEl  = document.getElementById("wa-result-title");
+const resultMsgEl    = document.getElementById("wa-result-message");
+
+// Swaps the request card for a terminal result card (Approved / Declined).
+function showResult(kind, title, message) {
+    innerEl.hidden = true;
+    errorEl.hidden = true;
+    resultIconEl.textContent = kind === "ok" ? "✓" : "✕";
+    resultIconEl.className = "web-auth-result-icon " + (kind === "ok" ? "ok" : "declined");
+    resultTitleEl.textContent = title;
+    resultMsgEl.textContent = message;
+    resultEl.hidden = false;
+}
 
 /* ==========================================================================
    Helpers
@@ -129,9 +145,8 @@ function setStatus(msg) {
 }
 
 function setBusy(busy) {
-    useCurrentBtn.disabled = busy;
-    usePasskeyBtn.disabled = busy;
-    if (cancelBtn) cancelBtn.disabled = busy;
+    allowBtn.disabled = busy;
+    denyBtn.disabled = busy;
 }
 
 function resetButtons() {
@@ -144,14 +159,27 @@ function showError(msg) {
     hidePreloader();
 }
 
+// POSTs to a loopback endpoint on the CLI. Body is form-encoded so the CLI reads
+// it with r.FormValue. The sealed key never appears in a URL (no history, no
+// Referer, no access log). Throws on a non-2xx response.
+async function postToCli(cbBase, path, fields) {
+    const body = new URLSearchParams(fields);
+    const res = await fetch(new URL(path, cbBase).href, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+    });
+    if (!res.ok) {
+        throw new Error("CLI responded with " + res.status);
+    }
+}
+
 async function deliverKey(params, xsk) {
     const sealed = await encryptStr(params.pubKey, xsk);
-    const theme = document.documentElement.getAttribute("data-theme") || "light";
-    const url = new URL("/deliver", params.cbBase);
-    url.searchParams.set("xck", sealed);
-    url.searchParams.set("state", params.state);
-    url.searchParams.set("theme", theme);
-    window.location.replace(url.href);
+    await postToCli(params.cbBase, "/deliver", {
+        xck: sealed,
+        state: params.state,
+    });
 }
 
 /* ==========================================================================
@@ -172,52 +200,65 @@ async function main() {
 
     await loadXipherWASM();
 
-    const existingKey = await getExistingXipherSecret();
-    const passkeyOk   = await isPlatformAuthenticatorAvailable();
+    // Idle-expiry: drop a stored key/identity unused for over a week, same as the
+    // main app. A wiped browser then has no credential to deliver and falls into
+    // the "no credential configured" branch below.
+    enforceIdleExpiry();
 
-    if (!existingKey && !passkeyOk) {
-        showError("No key or passkey found in this browser. Set one up at xipher.org first.");
+    const existingKey = await getExistingXipherSecret();
+    const identity    = getIdentity();
+
+    // A passkey leaves provider="passkey" in storage but no stored key (the
+    // derived key is never persisted): Allow re-derives it via the authenticator.
+    // Any other credential (stored key, password, provider) is also resolvable on
+    // Allow. Only a truly blank browser has nothing to deliver.
+    const passkeyIdentity = identity.provider === "passkey";
+    const hasCredential   = !!existingKey || passkeyIdentity;
+
+    if (!hasCredential) {
+        showError("No credential is configured in this browser. Set one up at xipher.org first.");
         return;
     }
 
-    useCurrentBtn.hidden = !existingKey;
-    usePasskeyBtn.hidden = !passkeyOk;
+    // Surface the state token so the user can compare it with the one the CLI
+    // printed in the terminal before approving - a spoofed page won't know it.
+    verifyCodeEl.textContent = params.state;
+    verifyEl.hidden = false;
 
-    setStatus(existingKey
-        ? "Use your current browser key, or authenticate with a different passkey."
-        : "Authenticate with your passkey to send your key to the CLI.");
+    allowBtn.hidden = false;
+    setStatus("Approve the CLI to use your key, or decline the request.");
 
-    cancelBtn && cancelBtn.addEventListener("click", () => {
-        const theme = document.documentElement.getAttribute("data-theme") || "light";
-        const url = new URL("/cancel", params.cbBase);
-        url.searchParams.set("state", params.state);
-        url.searchParams.set("theme", theme);
-        window.location.replace(url.href);
-    });
-
-    useCurrentBtn.addEventListener("click", async () => {
+    // Deny: tell the CLI the request was declined, then show the declined result.
+    denyBtn.addEventListener("click", async () => {
         setBusy(true);
-        setStatus("Retrieving your key…");
+        setStatus("Declining…");
         try {
-            const xsk = await getExistingXipherSecret();
-            if (!xsk) throw new Error("No key found.");
-            setStatus("Delivering to CLI…");
-            await deliverKey(params, xsk);
+            await postToCli(params.cbBase, "/cancel", { state: params.state });
         } catch (err) {
-            showToast("Failed to deliver key.", "error");
-            setStatus("Failed: " + (err.message || "unknown error"));
-            resetButtons();
+            // The CLI may have already shut down; the decline still stands.
         }
+        showResult("declined", "Declined", "The request was declined. You can close this tab.");
     });
 
-    usePasskeyBtn.addEventListener("click", async () => {
+    // Allow: resolve the configured credential to an XSK_ and deliver it.
+    allowBtn.addEventListener("click", async () => {
         setBusy(true);
-        setStatus("Waiting for your passkey…");
         try {
-            const prfOutput = await authenticatePasskey(getStoredCredentialId());
-            const xsk = await seedKeyFromPrf(prfOutput);
+            let xsk;
+            if (existingKey) {
+                // Stored key/password/persisted passkey/provider: use it directly.
+                setStatus("Retrieving your key…");
+                xsk = existingKey;
+            } else {
+                // Non-persisted passkey: re-derive from the authenticator. Use the
+                // stored credential ID when known, else the discoverable picker.
+                setStatus("Waiting for your passkey…");
+                const prfOutput = await authenticatePasskey(getStoredCredentialId());
+                xsk = await seedKeyFromPrf(prfOutput);
+            }
             setStatus("Delivering to CLI…");
             await deliverKey(params, xsk);
+            showResult("ok", "Approved", "Your key has been delivered to the CLI. You can close this tab.");
         } catch (err) {
             if (err && err.name === "PRFNotSupported") {
                 setStatus("That passkey can't derive a key. Try your device's built-in passkey (Touch ID / Windows Hello).");
@@ -225,8 +266,8 @@ async function main() {
             } else if (err && err.name === "NotAllowedError") {
                 setStatus("Passkey cancelled.");
             } else {
-                setStatus("Passkey failed: " + (err.message || "unknown error"));
-                showToast("Passkey authentication failed.", "error");
+                showToast("Failed to deliver key.", "error");
+                setStatus("Failed: " + (err.message || "unknown error"));
             }
             resetButtons();
         }

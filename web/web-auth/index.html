@@ -8,7 +8,7 @@
         style-src 'self';
         img-src 'self';
         font-src 'self';
-        connect-src 'self' http://127.0.0.1:*;
+        connect-src 'self' http://127.0.0.1:* http://localhost:* http://[::1]:*;
         object-src 'none';
         base-uri 'self';
         form-action 'none';
@@ -54,20 +54,27 @@
     <main class="web-auth-card">
         <div id="web-auth-inner" class="web-auth-inner" hidden>
             <h1 class="web-auth-title">CLI Web Auth</h1>
-            <p class="web-auth-intro">The Xipher CLI is requesting your key.<br>Choose how to authenticate.</p>
-            <div class="passkey-buttons web-auth-buttons">
-                <button type="button" id="wa-use-current" class="app-button passkey-button passkey-outline" hidden>Use current browser key</button>
-                <button type="button" id="wa-use-passkey" class="app-button passkey-button passkey-outline" hidden>Use a different passkey</button>
+            <p class="web-auth-intro">The Xipher CLI is requesting your key.</p>
+            <div id="wa-verify" class="web-auth-verify" hidden>
+                <p class="field-hint">Confirm the code with the one in terminal:</p>
+                <code id="wa-verify-code" class="web-auth-verify-code"></code>
             </div>
             <p id="wa-status" class="field-hint web-auth-status"></p>
-            <div class="modal-footer modal-footer-flush">
-                <button type="button" id="wa-cancel" class="app-button reset-content-button">Cancel</button>
+            <div class="passkey-buttons web-auth-buttons">
+                <button type="button" id="wa-allow" class="app-button passkey-button encrypt-button" hidden>Approve</button>
+                <button type="button" id="wa-deny" class="app-button passkey-button reset-content-button">Decline</button>
             </div>
         </div>
 
         <div id="web-auth-error" class="web-auth-inner" hidden>
             <h1 class="web-auth-title">Invalid Request</h1>
             <p class="web-auth-intro" id="wa-error-message">This page must be opened by the Xipher CLI.</p>
+        </div>
+
+        <div id="web-auth-result" class="web-auth-inner" hidden>
+            <div id="wa-result-icon" class="web-auth-result-icon" aria-hidden="true"></div>
+            <h1 class="web-auth-title" id="wa-result-title"></h1>
+            <p class="web-auth-intro" id="wa-result-message"></p>
         </div>
     </main>
 

@@ -214,32 +214,20 @@
 
                 <!-- Passkey view -->
                 <div id="method-view-passkey" class="method-view" hidden>
-                    <p class="modal-intro">Device-backed key unlock. No password needed.</p>
+                    <p class="modal-intro">Device-backed key unlock. No password needed. Use an existing passkey or set a new one.</p>
+                    <p id="passkey-status" class="field-hint passkey-status"></p>
                     <div class="passkey-buttons">
                         <button type="button" id="passkey-setup-button" class="app-button passkey-button passkey-outline">Set-up new</button>
                         <button type="button" id="passkey-use-button" class="app-button passkey-button passkey-outline">Use existing</button>
                     </div>
-                    <div class="quantum-safe-row mt-14">
-                        <div class="quantum-safe-label-row">
-                            <label class="quantum-safe-label" for="passkey-store-toggle">
-                                <input type="checkbox" id="passkey-store-toggle" class="settings-switch-input">
-                                <span class="settings-switch" aria-hidden="true"></span>
-                                <span class="quantum-safe-text">Stay unlocked</span>
-                            </label>
-                            <a href="docs/#stay-unlocked" target="_blank" rel="noopener" class="quantum-docs-link" title="Learn about staying unlocked" aria-label="Learn about staying unlocked">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                            </a>
-                        </div>
-                        <p class="quantum-safe-note">Off by default. Enabling stores the key in this browser. Convenient but less secure.</p>
-                    </div>
-                    <p id="passkey-status" class="field-hint passkey-status"></p>
+                    <p class="quantum-safe-note mt-14">Your key is derived from this passkey each time and never stored in this browser.</p>
                     <p id="passkey-unsupported" class="field-hint" hidden>Passkeys aren't available in this browser. Use a password or secret key instead.</p>
                 </div>
 
                 <!-- Password / secret key view -->
                 <div id="method-view-password" class="method-view">
                     <p class="modal-intro">Your identity is your key, stored only in this browser. Set a password or secret key to use it across devices.</p>
-                    <label class="field-label" for="key-secret-input">Update your password or secret key</label>
+                    <label class="field-label" for="key-secret-input">Set or update your password or secret key</label>
                     <div class="password-field">
                         <input type="password" id="key-secret-input" class="text-field"
                             placeholder="Leave blank to keep current" autocomplete="off" spellcheck="false">

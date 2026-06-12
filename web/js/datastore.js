@@ -14,6 +14,12 @@ const xipherIdNameStoreId = "xipherIdName";
 const xipherIdValueStoreId = "xipherIdValue";
 const xipherProviderStoreId = "xipherProvider";
 const xipherSecretKindStoreId = "xipherSecretKind"; // "key" | "password"
+// Idle-expiry: if the site isn't opened for this long, the stored secret and all
+// identity metadata are wiped on the next visit. A security tool shouldn't keep a
+// key on a machine the user has abandoned. The timestamp is refreshed on every
+// load (see touchLastSeen), so active use never triggers expiry.
+const xipherLastSeenStoreId = "xipherLastSeen";
+const IDLE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_IDENTITY_FIELD_LEN = 64;
 // C0 and C1 control characters, stripped from untrusted identity fields.
 // Matches CONTROL_CHARS in resolve.js.
@@ -145,7 +151,7 @@ async function setXipherSecret(xipherSecret) {
 // `id` is an optional labelled identifier { name, value }.
 //
 // `persist` defaults to true: the key is written to localStorage so it survives
-// across sessions. When false (the passkey "re-derive each time" option), the
+// across sessions. When false (the passkey flow, which re-derives each time), the
 // secret lives only in the in-memory burial cache for this tab -it is never
 // written to localStorage, so it vanishes on reload and must be re-derived. The
 // non-secret identity metadata is removed from localStorage in that case too, so
@@ -258,6 +264,43 @@ function getIdentity() {
         provider,
         managed,
     };
+}
+
+// Wipes the stored secret and all identity metadata from this browser, returning
+// it to a fresh state. Clears the in-memory burial cache too, so a session-only
+// (non-persisted) key held in memory is dropped as well. The passkey credential-ID
+// pointer is removed when available (passkey.js defines clearStoredCredentialId).
+function clearStoredIdentity() {
+    burialCache.clear();
+    localStorage.removeItem(xipherSecretStoreId);
+    localStorage.removeItem(xipherPublicKeyStoreId);
+    localStorage.removeItem(xipherNameStoreId);
+    localStorage.removeItem(xipherIdNameStoreId);
+    localStorage.removeItem(xipherIdValueStoreId);
+    localStorage.removeItem(xipherProviderStoreId);
+    localStorage.removeItem(xipherSecretKindStoreId);
+    if (typeof clearStoredCredentialId === "function") {
+        clearStoredCredentialId();
+    }
+}
+
+// Idle-expiry gate. If the site hasn't been opened within IDLE_EXPIRY_MS, wipe the
+// stored identity so an abandoned machine doesn't retain a usable key. Always
+// refreshes the last-seen timestamp afterwards, so the window slides with use.
+// Returns true when an expiry wipe happened. Call this once, early on load, before
+// reading the secret. A missing/invalid timestamp is treated as first-ever visit
+// (no wipe) and just seeds the timestamp.
+function enforceIdleExpiry() {
+    const now = Date.now();
+    const raw = localStorage.getItem(xipherLastSeenStoreId);
+    const last = raw ? parseInt(raw, 10) : NaN;
+    let expired = false;
+    if (Number.isFinite(last) && now - last > IDLE_EXPIRY_MS) {
+        clearStoredIdentity();
+        expired = true;
+    }
+    localStorage.setItem(xipherLastSeenStoreId, String(now));
+    return expired;
 }
 
 // Updates the user-chosen display name. Only meaningful for self-issued
