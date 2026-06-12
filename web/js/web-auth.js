@@ -98,7 +98,9 @@ function parseParams() {
     let cbUrl;
     try { cbUrl = new URL(cb); } catch (e) { return null; }
     if (cbUrl.protocol !== "http:" || !isLoopbackHost(cbUrl.hostname)) return null;
-    return { pubKey, state, cb };
+    // Use the parsed URL's canonical origin (scheme + loopback host + port only)
+    // so downstream navigation can never carry attacker-controlled path/query/fragment.
+    return { pubKey, state, cb: cbUrl.origin };
 }
 
 function setStatus(msg) {

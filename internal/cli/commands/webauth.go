@@ -100,12 +100,8 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 			return
 		}
 		xsk := strings.TrimSpace(string(plaintext))
-		theme := q.Get("theme")
-		if theme != "dark" {
-			theme = "light"
-		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, webAuthSuccessPage(theme))
+		fmt.Fprint(w, webAuthSuccessPage(q.Get("theme") == "dark"))
 		select {
 		case resultCh <- xsk:
 		default:
@@ -118,12 +114,8 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 			http.Error(w, "invalid state", http.StatusBadRequest)
 			return
 		}
-		theme := r.URL.Query().Get("theme")
-		if theme != "dark" {
-			theme = "light"
-		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, webAuthCancelledPage(theme))
+		fmt.Fprint(w, webAuthCancelledPage(r.URL.Query().Get("theme") == "dark"))
 		select {
 		case errCh <- fmt.Errorf("cancelled"):
 		default:
@@ -202,9 +194,11 @@ func openBrowser(url string) error {
 	return cmd.Start()
 }
 
-func webAuthSuccessPage(theme string) string {
+func webAuthSuccessPage(dark bool) string {
+	theme := "light"
 	bg, surface, border, text, muted := "#eef2f7", "#ffffff", "#d7dee8", "#1c2430", "#5a6677"
-	if theme == "dark" {
+	if dark {
+		theme = "dark"
 		bg, surface, border, text, muted = "#0b0e14", "#151a23", "#2a323f", "#e7ecf3", "#a3afc0"
 	}
 	return fmt.Sprintf(`<!DOCTYPE html><html lang="en" data-theme="%s"><head><meta charset="utf-8">
@@ -226,9 +220,9 @@ p{color:%s;font-size:.9rem;line-height:1.5}
 </div></body></html>`, theme, bg, text, surface, border, muted)
 }
 
-func webAuthCancelledPage(theme string) string {
+func webAuthCancelledPage(dark bool) string {
 	bg, surface, border, text, muted := "#eef2f7", "#ffffff", "#d7dee8", "#1c2430", "#5a6677"
-	if theme == "dark" {
+	if dark {
 		bg, surface, border, text, muted = "#0b0e14", "#151a23", "#2a323f", "#e7ecf3", "#a3afc0"
 	}
 	return fmt.Sprintf(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">

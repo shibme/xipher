@@ -59,6 +59,47 @@
         return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
     }
 
+    // isPrivateHost reports whether host points at a private, link-local, or
+    // otherwise internal target. Such hosts are rejected (except explicit
+    // loopback, which is allowed for local development) so the page can't be
+    // abused as a confused deputy to probe the visitor's LAN. Mirrors the intent
+    // of the loopback gate in resolver.go.
+    function isPrivateHost(host) {
+        host = (host || "").toLowerCase().replace(/^\[|\]$/g, "");
+
+        // IPv4 dotted-quad: parse octets and match private/link-local/special ranges.
+        const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+        if (v4) {
+            const o = v4.slice(1).map(Number);
+            if (o.some((n) => n > 255)) return true; // malformed → treat as unsafe
+            const [a, b] = o;
+            if (a === 10) return true;                       // 10.0.0.0/8
+            if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+            if (a === 192 && b === 168) return true;          // 192.168.0.0/16
+            if (a === 169 && b === 254) return true;          // 169.254.0.0/16 link-local
+            if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+            if (a === 127) return true;                        // 127.0.0.0/8 loopback
+            if (a === 0) return true;                          // 0.0.0.0/8 this-network
+            return false;
+        }
+
+        // IPv6: reject link-local (fe80::/10), unique-local (fc00::/7), and
+        // unspecified (::). Loopback (::1) is handled by isLoopbackHost.
+        if (host.includes(":")) {
+            if (host === "::") return true;
+            if (/^fe[89ab][0-9a-f]?:/.test(host)) return true; // fe80::/10
+            if (/^f[cd][0-9a-f]{2}:/.test(host)) return true;  // fc00::/7
+            return false;
+        }
+
+        // Hostnames: block mDNS / internal TLDs that resolve to LAN hosts.
+        return host === "localhost" ||
+            host.endsWith(".local") ||
+            host.endsWith(".internal") ||
+            host.endsWith(".lan") ||
+            host.endsWith(".home.arpa");
+    }
+
     // keyURLCandidates validates the scheme and returns the URLs to try, in
     // order. Mirrors keyURLCandidates in resolver.go:
     //   - bare host (no path)  -> [host + /.well-known/xipher]
@@ -76,6 +117,11 @@
             (u.protocol === "http:" && isLoopbackHost(u.hostname));
         if (!allowed) {
             throw new Error("only https URLs are supported");
+        }
+        // Reject private/internal targets (LAN probing via confused deputy).
+        // Explicit loopback stays allowed for local development.
+        if (!isLoopbackHost(u.hostname) && isPrivateHost(u.hostname)) {
+            throw new Error("private or internal hosts are not allowed");
         }
         if (u.pathname === "" || u.pathname === "/") {
             u.pathname = WELL_KNOWN_KEY_PATH;
