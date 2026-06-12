@@ -790,6 +790,12 @@ textarea:focus::placeholder {
     font-weight: 800;
 }
 
+.modal-subtitle {
+    margin: 0 0 18px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
 .modal-close {
     border: none;
     background: transparent;
@@ -1174,6 +1180,10 @@ textarea:focus::placeholder {
     letter-spacing: 0.03em;
     word-break: break-all;
     color: var(--brand-2, #0044ff);
+}
+
+[data-theme="dark"] .web-auth-verify-code {
+    color: var(--brand-1, #00ddff);
 }
 
 .web-auth-result-icon {

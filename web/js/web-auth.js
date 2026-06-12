@@ -2,9 +2,11 @@
 // Handles the CLI key-delivery flow: validates ?xwa= params, loads WASM,
 // then lets the user deliver their key to the CLI via passkey or stored key.
 
-const WA_PARAM_PUBKEY = "xwa";
-const WA_PARAM_STATE  = "state";
-const WA_PARAM_CB     = "cb";
+const WA_PARAM_PUBKEY   = "xwa";
+const WA_PARAM_STATE    = "state";
+const WA_PARAM_CB       = "cb";
+const WA_PARAM_APPNAME  = "appName";
+const WA_PARAM_APPURL   = "appURL";
 
 const PRELOADER_FADE_MS    = 400;
 const TOAST_DEFAULT_DURATION = 2600;
@@ -73,6 +75,7 @@ function hidePreloader() {
 const innerEl        = document.getElementById("web-auth-inner");
 const errorEl        = document.getElementById("web-auth-error");
 const errorMsg       = document.getElementById("wa-error-message");
+const introEl        = document.getElementById("wa-intro");
 const statusEl       = document.getElementById("wa-status");
 const allowBtn       = document.getElementById("wa-allow");
 const denyBtn        = document.getElementById("wa-deny");
@@ -82,6 +85,21 @@ const resultEl       = document.getElementById("web-auth-result");
 const resultIconEl   = document.getElementById("wa-result-icon");
 const resultTitleEl  = document.getElementById("wa-result-title");
 const resultMsgEl    = document.getElementById("wa-result-message");
+
+// Sets the intro to show the requesting app name as a bold hyperlink.
+function renderAppIntro(appName, appURL) {
+    introEl.innerHTML = "";
+    const link = document.createElement("a");
+    link.href = appURL;
+    link.target = "_blank";
+    link.rel = "noopener";
+    const bold = document.createElement("strong");
+    bold.textContent = appName;
+    link.appendChild(bold);
+    introEl.appendChild(link);
+    const text = document.createTextNode(" is requesting your key.");
+    introEl.appendChild(text);
+}
 
 // Swaps the request card for a terminal result card (Approved / Declined).
 function showResult(kind, title, message) {
@@ -119,13 +137,16 @@ function canonicalLoopback(host) {
 
 function parseParams() {
     const p = new URLSearchParams(window.location.search);
-    const pubKey = p.get(WA_PARAM_PUBKEY);
-    const state  = p.get(WA_PARAM_STATE);
-    const cb     = p.get(WA_PARAM_CB);
-    if (!pubKey || !state || !cb) return null;
+    const pubKey   = p.get(WA_PARAM_PUBKEY);
+    const state    = p.get(WA_PARAM_STATE);
+    const cb       = p.get(WA_PARAM_CB);
+    const appName  = p.get(WA_PARAM_APPNAME);
+    const appURL   = p.get(WA_PARAM_APPURL);
+    if (!pubKey || !state || !cb || !appName || !appURL) return null;
     if (!pubKey.startsWith("XPK_")) return null;
-    let cbUrl;
+    let cbUrl, appUrlObj;
     try { cbUrl = new URL(cb); } catch (e) { return null; }
+    try { appUrlObj = new URL(appURL); } catch (e) { return null; }
     if (cbUrl.protocol !== "http:") return null;
     // Map the parsed host to a fixed canonical literal - the redirect base is then
     // built entirely from constants (scheme + literal host) plus a numeric port,
@@ -137,7 +158,7 @@ function parseParams() {
     const portNum = cbUrl.port === "" ? 0 : Number(cbUrl.port);
     if (!Number.isInteger(portNum) || portNum < 0 || portNum > 65535) return null;
     const cbBase = "http://" + host + (portNum ? ":" + portNum : "");
-    return { pubKey, state, cbBase };
+    return { pubKey, state, cbBase, appName, appURL: appUrlObj.href };
 }
 
 function setStatus(msg) {
@@ -197,6 +218,8 @@ async function main() {
         showError("This page must be opened by the Xipher CLI (missing or invalid parameters).");
         return;
     }
+
+    renderAppIntro(params.appName, params.appURL);
 
     await loadXipherWASM();
 

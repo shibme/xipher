@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"net/url"
 	"net/http"
 	"os"
 	"os/exec"
@@ -19,12 +20,15 @@ import (
 )
 
 const (
-	webAuthTimeout       = 3 * time.Minute
-	webAuthParamKey      = "xck"
-	webAuthParamState    = "state"
-	webAuthParamPubKey   = "xwa"
-	webAuthParamCB       = "cb"
-	xipherWebBaseDefault = "https://xipher.org"
+	webAuthTimeout          = 3 * time.Minute
+	webAuthParamKey         = "xck"
+	webAuthParamState       = "state"
+	webAuthParamPubKey      = "xwa"
+	webAuthParamCB          = "cb"
+	webAuthParamAppName     = "appName"
+	webAuthParamAppURL      = "appURL"
+	xipherWebBaseDefault    = "https://xipher.org"
+	xipherAppURL            = "https://xipher.org"
 )
 
 // getSecretKeyFromWebAuth starts the browser-assisted unlock flow. It generates
@@ -173,19 +177,25 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 		srv.Shutdown(shutCtx) //nolint:errcheck
 	}()
 
+	// Identify the requesting app. For CLI, use "Xipher" and the Xipher web app URL.
+	appName := "Xipher"
+	appURL := xipherAppURL
+
 	browserURL := fmt.Sprintf(
-		"%s/web-auth/?%s=%s&%s=%s&%s=%s",
+		"%s/web-auth/?%s=%s&%s=%s&%s=%s&%s=%s&%s=%s",
 		baseURL,
 		webAuthParamPubKey, ephemeralPubKey,
 		webAuthParamState, state,
 		webAuthParamCB, cbURL,
+		webAuthParamAppName, url.QueryEscape(appName),
+		webAuthParamAppURL, url.QueryEscape(appURL),
 	)
 
 	fmt.Fprintln(os.Stderr, "Opening browser for web authentication...")
-	fmt.Fprintf(os.Stderr, "If the browser doesn't open, visit:\n  %s\n", color.HiCyanString(browserURL))
+	fmt.Fprintf(os.Stderr, "If the browser doesn't open, visit:\n  %s\n", color.New(color.Underline).Sprint(browserURL))
 	// Show the state token so the user can confirm the browser page displays the
 	// same value before approving - guards against a spoofed/look-alike page.
-	fmt.Fprintf(os.Stderr, "\nVerification code: %s\n", color.HiYellowString(state))
+	fmt.Fprintf(os.Stderr, "\nVerification code: %s\n", color.New(color.Bold).Sprint(state))
 	fmt.Fprintln(os.Stderr, "Make sure this matches the code shown in the browser before approving.")
 
 	if err := openBrowser(browserURL); err != nil {
