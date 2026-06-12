@@ -74,6 +74,7 @@
                     <a href="#cli-keygen" class="docs-nav-link">Generating keys</a>
                     <a href="#cli-encrypt" class="docs-nav-link">Encrypting</a>
                     <a href="#cli-decrypt" class="docs-nav-link">Decrypting</a>
+                    <a href="#cli-webauth" class="docs-nav-link">Web auth</a>
                     <a href="#cli-env" class="docs-nav-link">Environment & JSON</a>
                 </div>
                 <div class="docs-nav-group">
@@ -88,7 +89,8 @@
                     <a href="#web-receive" class="docs-nav-link">Receiving a secret</a>
                     <a href="#web-send" class="docs-nav-link">Sending a secret</a>
                     <a href="#web-keys" class="docs-nav-link">Keys & passwords</a>
-                    <a href="#post-quantum" class="docs-nav-link">Post-quantum</a>
+                    <a href="#web-passkeys" class="docs-nav-link">Passkeys</a>
+                    <a href="#post-quantum" class="docs-nav-link">Post-quantum encryption</a>
                     <a href="#web-files" class="docs-nav-link">Encrypting files</a>
                 </div>
                 <div class="docs-nav-group">
@@ -324,7 +326,7 @@ cat backup.tar | xipher encrypt stream -k "XPK_..." > backup.tar.xipher</code></
                                 <tr><td><code>--text</code></td><td><code>-t</code></td><td>Text to encrypt (<code>-</code> reads stdin)</td></tr>
                                 <tr><td><code>--file</code></td><td><code>-f</code></td><td>Path to the input file</td></tr>
                                 <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file</td></tr>
-                                <tr><td><code>--compress</code></td><td><code>-c</code></td><td>Compress data before encryption</td></tr>
+                                <tr><td><code>--compress</code></td><td></td><td>Compress data before encryption</td></tr>
                                 <tr><td><code>--xiphertext</code></td><td></td><td>Encode output as Xipher text</td></tr>
                             </tbody>
                         </table>
@@ -358,6 +360,42 @@ cat backup.tar.xipher | xipher decrypt stream > backup.tar</code></pre>
                                 <tr><td><code>--overwrite</code></td><td></td><td>Overwrite the output file if it exists</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </section>
+
+                <section id="cli-webauth" class="docs-section">
+                    <h3>Web auth</h3>
+                    <p>When your key lives in a browser — set up as a passkey or as the web app's stored key — you can authenticate the CLI through the browser instead of typing a password or pasting a secret key. Pass <code>--web-auth</code> (<code>-w</code>) to any <code>encrypt</code> or <code>decrypt</code> command:</p>
+                    <pre class="code-block" data-lang="bash"><code># Encrypt using a key obtained from the browser
+xipher encrypt text --web-auth -t "Hello, World!"
+
+# Decrypt using a key obtained from the browser
+xipher decrypt text --web-auth -c "XCT_..."
+
+# Point at a self-hosted Xipher instance
+xipher encrypt text --web-auth --xipher-url "https://your-xipher.example.com" -t "Hello"</code></pre>
+                    <ol>
+                        <li>The CLI generates a one-time ephemeral keypair and a random <code>state</code> token, then starts a temporary HTTP server on a random loopback port.</li>
+                        <li>It opens <code>https://xipher.org/web-auth/</code> (or your custom <code>--xipher-url</code>) in the default browser, passing the ephemeral public key (<code>xwa</code>), <code>state</code>, and callback address (<code>cb</code>) as query parameters.</li>
+                        <li>The web page lets you authenticate — either with the current browser key or via a passkey — and seals (encrypts) your Xipher secret key to the ephemeral public key.</li>
+                        <li>The sealed key is delivered to the CLI's local callback endpoint, which verifies the <code>state</code>, decrypts the payload with the ephemeral secret, and proceeds with the command.</li>
+                    </ol>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead>
+                                <tr><th>Flag</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>--web-auth</code> / <code>-w</code></td><td>Authenticate via browser instead of prompting for a key or password</td></tr>
+                                <tr><td><code>--xipher-url</code></td><td>Base URL of the Xipher web app to use (default: <code>https://xipher.org</code>)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>The callback server listens only on <code>127.0.0.1</code> (loopback) and the exchange times out after 3 minutes. The <code>state</code> parameter guards against CSRF. The ephemeral keypair is discarded immediately after use; the secret key is never written to disk.</p>
+                        </div>
                     </div>
                 </section>
 
@@ -531,6 +569,24 @@ Content-Type: application/json</code></pre>
                     </div>
                 </section>
 
+                <section id="web-passkeys" class="docs-section">
+                    <h3>Passkeys</h3>
+                    <p>Passkeys let you derive your Xipher secret key from a <strong>WebAuthn platform authenticator</strong> (Touch&nbsp;ID, Face&nbsp;ID, Windows Hello, etc.) instead of a typed password. When you register a passkey, the browser uses its PRF extension to produce a deterministic 32-byte value inside the authenticator, which Xipher expands to a 64-byte seed via HKDF-SHA-256. The derived key is identical every time you authenticate with the same device, without any secret ever leaving the authenticator.</p>
+                    <p>To set up a passkey, open <span class="ui-chip">⚙️</span> Settings and choose <strong>Passkey</strong> as the key source. Your device's biometric or PIN mechanism creates the credential. On subsequent visits the same passkey re-derives the same key.</p>
+                    <div class="docs-callout">
+                        <span class="docs-callout-icon">💡</span>
+                        <div>
+                            <p>The derived key can be persisted to local storage (faster, works offline) or re-derived on every visit (key never at rest in the browser). The preference is set during registration.</p>
+                        </div>
+                    </div>
+                    <div class="docs-callout docs-callout-warn">
+                        <span class="docs-callout-icon">⚠️</span>
+                        <div>
+                            <p>Passkey support requires Chrome&nbsp;108+, Safari&nbsp;17+, or Firefox&nbsp;119+ and a device with a platform authenticator. Browsers or devices that lack the PRF extension will show a graceful error. A passkey is tied to the origin that created it — a self-hosted deployment uses its own passkeys, separate from those at <code>xipher.org</code>.</p>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="post-quantum" class="docs-section">
                     <h3>Post-quantum encryption</h3>
                     <p>Next to your shareable link is a <strong>Post-quantum encryption</strong> toggle. When on, Xipher
@@ -560,20 +616,20 @@ Content-Type: application/json</code></pre>
                 <section id="provider-overview" class="docs-section">
                     <h2>Credential providers</h2>
                     <p>A <strong>credential provider</strong> is an external service that authenticates a user and
-                        issues them a xipher secret key, instead of the user generating one themselves. This lets an
+                        issues them a Xipher secret key, instead of the user generating one themselves. This lets an
                         organization provision and manage identities for its members. For example, an internal portal
-                        that hands each employee the same xipher key on any device after they sign in.</p>
+                        that hands each employee the same Xipher key on any device after they sign in.</p>
                     <div class="docs-callout docs-callout-warn">
                         <span class="docs-callout-icon">🔑</span>
                         <div>
-                            <p><strong>This is a key-escrow / custodial model, an opt-in departure from xipher's
+                            <p><strong>This is a key-escrow / custodial model, an opt-in departure from Xipher's
                                     default.</strong> A provider that issues the secret key necessarily knows it, and can
                                 therefore read everything sent to that user and impersonate them. Self-generated keys
                                 remain the default; the provider flow is only ever entered when the app is opened with an
                                 explicit <code>?provider=</code> parameter, and the user must confirm twice.</p>
                         </div>
                     </div>
-                    <p>The flow is modelled on the OAuth 2.0 Authorization Code grant, repurposed to deliver a secret
+                    <p>The flow is modeled on the OAuth 2.0 Authorization Code grant, repurposed to deliver a secret
                         key in place of a token. The browser binds the exchange with a one-time, single-use
                         <code>state</code> and an ephemeral keypair, so the issued key can only be opened by the exact
                         browser session that started the request, even if the return URL leaks.</p>
@@ -588,7 +644,7 @@ Content-Type: application/json</code></pre>
                             (encrypted in <code>sessionStorage</code>, bound to a random <code>state</code>), and
                             redirects the browser to your provider URL with three query parameters.</li>
                         <li><strong>Authenticate &amp; seal.</strong> Your provider authenticates the user, validates the
-                            supplied callback against its allowlist, looks up that user's xipher secret key (with an
+                            supplied callback against its allowlist, looks up that user's Xipher secret key (with an
                             optional display name and identifier), and <em>seals</em> it to the supplied ephemeral public
                             key.</li>
                         <li><strong>Return.</strong> Your provider redirects the browser back to the callback URL with the
@@ -641,7 +697,7 @@ Content-Type: application/json</code></pre>
                             <tbody>
                                 <tr><td><code>xpk</code></td><td>The ephemeral <code>XPK_…</code> public key to seal the user's secret key to. Fresh per request. Usually the hybrid (post-quantum) key; the app falls back to the compact X25519 key when the hybrid one would make the URL too long for your server.</td></tr>
                                 <tr><td><code>state</code></td><td>An opaque, URL-safe one-time token. Echo it back unchanged.</td></tr>
-                                <tr><td><code>xcb</code></td><td>The absolute app URL to redirect back to. <strong>Validate this against your allowlist</strong> before honouring the request.</td></tr>
+                                <tr><td><code>xcb</code></td><td>The absolute app URL to redirect back to. <strong>Validate this against your allowlist</strong> before honoring the request.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -653,7 +709,7 @@ Content-Type: application/json</code></pre>
 
                 <section id="provider-seal" class="docs-section">
                     <h3>Sealing the key</h3>
-                    <p>"Sealing" is ordinary xipher public-key encryption: encrypt the user's credentials to the supplied
+                    <p>"Sealing" is ordinary Xipher public-key encryption: encrypt the user's credentials to the supplied
                         <code>xpk</code>. Only the holder of the matching ephemeral secret (the browser
                         session that initiated the request) can open the result, so a leaked callback URL is useless to
                         anyone else. The output is a standard <code>XCT_…</code> ciphertext.</p>
@@ -673,7 +729,7 @@ Content-Type: application/json</code></pre>
                                 <tr><td><code>key</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The user's <code>XSK_…</code> secret key</td></tr>
                                 <tr><td><code>seed</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The 64-byte seed the secret key is deterministically derived from, as <strong>standard base64</strong> (see below), an alternative to sending the key directly. If both <code>key</code> and <code>seed</code> are present, <code>key</code> takes precedence.</td></tr>
                                 <tr><td><code>name</code></td><td>No</td><td>Display name; trimmed and capped at 64 characters</td></tr>
-                                <tr><td><code>id</code></td><td>No</td><td>A labelled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
+                                <tr><td><code>id</code></td><td>No</td><td>A labeled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -687,7 +743,7 @@ Content-Type: application/json</code></pre>
   "name": "Alice Example"
 }</code></pre>
                     <p>For backward compatibility the app also accepts a bare <code>XSK_…</code> string as the sealed
-                        payload (no name or id). Seal with any xipher binding, such as the Go library:</p>
+                        payload (no name or id). Seal with any Xipher binding, such as the Go library:</p>
                     <pre class="code-block" data-lang="go"><code>import (
     "encoding/json"
     "xipher.org/xipher"
@@ -713,7 +769,8 @@ if err != nil { /* handle */ }
                         <div>
                             <p>The payload is a long-term secret key, so the app prefers a hybrid
                                 (X25519&nbsp;+&nbsp;ML-KEM-1024) public key to resist "harvest-now, decrypt-later"
-                                attacks. The hybrid key is around 2.5&nbsp;KB; if that would push the request URL past
+                                attacks. The hybrid key is about 1600 bytes of raw material, which becomes roughly
+                                2.5&nbsp;KB once encoded as an <code>XPK_…</code> string in the URL; if that would push the request URL past
                                 what your server accepts, the app instead sends the compact X25519 key. Either way, just
                                 encrypt to the key you are given. The algorithm is carried in the key, so you don't need
                                 to detect which one it is, and accepting request URLs up to about 4&nbsp;KB keeps you on
@@ -751,7 +808,7 @@ if err != nil { /* handle */ }
                     <ul>
                         <li><strong>Allowlist callbacks.</strong> Treat <code>xcb</code> exactly like an
                             OAuth <code>redirect_uri</code>: only redirect back to URLs you have pre-registered. This is
-                            your primary defence against an attacker tricking your provider into sealing a key to their
+                            your primary defense against an attacker tricking your provider into sealing a key to their
                             own session. Reject unknown callbacks with <code>#xe=callback</code>.</li>
                         <li><strong>Always seal to the supplied public key.</strong> Never return a bare secret key in
                             the URL. The seal is what binds the key to the requesting session.</li>
@@ -763,7 +820,7 @@ if err != nil { /* handle */ }
                         <li>The flow uses top-level navigation only, so the app's strict
                             <code>connect-src 'self'</code> CSP is unaffected; your provider is never fetched by script.</li>
                     </ul>
-                    <p>For self-hosted xipher deployments, the callback is your own origin; register that origin's app
+                    <p>For self-hosted Xipher deployments, the callback is your own origin; register that origin's app
                         URL with your provider. The app permits provider URLs over HTTPS (and <code>http</code> only for
                         loopback hosts during local development), matching the rules for key URLs.</p>
                 </section>

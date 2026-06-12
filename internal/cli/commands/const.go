@@ -177,9 +177,8 @@ var (
 	// Compress Flag
 	compressFlag = boolFlag{
 		flagDef: flagDef{
-			name:      "compress",
-			shorthand: "c",
-			usage:     "Compress data before encryption",
+			name:  "compress",
+			usage: "Compress data before encryption",
 		},
 	}
 
