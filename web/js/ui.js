@@ -166,14 +166,20 @@ function renderIdentityCard() {
         identityContact.textContent = "";
         identityContact.hidden = true;
     }
+    const kind = localStorage.getItem("xipherSecretKind");
     const backingLabel = (() => {
         if (identity.managed) {
             return identity.provider === "passkey" ? "Passkey" : `Provider · ${identity.provider}`;
         }
-        const kind = localStorage.getItem("xipherSecretKind");
-        return kind === "password" ? "Password" : "Secret key";
+        return kind === "password" ? "Password" : kind === "key" ? "Secret key" : null;
     })();
-    identityProvider.innerHTML = `Backed by <strong class="identity-provider-label">${backingLabel}</strong>`;
+    if (backingLabel) {
+        identityProvider.innerHTML = `Backed by <strong class="identity-provider-label">${backingLabel}</strong>`;
+        identityProvider.hidden = false;
+    } else {
+        identityProvider.innerHTML = "";
+        identityProvider.hidden = true;
+    }
 
     // The name is editable only for self-issued identities; for a provider-
     // managed one the pencil is hidden and a note explains why.
