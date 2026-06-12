@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	webAuthTimeout         = 3 * time.Minute
-	webAuthParamKey        = "xck"
-	webAuthParamState      = "state"
-	webAuthParamPubKey     = "xwa"
-	webAuthParamCB         = "cb"
-	xipherWebBaseDefault   = "https://xipher.org"
+	webAuthTimeout       = 3 * time.Minute
+	webAuthParamKey      = "xck"
+	webAuthParamState    = "state"
+	webAuthParamPubKey   = "xwa"
+	webAuthParamCB       = "cb"
+	xipherWebBaseDefault = "https://xipher.org"
 )
 
 // getSecretKeyFromWebAuth starts the browser-assisted unlock flow. It generates
@@ -76,7 +76,7 @@ func getSecretKeyFromWebAuth(baseURL string) (string, error) {
 		if q.Get(webAuthParamState) != state {
 			http.Error(w, "invalid state", http.StatusBadRequest)
 			select {
-			case errCh <- fmt.Errorf("state mismatch — possible CSRF"):
+			case errCh <- fmt.Errorf("state mismatch - possible CSRF"):
 			default:
 			}
 			return

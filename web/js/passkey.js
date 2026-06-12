@@ -199,7 +199,7 @@ async function authenticatePasskey(credentialId) {
             allowCredentials,
             userVerification: "required",
             // Prefer the platform authenticator (Touch ID, Face ID, Windows Hello)
-            // over roaming/extension authenticators. Advisory only — the browser
+            // over roaming/extension authenticators. Advisory only - the browser
             // may still show other options, but this surfaces the system prompt first.
             hints: ["client-device"],
             extensions: {

@@ -365,7 +365,7 @@ cat backup.tar.xipher | xipher decrypt stream > backup.tar</code></pre>
 
                 <section id="cli-webauth" class="docs-section">
                     <h3>Web auth</h3>
-                    <p>When your key lives in a browser — set up as a passkey or as the web app's stored key — you can authenticate the CLI through the browser instead of typing a password or pasting a secret key. Pass <code>--web-auth</code> (<code>-w</code>) to any <code>encrypt</code> or <code>decrypt</code> command:</p>
+                    <p>When your key lives in a browser - set up as a passkey or as the web app's stored key - you can authenticate the CLI through the browser instead of typing a password or pasting a secret key. Pass <code>--web-auth</code> (<code>-w</code>) to any <code>encrypt</code> or <code>decrypt</code> command:</p>
                     <pre class="code-block" data-lang="bash"><code># Encrypt using a key obtained from the browser
 xipher encrypt text --web-auth -t "Hello, World!"
 
@@ -377,7 +377,7 @@ xipher encrypt text --web-auth --xipher-url "https://your-xipher.example.com" -t
                     <ol>
                         <li>The CLI generates a one-time ephemeral keypair and a random <code>state</code> token, then starts a temporary HTTP server on a random loopback port.</li>
                         <li>It opens <code>https://xipher.org/web-auth/</code> (or your custom <code>--xipher-url</code>) in the default browser, passing the ephemeral public key (<code>xwa</code>), <code>state</code>, and callback address (<code>cb</code>) as query parameters.</li>
-                        <li>The web page lets you authenticate — either with the current browser key or via a passkey — and seals (encrypts) your Xipher secret key to the ephemeral public key.</li>
+                        <li>The web page lets you authenticate - either with the current browser key or via a passkey - and seals (encrypts) your Xipher secret key to the ephemeral public key.</li>
                         <li>The sealed key is delivered to the CLI's local callback endpoint, which verifies the <code>state</code>, decrypts the payload with the ephemeral secret, and proceeds with the command.</li>
                     </ol>
                     <div class="docs-table-wrap">
@@ -582,7 +582,7 @@ Content-Type: application/json</code></pre>
                     <div class="docs-callout docs-callout-warn">
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
-                            <p>Passkey support requires Chrome&nbsp;108+, Safari&nbsp;17+, or Firefox&nbsp;119+ and a device with a platform authenticator. Browsers or devices that lack the PRF extension will show a graceful error. A passkey is tied to the origin that created it — a self-hosted deployment uses its own passkeys, separate from those at <code>xipher.org</code>.</p>
+                            <p>Passkey support requires Chrome&nbsp;108+, Safari&nbsp;17+, or Firefox&nbsp;119+ and a device with a platform authenticator. Browsers or devices that lack the PRF extension will show a graceful error. A passkey is tied to the origin that created it - a self-hosted deployment uses its own passkeys, separate from those at <code>xipher.org</code>.</p>
                         </div>
                     </div>
                 </section>

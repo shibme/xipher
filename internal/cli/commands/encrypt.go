@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -33,6 +34,15 @@ func getKeyPwdStr(cmd *cobra.Command) (string, error) {
 	// --web-auth short-circuits the normal key/password prompt: derive the key
 	// from the browser instead and use it directly as the encryption key.
 	if webAuth, _ := cmd.Flags().GetBool(webAuthFlag.name); webAuth {
+		// Reject --web-auth when a recipient public key is already supplied: web
+		// auth derives the caller's own secret key, which is only useful for
+		// self-encryption. Encrypting to someone else's public key needs no local
+		// secret key - --web-auth is meaningless and likely a mistake.
+		keyFlag := cmd.Flag(keyOrPwdFlag.name).Value.String()
+		fetchFlag, _ := cmd.Flags().GetBool(fetchKeyFlag.name)
+		if strings.HasPrefix(keyFlag, "XPK_") || fetchFlag {
+			return "", fmt.Errorf("--web-auth cannot be used when encrypting to a recipient public key")
+		}
 		xipherURL, _ := cmd.Flags().GetString(xipherURLFlag.name)
 		return getSecretKeyFromWebAuth(xipherURL)
 	}

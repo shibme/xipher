@@ -1,4 +1,4 @@
-// web-auth.js — self-contained script for the /web-auth/ page.
+// web-auth.js - self-contained script for the /web-auth/ page.
 // Handles the CLI key-delivery flow: validates ?xwa= params, loads WASM,
 // then lets the user deliver their key to the CLI via passkey or stored key.
 
@@ -11,7 +11,7 @@ const TOAST_DEFAULT_DURATION = 2600;
 const TOAST_FADE_MS        = 300;
 
 /* ==========================================================================
-   Theme (mirrors ui.js — this page doesn't load ui.js)
+   Theme (mirrors ui.js - this page doesn't load ui.js)
    ========================================================================== */
 
 function loadTheme() {
@@ -111,7 +111,7 @@ function parseParams() {
     let cbUrl;
     try { cbUrl = new URL(cb); } catch (e) { return null; }
     if (cbUrl.protocol !== "http:") return null;
-    // Map the parsed host to a fixed canonical literal — the redirect base is then
+    // Map the parsed host to a fixed canonical literal - the redirect base is then
     // built entirely from constants (scheme + literal host) plus a numeric port,
     // so no user-controlled string ever flows into window.location. Anything that
     // isn't an exact loopback match is rejected.
