@@ -10,12 +10,12 @@
 const PASSKEY_CREDENTIAL_ID_KEY = "xipherPasskeyCredentialId";
 const PASSKEY_STORE_KEY_PREF_KEY = "xipherPasskeyStoreKey";
 
-// The fixed PRF input label. Changing this would invalidate all existing keys.
-const PRF_INPUT = new TextEncoder().encode("xipher-seed-v1");
+// The fixed PRF input string. Changing this would invalidate all existing keys.
+const PRF_INPUT = new TextEncoder().encode("xipher");
 
 // HKDF params to stretch 32-byte PRF output to 64-byte seed.
 const HKDF_SALT = new TextEncoder().encode("xipher");
-const HKDF_INFO = new TextEncoder().encode("secret-key");
+const HKDF_INFO = new TextEncoder().encode("xipher");
 
 // Returns true when the browser exposes the WebAuthn API at all.
 function isWebAuthnAvailable() {
