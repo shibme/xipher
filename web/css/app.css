@@ -391,6 +391,13 @@
     margin-top: 14px;
 }
 
+/* The explicit display above otherwise overrides the [hidden] attribute, so a
+   toggle row (e.g. the optional "Stay unlocked" switch on the consent modal)
+   would stay visible on prompts that don't use it. */
+.quantum-safe-row[hidden] {
+    display: none;
+}
+
 .quantum-safe-row > .quantum-safe-label-row {
     display: flex;
     align-items: center;

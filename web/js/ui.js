@@ -205,13 +205,26 @@ function exitNameEdit() {
     }
 }
 
-async function openKeyModal() {
+// Setup mode: the modal is shown at startup because this browser has no key yet.
+// It can't be dismissed (no close button, no Esc/backdrop) - the user must pick a
+// method - and the footer "Cancel" becomes a non-closing label. Cleared once a
+// key/password/passkey is committed.
+let keyModalSetupMode = false;
+
+const keyModalTitle = document.getElementById("key-modal-title");
+
+async function openKeyModal(setupMode = false) {
+    keyModalSetupMode = setupMode;
+    // In setup the modal is mandatory: title reads "Setup", and the dismiss
+    // affordances are removed so no key gets chosen by default.
+    keyModalTitle.textContent = setupMode ? "Setup" : "Profile";
+    keyModalClose.hidden = setupMode;
     // Reset transient inputs. The field stays empty (we never load the saved
     // secret back); the masked placeholder just signals that one is set, and
     // leaving it blank keeps the current key.
     keySecretInput.value = "";
     keySecretInput.type = "password";
-    keySecretInput.placeholder = "Leave blank to keep current";
+    keySecretInput.placeholder = setupMode ? "Set a password or secret key" : "Leave blank to keep current";
     quantumSafeToggle.checked = isQuantumSafe();
     renderIdentityCard();
     // Disable save button and set to Cancel since no changes have been made yet.
@@ -226,11 +239,25 @@ async function openKeyModal() {
 }
 
 function closeKeyModal() {
+    // A mandatory Setup can't be dismissed without choosing a method.
+    if (keyModalSetupMode) {
+        return;
+    }
     keyModal.hidden = true;
     document.body.style.overflow = "";
 }
 
-keySettingsButton.addEventListener("click", openKeyModal);
+// Marks a key as successfully set from the modal: leave setup mode and close.
+// Called by the password/passkey save paths after they commit an identity.
+function finishKeySetup() {
+    keyModalSetupMode = false;
+    keyModalClose.hidden = false;
+    keyModalTitle.textContent = "Profile";
+    keyModal.hidden = true;
+    document.body.style.overflow = "";
+}
+
+keySettingsButton.addEventListener("click", () => openKeyModal(false));
 keyModalClose.addEventListener("click", closeKeyModal);
 
 keyModal.addEventListener("click", (event) => {
@@ -251,7 +278,9 @@ keySecretReveal.addEventListener("click", () => {
 
 function setKeySaveReady(ready) {
     keySaveButton.disabled = !ready;
-    keySaveButton.textContent = ready ? "Ok" : "Cancel";
+    // In Setup the modal can't be dismissed, so the idle label is a disabled
+    // "Set up" prompt rather than a "Cancel" that would close the modal.
+    keySaveButton.textContent = ready ? "Ok" : (keyModalSetupMode ? "Set up" : "Cancel");
     keySaveButton.classList.toggle("encrypt-button", ready);
     keySaveButton.classList.toggle("grey-button", !ready);
 }
@@ -347,11 +376,16 @@ async function handleKeySave() {
         await setXipherSecret(value);
         localStorage.setItem("xipherSecretKind", value.startsWith("XSK_") ? "key" : "password");
 
+        const wasSetup = keyModalSetupMode;
         if (typeof refreshIdentity === "function") {
             await refreshIdentity();
         }
-        showToast("Your key has been updated.", "success");
-        closeKeyModal();
+        showToast(wasSetup ? "Your key is set." : "Your key has been updated.", "success");
+        if (wasSetup) {
+            finishKeySetup();
+        } else {
+            closeKeyModal();
+        }
     } catch (error) {
         console.error("Failed to save key:", error);
         showToast("Failed to update key.", "error");
@@ -409,10 +443,11 @@ function resetPasskeyView() {
     passkeyStatus.textContent = passkeyAvailable ? "Use an existing passkey or set a new one." : "";
     setKeySaveReady(false);
     keySaveButton.hidden = false;
-    keySaveButton.textContent = "Cancel";
+    keySaveButton.textContent = keyModalSetupMode ? "Set up" : "Cancel";
     keySaveButton.classList.remove("encrypt-button");
     keySaveButton.classList.add("grey-button");
-    keySaveButton.disabled = false;
+    // In Setup the idle footer is a disabled prompt, not a dismiss button.
+    keySaveButton.disabled = keyModalSetupMode;
 }
 
 // Initialises passkey availability. Called once after WASM loads (from main).
@@ -493,10 +528,11 @@ async function runPasskeySetup() {
     passkeyStatus.textContent = "Follow your passkey prompts (some providers ask twice)…";
     try {
         await setupPasskey(storeKey, passkeyName);
+        const wasSetup = keyModalSetupMode;
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Passkey set up. Your key is now derived from this passkey.", "success", 3500);
         resetPasskeyView();
-        closeKeyModal();
+        wasSetup ? finishKeySetup() : closeKeyModal();
     } catch (err) {
         handlePasskeyError(err, "setup");
     }
@@ -514,10 +550,11 @@ async function runPasskeyUnlock() {
     passkeyStatus.textContent = "Waiting for your passkey…";
     try {
         await unlockWithPasskey(storeKey);
+        const wasSetup = keyModalSetupMode;
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Key derived from your passkey.", "success");
         resetPasskeyView();
-        closeKeyModal();
+        wasSetup ? finishKeySetup() : closeKeyModal();
     } catch (err) {
         handlePasskeyError(err, "unlock");
     }

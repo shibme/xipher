@@ -494,6 +494,15 @@
     border-radius: var(--radius-md);
     background: color-mix(in srgb, var(--button-select-file-bg) 8%, var(--surface-color));
     border: 1px solid color-mix(in srgb, var(--button-select-file-bg) 30%, var(--border-color));
+    /* A callout can be a fragment target (e.g. #stay-unlocked); clear the sticky
+       header so it isn't cropped underneath when navigated to directly. */
+    scroll-margin-top: 76px;
+}
+
+/* Safety net: any element addressed by a URL fragment in the docs clears the
+   sticky header, so deep links to nested blocks aren't hidden under it. */
+.docs-article [id]:target {
+    scroll-margin-top: 76px;
 }
 
 .docs-callout-warn {

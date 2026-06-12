@@ -122,9 +122,19 @@ const providerModalDetailCopy = document.getElementById("provider-modal-detail-c
 const providerModalConfirm = document.getElementById("provider-modal-confirm");
 const providerModalCancel = document.getElementById("provider-modal-cancel");
 const providerModalClose = document.getElementById("provider-modal-close");
+const providerModalToggleRow = document.getElementById("provider-modal-toggle-row");
+const providerModalToggle = document.getElementById("provider-modal-toggle");
+const providerModalToggleLabel = document.getElementById("provider-modal-toggle-label");
+const providerModalToggleNote = document.getElementById("provider-modal-toggle-note");
+const providerModalToggleDocs = document.getElementById("provider-modal-toggle-docs");
 
 // Opens the consent modal and resolves to true (confirmed) or false (cancelled).
 // opts: { title, message, confirmLabel, confirmClass, detailLabel, detailValue }.
+//
+// When opts.toggle is provided ({ label, note, checked }) an opt-in switch is
+// shown and the promise resolves to an object { confirmed, checked } on every
+// path, so the caller can read the switch state. Without opts.toggle the legacy
+// boolean (or dismissValue) is returned unchanged.
 function askProviderConsent(opts) {
     return new Promise((resolve) => {
         // The provider flow runs during startup while the preloader is still up
@@ -147,6 +157,27 @@ function askProviderConsent(opts) {
             providerModalDetail.hidden = true;
         }
 
+        const hasToggle = !!opts.toggle;
+        if (hasToggle) {
+            providerModalToggleLabel.textContent = opts.toggle.label || "";
+            providerModalToggleNote.textContent = opts.toggle.note || "";
+            providerModalToggle.checked = !!opts.toggle.checked;
+            // Optional docs link (opens in a new tab) next to the toggle label.
+            if (opts.toggle.docsHref) {
+                providerModalToggleDocs.href = opts.toggle.docsHref;
+                providerModalToggleDocs.title = opts.toggle.docsTitle || "Learn more";
+                providerModalToggleDocs.setAttribute("aria-label", opts.toggle.docsTitle || "Learn more");
+                providerModalToggleDocs.hidden = false;
+            } else {
+                providerModalToggleDocs.hidden = true;
+            }
+            providerModalToggleRow.hidden = false;
+        } else {
+            providerModalToggleRow.hidden = true;
+            providerModalToggleDocs.hidden = true;
+            providerModalToggle.checked = false;
+        }
+
         const cleanup = () => {
             providerModal.hidden = true;
             document.body.style.overflow = "";
@@ -157,9 +188,13 @@ function askProviderConsent(opts) {
             document.removeEventListener("keydown", onKeydown);
         };
         const dismissValue = opts.dismissValue !== undefined ? opts.dismissValue : false;
-        const onConfirm = () => { cleanup(); resolve(true); };
-        const onCancel = () => { cleanup(); resolve(false); };
-        const onDismiss = () => { cleanup(); resolve(dismissValue); };
+        // With a toggle, every path returns { confirmed, checked }; without, the
+        // legacy boolean/dismissValue is preserved.
+        const wrap = (confirmed, fallback) =>
+            hasToggle ? { confirmed, checked: providerModalToggle.checked } : fallback;
+        const onConfirm = () => { cleanup(); resolve(wrap(true, true)); };
+        const onCancel = () => { cleanup(); resolve(wrap(false, false)); };
+        const onDismiss = () => { cleanup(); resolve(wrap(false, dismissValue)); };
         const onBackdrop = (event) => { if (event.target === providerModal) { onDismiss(); } };
         const onKeydown = (event) => { if (event.key === "Escape") { onDismiss(); } };
 

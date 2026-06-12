@@ -49,7 +49,7 @@
         <a href="https://github.com/shibme/xipher/releases" target="_blank" rel="noopener" class="topbar-version"
             title="View release notes on GitHub">v<span class="xipher-version">0.0.0</span></a>
         <nav class="topbar-actions">
-            <a href="docs/" class="topbar-link" title="Read the documentation">
+            <a href="docs/" target="_blank" rel="noopener" class="topbar-link" title="Read the documentation">
                 <span class="topbar-link-icon" aria-hidden="true">📖</span>
                 <span class="topbar-link-label">Docs</span>
             </a>
@@ -226,6 +226,9 @@
                                 <span class="settings-switch" aria-hidden="true"></span>
                                 <span class="quantum-safe-text">Stay unlocked</span>
                             </label>
+                            <a href="docs/#stay-unlocked" target="_blank" rel="noopener" class="quantum-docs-link" title="Learn about staying unlocked" aria-label="Learn about staying unlocked">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            </a>
                         </div>
                         <p class="quantum-safe-note">Off by default. Enabling stores the key in this browser. Convenient but less secure.</p>
                     </div>
@@ -271,6 +274,21 @@
                         <button type="button" class="icon-button" id="provider-modal-detail-copy" title="Copy"
                             aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h8"></path></svg></button>
                     </div>
+                </div>
+                <!-- Optional opt-in toggle (e.g. "Stay unlocked" on the passkey
+                     re-unlock prompt). Shown only when the caller provides it. -->
+                <div id="provider-modal-toggle-row" class="quantum-safe-row" style="margin-top:14px" hidden>
+                    <div class="quantum-safe-label-row">
+                        <label class="quantum-safe-label" for="provider-modal-toggle">
+                            <input type="checkbox" id="provider-modal-toggle" class="settings-switch-input">
+                            <span class="settings-switch" aria-hidden="true"></span>
+                            <span class="quantum-safe-text" id="provider-modal-toggle-label"></span>
+                        </label>
+                        <a id="provider-modal-toggle-docs" href="#" target="_blank" rel="noopener" class="quantum-docs-link" title="Learn more" aria-label="Learn more" hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        </a>
+                    </div>
+                    <p class="quantum-safe-note" id="provider-modal-toggle-note"></p>
                 </div>
             </div>
             <div class="modal-footer">

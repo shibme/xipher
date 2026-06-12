@@ -195,9 +195,18 @@ async function getPublicKey() {
 
 // Returns the stored secret key without generating one, or null if the browser
 // has no identity yet. Used by the provider flow to decide whether accepting a
-// delivered key would overwrite (and orphan) an existing identity.
+// delivered key would overwrite (and orphan) an existing identity, and by the
+// startup flow to decide whether a Setup is needed.
 async function getExistingXipherSecret() {
     return await dig(xipherSecretStoreId);
+}
+
+// Reports whether this browser already has a usable secret (persisted in
+// localStorage, or held in the in-memory burial cache for a session-only
+// passkey identity). Unlike getXipherSecret, it never generates one -used at
+// startup to decide between the normal flow and the Setup prompt.
+async function hasXipherSession() {
+    return !!(await getExistingXipherSecret());
 }
 
 /* ==========================================================================

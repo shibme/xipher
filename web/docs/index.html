@@ -573,10 +573,10 @@ Content-Type: application/json</code></pre>
                     <h3>Passkeys</h3>
                     <p>Passkeys let you derive your Xipher secret key from a <strong>WebAuthn platform authenticator</strong> (Touch&nbsp;ID, Face&nbsp;ID, Windows Hello, etc.) instead of a typed password. When you register a passkey, the browser uses its PRF extension to produce a deterministic 32-byte value inside the authenticator, which Xipher expands to a 64-byte seed via HKDF-SHA-256. The derived key is identical every time you authenticate with the same device, without any secret ever leaving the authenticator.</p>
                     <p>To set up a passkey, open <span class="ui-chip">⚙️</span> Settings and choose <strong>Passkey</strong> as the key source. Your device's biometric or PIN mechanism creates the credential. On subsequent visits the same passkey re-derives the same key.</p>
-                    <div class="docs-callout">
+                    <div id="stay-unlocked" class="docs-callout">
                         <span class="docs-callout-icon">💡</span>
                         <div>
-                            <p>The derived key can be persisted to local storage (faster, works offline) or re-derived on every visit (key never at rest in the browser). The preference is set during registration.</p>
+                            <p><strong>Stay unlocked.</strong> The derived key can be persisted to local storage (faster, works offline) or re-derived on every visit (key never at rest in the browser). Leaving "Stay unlocked" off keeps the key only in memory for the tab, so you re-authenticate with your passkey each time you open the app. The preference is set during registration and can be changed when you next unlock.</p>
                         </div>
                     </div>
                     <div class="docs-callout docs-callout-warn">

@@ -508,11 +508,30 @@ async function getXipherPublicKeyUrl() {
 // Re-derive and display the public link for the current identity, and refresh
 // the profile button. Called after the key or password is changed via the
 // key-management modal, after the provider flow installs a key, and on load.
+//
+// With no session yet (Setup not completed), there is no key to derive from, so
+// the receive-link stays hidden and only the profile button is refreshed; the
+// link is revealed once a key is set. In the sender view (xk present) the link
+// section is irrelevant and handled by setupModeUI, so it's left untouched here.
+// Tracks whether a local key is set, so the synchronous panel-collapse logic
+// knows whether the receive-link may be shown. Updated by refreshIdentity.
+let localIdentityReady = false;
+
 async function refreshIdentity() {
-    const pubKeyUrl = await getXipherPublicKeyUrl();
-    setPublicLink(pubKeyUrl);
     if (typeof renderProfileButton === "function") {
         renderProfileButton();
+    }
+    localIdentityReady = await hasXipherSession();
+    if (!localIdentityReady) {
+        if (linkSection && !xk) {
+            linkSection.hidden = true;
+        }
+        return;
+    }
+    const pubKeyUrl = await getXipherPublicKeyUrl();
+    setPublicLink(pubKeyUrl);
+    if (linkSection && !xk) {
+        linkSection.hidden = false;
     }
 }
 
@@ -545,9 +564,11 @@ function collapseSelfEncryptPanel() {
     selfEncryptDivider.hidden = false;
     selfEncryptToggle.setAttribute("aria-expanded", "false");
     appContainer.classList.add("is-collapsed");
-    // Restore the receive-link view we hid on expand.
+    // Restore the receive-link view we hid on expand -but only once a local key
+    // is set. Before Setup completes there's no key to build a link from, so it
+    // stays hidden behind the mandatory Setup modal.
     if (linkSection) {
-        linkSection.hidden = false;
+        linkSection.hidden = !localIdentityReady;
     }
 }
 
@@ -630,6 +651,55 @@ function initApp() {
     }
 }
 
+// Drives the startup identity gate for the receiver view. Three cases:
+//  1. A session already exists (persisted key, or in-memory passkey key) -nothing
+//     to do.
+//  2. A passkey is registered but its key wasn't persisted ("Stay unlocked" off):
+//     ask the user (Use passkey / Cancel) before invoking the authenticator, so
+//     the prompt is a conscious choice. On confirm, run the passkey unlock; if it
+//     is cancelled or fails, fall back to the mandatory Setup modal.
+//  3. Nothing set yet: open the mandatory Setup modal so the user picks a method.
+async function ensureLocalIdentity() {
+    if (await hasXipherSession()) {
+        return;
+    }
+    if (typeof hasNonPersistedPasskey === "function" && hasNonPersistedPasskey()) {
+        const result = await askProviderConsent({
+            title: "Unlock with your passkey",
+            message: "This browser uses a passkey that isn't kept unlocked, so your key must be re-derived. Use your passkey to continue, or set up a different method.",
+            confirmLabel: "Use passkey",
+            cancelLabel: "Cancel",
+            confirmClass: "encrypt-button",
+            toggle: {
+                label: "Stay unlocked",
+                note: "Off by default. Enabling stores the key in this browser. Convenient but less secure.",
+                checked: false,
+                docsHref: "docs/#stay-unlocked",
+                docsTitle: "Learn about staying unlocked",
+            },
+        });
+        if (result.confirmed) {
+            try {
+                // Honour the toggle: only persist if the user opted in this time.
+                await unlockWithPasskey(result.checked);
+                await refreshIdentity();
+                showToast("Key derived from your passkey.", "success");
+                return;
+            } catch (err) {
+                if (typeof handlePasskeyError === "function") {
+                    // Surface the failure, then fall through to Setup.
+                    handlePasskeyError(err, "unlock");
+                }
+            }
+        }
+        // Cancelled or failed: let the user choose a method.
+        await openKeyModal(true);
+        return;
+    }
+    // Fresh browser: mandatory Setup.
+    await openKeyModal(true);
+}
+
 function hidePreloader() {
     preLoader.classList.add("hidden");
     setTimeout(() => preLoader.remove(), PRELOADER_FADE_MS);
@@ -651,6 +721,14 @@ async function main() {
     }
     await refreshIdentity();
     initApp();
+    // Gate the receiver view on having a key: a fresh browser must consciously
+    // set one (no silently-generated random secret). A non-persisted passkey
+    // identity must be re-unlocked on every open, since its key lives only in
+    // memory. The sender view (xk present) encrypts with the recipient's public
+    // key and needs no local key, so it's exempt.
+    if (!xk) {
+        await ensureLocalIdentity();
+    }
     // Passkey UI needs WASM loaded (genXipherSecretKeyFromSeed) and a platform
     // authenticator check - run it after the app is ready, non-blocking.
     if (typeof initPasskeyUI === "function") {

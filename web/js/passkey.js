@@ -81,6 +81,14 @@ function setPasskeyStoreKeyPref(store) {
     }
 }
 
+// Reports whether this browser has a passkey credential registered but the
+// derived key was NOT persisted ("Stay unlocked" off). In that state the secret
+// lives only in memory and is gone after a reload, so the user must re-derive it
+// via the passkey on every window open.
+function hasNonPersistedPasskey() {
+    return !!getStoredCredentialId() && !getPasskeyStoreKeyPref();
+}
+
 // Stretches a 32-byte PRF output to a 64-byte xipher seed using HKDF-SHA-256.
 async function hkdfExpand(prfOutput) {
     const keyMaterial = await crypto.subtle.importKey(
@@ -248,11 +256,14 @@ async function setupPasskey(storeKey, name) {
 async function unlockWithPasskey(storeKey) {
     const prfOutput = await authenticatePasskey(null);
     const xsk = await seedKeyFromPrf(prfOutput);
-    // Use the explicitly passed preference; fall back to stored or default true.
+    // Use the explicitly passed preference; fall back to the stored one, and to
+    // false when none was ever recorded. Never default to persisting: an absent
+    // preference means the user left "Stay unlocked" off, so a re-unlock must not
+    // silently start storing the key.
     const store = storeKey !== undefined ? storeKey
         : localStorage.getItem(PASSKEY_STORE_KEY_PREF_KEY) !== null
             ? getPasskeyStoreKeyPref()
-            : true;
+            : false;
     setPasskeyStoreKeyPref(store);
     await setProviderIdentity(xsk, "passkey", null, null, store);
     return xsk;
