@@ -394,6 +394,11 @@ async function handleKeySave() {
             }
         }
 
+        if (!(await confirmKeyReplace())) {
+            setKeySaveReady(true);
+            return;
+        }
+
         await setXipherSecret(value);
         localStorage.setItem("xipherSecretKind", value.startsWith("XSK_") ? "key" : "password");
 
@@ -494,6 +499,20 @@ function activatePasskeyButton(action) {
 
 passkeyUseButton.addEventListener("click", () => activatePasskeyButton("unlock"));
 passkeySetupButton.addEventListener("click", () => activatePasskeyButton("setup"));
+
+// Replace-key consent for password/secret-key entry: true to proceed, false to abort.
+async function confirmKeyReplace() {
+    const existing = await getExistingXipherSecret();
+    if (!existing) {
+        return true;
+    }
+    return await askProviderConsent({
+        title: "Replace your current key?",
+        message: "Saving this will replace the key stored in this browser. Anything encrypted to your current key will no longer be readable here.",
+        confirmLabel: "Replace my key",
+        confirmClass: "decrypt-button",
+    });
+}
 
 // Shared replace-key consent: returns true to proceed, false to abort.
 async function confirmPasskeyReplace() {
