@@ -58,16 +58,6 @@ Try it out at [xipher.org](https://xipher.org). Keys are generated and stored in
 
 Full command reference, flags, and copy-paste examples for the CLI, GitHub Action, WebAssembly module, and self-hosting the web app live in the [documentation](https://xipher.org/docs/).
 
-### Public key references (URLs & domains)
-
-Anywhere a public key is accepted, you can instead point Xipher at an **HTTPS URL** (or bare domain) that serves the key, giving recipients a friendly, memorable reference instead of a long `XPK_…` string.
-
-```bash
-xipher encrypt text --fetch -k "alice.example.com" -t "Secret message"
-```
-
-A bare domain resolves to `/.well-known/xipher`. See [key references](https://xipher.org/docs/#keyref-overview) for resolution rules, the published key format, and hosting (including the CORS requirement for the web app).
-
 ## Technical Details
 
 Argon2id key derivation, Curve25519 / X25519 (with an optional quantum-safe hybrid that combines X25519 and ML-KEM-1024), and XChaCha20-Poly1305. See the [cryptographic primitives](https://xipher.org/docs/#arch-primitives) for parameters, security levels, and the data format.
