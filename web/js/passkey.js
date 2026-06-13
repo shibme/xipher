@@ -68,6 +68,20 @@ function clearStoredCredentialId() {
     localStorage.removeItem(PASSKEY_CREDENTIAL_ID_KEY);
 }
 
+// Byte-compares two credential IDs (Uint8Array). A null/length mismatch counts
+// as not equal -used to detect when a different passkey was selected.
+function credentialIdsEqual(a, b) {
+    if (!a || !b || a.length !== b.length) {
+        return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Reports whether this browser has a passkey credential registered. The derived
 // key is never persisted, so the secret lives only in memory and is gone after a
 // reload -the user must re-derive it via the passkey on every window open.
@@ -238,9 +252,17 @@ async function setupPasskey(name) {
 // state -robust against a cleared store, a new browser, or a stale stored ID.
 // authenticatePasskey records the selected credential's ID for next time. The
 // derived key is never persisted -re-derived from the passkey on every visit.
+//
+// The stored identity name is kept only when the SAME passkey re-authenticates.
+// We snapshot the stored credential ID before authenticatePasskey overwrites it,
+// then compare: if the user picked a different passkey (or none was stored), the
+// old name belongs to another credential and is cleared.
 async function unlockWithPasskey() {
+    const previousCredentialId = getStoredCredentialId();
     const prfOutput = await authenticatePasskey(null);
+    const sameCredential = credentialIdsEqual(previousCredentialId, getStoredCredentialId());
+    const name = sameCredential ? (getIdentity().name || null) : null;
     const xsk = await seedKeyFromPrf(prfOutput);
-    await setProviderIdentity(xsk, "passkey", null, null, false);
+    await setProviderIdentity(xsk, "passkey", name, null, false);
     return xsk;
 }
