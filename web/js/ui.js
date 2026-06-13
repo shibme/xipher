@@ -181,17 +181,17 @@ function renderIdentityCard() {
         identityProvider.hidden = true;
     }
 
-    // The name is editable only for self-issued identities; for a provider-
-    // managed one the pencil is hidden and a note explains why.
+    // The name is editable for self-issued and passkey-backed identities; for an
+    // externally provider-managed one the pencil is hidden and a note explains why.
     exitNameEdit();
-    identityNameEdit.hidden = identity.managed;
-    identityNameManaged.hidden = !identity.managed;
+    identityNameEdit.hidden = identity.nameLocked;
+    identityNameManaged.hidden = !identity.nameLocked;
 }
 
 // Switches the name row into edit mode: hide the text + pencil, show the input
-// prefilled with the current name, and focus it. No-op for managed identities.
+// prefilled with the current name, and focus it. No-op for name-locked identities.
 function enterNameEdit() {
-    if (getIdentity().managed) {
+    if (getIdentity().nameLocked) {
         return;
     }
     identityNameInput.value = getIdentity().name || "";
@@ -206,7 +206,7 @@ function enterNameEdit() {
 function exitNameEdit() {
     identityNameInput.hidden = true;
     identityName.hidden = false;
-    if (!getIdentity().managed) {
+    if (!getIdentity().nameLocked) {
         identityNameEdit.hidden = false;
     }
 }
@@ -328,7 +328,7 @@ function commitSelfName() {
 
 identityNameEdit.addEventListener("click", enterNameEdit);
 identityName.addEventListener("click", () => {
-    if (!getIdentity().managed) {
+    if (!getIdentity().nameLocked) {
         enterNameEdit();
     }
 });
@@ -529,25 +529,35 @@ async function confirmPasskeyReplace() {
 }
 
 async function resolvePasskeyName() {
-    const { name, managed } = getIdentity();
-    if (!managed && (name || "").trim()) {
-        return name.trim();
+    const { name, nameLocked } = getIdentity();
+    const existing = !nameLocked && (name || "").trim() ? name.trim() : null;
+    if (existing) {
+        // Name already set — confirm or allow change.
+        const result = await askProviderConsent({
+            title: "Name this passkey?",
+            message: `This passkey will be labelled "${existing}" in your device or password manager.`,
+            confirmLabel: `Use "${existing}"`,
+            cancelLabel: "Change name",
+            confirmClass: "encrypt-button",
+        });
+        if (result === true) return existing;
+        // "Change name" — open edit, user re-clicks Continue when done.
+        enterNameEdit();
+        return null;
     }
-    // No name set -ask via consent popup.
+    // No name set — ask user to set one or cancel entirely.
     const result = await askProviderConsent({
         title: "Name this passkey?",
-        message: "A name labels this passkey in your device or password manager. You can skip this and use the default name \"Xipher\".",
+        message: "A name labels this passkey in your device or password manager. Set a name to continue.",
         confirmLabel: "Set a name",
-        cancelLabel: "Use \"Xipher\"",
+        cancelLabel: "Cancel",
         confirmClass: "encrypt-button",
         dismissValue: null,
     });
-    if (result === null) return null; // dismissed -abort entirely
-    if (result === true) {
-        enterNameEdit();
-        return null; // user chose to set a name -abort, let them re-click Continue
-    }
-    return PASSKEY_DEFAULT_NAME;
+    if (result === null || result === false) return null; // cancel or dismiss — abort
+    // "Set a name" — open edit, user re-clicks Continue when done.
+    enterNameEdit();
+    return null;
 }
 
 async function runPasskeySetup() {

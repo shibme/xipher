@@ -251,11 +251,13 @@ function setIdentityField(storeId, value) {
 }
 
 // Returns the current identity metadata for display. `provider` is the issuing
-// host (defaults to self). `managed` is true when an external provider issued
-// the key, in which case the name/id are read-only.
+// host (defaults to self). `managed` is true when a stored provider backs the
+// key. `nameLocked` is true only when an *external* provider issued the name —
+// passkey-backed identities are provider-backed but keep a user-editable name.
 function getIdentity() {
     const provider = localStorage.getItem(xipherProviderStoreId) || selfHost();
     const managed = !!localStorage.getItem(xipherProviderStoreId);
+    const nameLocked = managed && provider !== "passkey";
     const idValue = localStorage.getItem(xipherIdValueStoreId) || "";
     return {
         name: localStorage.getItem(xipherNameStoreId) || "",
@@ -263,6 +265,7 @@ function getIdentity() {
         id: idValue ? { name: localStorage.getItem(xipherIdNameStoreId) || "ID", value: idValue } : null,
         provider,
         managed,
+        nameLocked,
     };
 }
 
@@ -303,10 +306,11 @@ function enforceIdleExpiry() {
     return expired;
 }
 
-// Updates the user-chosen display name. Only meaningful for self-issued
-// identities; rejected when the identity is provider-managed.
+// Updates the user-chosen display name. Allowed for self-issued and
+// passkey-backed identities; rejected only when an external provider issued
+// the name (nameLocked).
 function setSelfName(name) {
-    if (localStorage.getItem(xipherProviderStoreId)) {
+    if (getIdentity().nameLocked) {
         return false;
     }
     setIdentityField(xipherNameStoreId, name);
