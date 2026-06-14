@@ -1,0 +1,49 @@
+# XKMS — Xipher Key Management Service · example configuration
+
+server:
+  host: 0.0.0.0
+  port: 8443
+
+# Master seed file: read once at startup, validated (>= 64 bytes, high entropy),
+# loaded into memory, then DELETED from the filesystem. Raw, hex, or base64.
+seed_file: /run/secrets/xkms.seed
+
+oidc:
+  issuer_url: "https://accounts.example.com"
+  client_id: "xkms"
+  # client_secret is read from an env var OR a file. A file is cleared after read.
+  client_secret:
+    env: XKMS_OIDC_CLIENT_SECRET
+    # file: /run/secrets/oidc_secret
+  redirect_uri: "https://xkms.example.com/callback"
+  scopes:
+    - openid
+    - profile
+    - email
+    # - groups
+  use_pkce: true
+
+# One OIDC claim per entity type. Omit a type to disable it.
+claims:
+  user: email      # single value
+  group: groups    # array value -> one identity per group
+  service: sub      # single value
+
+# Header carrying the OIDC JWT for direct API auth.
+auth_header:
+  type: bearer          # "bearer" (Authorization: Bearer <jwt>) | "custom"
+  name: Authorization   # used only when type is "custom"
+
+# What the credential endpoints return.
+credential:
+  type: both            # "seed" (base64) | "key" (XSK_) | "both"
+  timeout: 604800       # seconds; 0 = ephemeral
+
+# Public key kind served by the public /xpk/<type>/<id>/.well-known/xipher
+# endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, else ECC.
+post_quantum: false
+
+# Allowlist of xipher app callback origins (the xcb param). Matched by scheme+host.
+allowed_callback_urls:
+  - https://xipher.org
+  - https://xipher.int.example.com

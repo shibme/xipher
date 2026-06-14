@@ -26,6 +26,7 @@ func XipherCommand() *cobra.Command {
 		xipherCmd.AddCommand(keygenCommand())
 		xipherCmd.AddCommand(encryptCommand())
 		xipherCmd.AddCommand(decryptCommand())
+		xipherCmd.AddCommand(kmsCommand())
 	}
 	return xipherCmd
 }

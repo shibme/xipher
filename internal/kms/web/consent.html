@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XKMS · Choose Identity</title>
+<style>
+:root {
+  --brand-1: #00ddff;
+  --brand-2: #0044ff;
+  --brand-gradient: linear-gradient(135deg, #00ddff, #0044ff);
+  --bg-color: #eef2f7;
+  --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0,132,255,0.10), transparent 60%);
+  --surface-color: #ffffff;
+  --surface-2: #f5f8fc;
+  --text-color: #1c2430;
+  --text-muted: #5a6677;
+  --text-faint: #8a96a8;
+  --border-color: #d7dee8;
+  --border-strong: #c2ccd9;
+  --error-color: #e5484d;
+  --action-disabled-bg: #e2e8f0;
+  --action-disabled-text: #8a96a8;
+  --shadow-lg: 0 18px 50px rgba(16,30,54,0.18);
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0b0e14;
+    --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0,132,255,0.16), transparent 60%);
+    --surface-color: #151a23;
+    --surface-2: #1b212c;
+    --text-color: #e7ecf3;
+    --text-muted: #a3afc0;
+    --text-faint: #6c7888;
+    --border-color: #2a323f;
+    --border-strong: #38424f;
+    --error-color: #ff6b6b;
+    --action-disabled-bg: #232b36;
+    --action-disabled-text: #6c7888;
+    --shadow-lg: 0 20px 55px rgba(0,0,0,0.6);
+  }
+}
+*,*::before,*::after { box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-color);
+  background-image: var(--bg-accent);
+  background-attachment: fixed;
+  color: var(--text-color);
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  max-width: 440px;
+  width: 100%;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1.25rem;
+}
+.brand .dot {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--brand-gradient);
+}
+.brand .name { font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
+h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
+.sub { color: var(--text-muted); font-size: .88rem; margin-bottom: 1.25rem; }
+.ident {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .8rem .9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  margin-bottom: .55rem;
+  cursor: pointer;
+  transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.ident:hover { border-color: var(--border-strong); }
+.ident:has(input:checked) { border-color: var(--brand-2); }
+.ident input { accent-color: var(--brand-2); width: 1rem; height: 1rem; }
+.ident .meta { flex: 1; min-width: 0; }
+.ident .type {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-faint); font-family: var(--font-mono);
+}
+.ident .id { font-size: .92rem; color: var(--text-color); word-break: break-all; }
+button {
+  width: 100%; margin-top: 1rem; padding: .8rem;
+  border: none; border-radius: var(--radius-md);
+  background: var(--brand-gradient); color: #fff;
+  font-family: inherit; font-size: .95rem; font-weight: 600;
+  cursor: pointer; transition: opacity .15s var(--ease), filter .15s var(--ease);
+}
+button:hover:not(:disabled) { filter: brightness(1.06); }
+button:disabled { background: var(--action-disabled-bg); color: var(--action-disabled-text); cursor: not-allowed; }
+.err { color: var(--error-color); font-size: .85rem; margin-top: .75rem; min-height: 1rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <span class="dot"></span>
+    <span class="name">XKMS</span>
+  </div>
+  <h1>Choose an identity</h1>
+  <p class="sub">Select the identity you want to use. A credential will be derived and returned to the requesting application.</p>
+  <form id="form"></form>
+  <button id="submit" disabled>Continue</button>
+  <p class="err" id="err"></p>
+</div>
+<script>
+// Claim configuration injected by the server.
+const CLAIMS = window.__XKMS_CLAIMS__ || {};
+
+function readFragment() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  const out = { token: h.get("token"), state: h.get("state") };
+  // Clear the fragment so the token does not linger in the address bar / history.
+  history.replaceState(null, "", location.pathname);
+  return out;
+}
+
+function decodeJWT(token) {
+  const part = token.split(".")[1];
+  const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+  return JSON.parse(decodeURIComponent(escape(json)));
+}
+
+function identitiesFrom(claims) {
+  const ids = [];
+  if (CLAIMS.user && claims[CLAIMS.user]) {
+    ids.push({ type: "user", id: claims[CLAIMS.user] });
+  }
+  if (CLAIMS.service && claims[CLAIMS.service]) {
+    ids.push({ type: "service", id: claims[CLAIMS.service] });
+  }
+  if (CLAIMS.group && Array.isArray(claims[CLAIMS.group])) {
+    for (const g of claims[CLAIMS.group]) ids.push({ type: "group", id: g });
+  }
+  return ids;
+}
+
+function endpointFor(ident) {
+  switch (ident.type) {
+    case "user": return "/api/v1/credential/user";
+    case "service": return "/api/v1/credential/service";
+    case "group": return "/api/v1/credential/group/" + encodeURIComponent(ident.id);
+  }
+}
+
+const err = document.getElementById("err");
+const submit = document.getElementById("submit");
+
+(function init() {
+  const { token, state } = readFragment();
+  if (!token) { err.textContent = "No token provided."; return; }
+
+  let claims;
+  try { claims = decodeJWT(token); }
+  catch (e) { err.textContent = "Could not read token."; return; }
+
+  const ids = identitiesFrom(claims);
+  if (ids.length === 0) { err.textContent = "No usable identities in token."; return; }
+
+  const form = document.getElementById("form");
+  ids.forEach((ident, i) => {
+    const label = document.createElement("label");
+    label.className = "ident";
+    label.innerHTML =
+      '<input type="radio" name="ident" value="' + i + '"' + (i === 0 ? " checked" : "") + '">' +
+      '<span class="meta"><span class="type">' + ident.type + '</span><br>' +
+      '<span class="id"></span></span>';
+    label.querySelector(".id").textContent = ident.id;
+    form.appendChild(label);
+  });
+  // One identity or many: always show consent; pre-select the first.
+  submit.disabled = false;
+
+  submit.addEventListener("click", async () => {
+    submit.disabled = true;
+    err.textContent = "";
+    const sel = form.querySelector('input[name="ident"]:checked');
+    const ident = ids[parseInt(sel.value, 10)];
+    try {
+      const url = endpointFor(ident) + (state ? "?state=" + encodeURIComponent(state) : "");
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+      });
+      if (!res.ok) throw new Error("request failed: " + res.status);
+      const data = await res.json();
+      if (data.redirect) { location.href = data.redirect; return; }
+      err.textContent = "Credential issued but no redirect was returned.";
+    } catch (e) {
+      err.textContent = e.message || "Request failed.";
+      submit.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

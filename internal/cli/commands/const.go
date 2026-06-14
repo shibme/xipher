@@ -49,6 +49,9 @@ var (
 
 	// Decrypt File Command
 	decryptFileCmd *cobra.Command
+
+	// KMS Command
+	kmsCmd *cobra.Command
 )
 
 type flagDef struct {
@@ -221,6 +224,15 @@ var (
 		flagDef: flagDef{
 			name:  "xiphertext",
 			usage: "Encode output as xipher text",
+		},
+	}
+
+	// KMS Config Flag
+	kmsConfigFlag = strFlag{
+		flagDef: flagDef{
+			name:      "config",
+			shorthand: "c",
+			usage:     "Path to the XKMS YAML configuration file",
 		},
 	}
 )
