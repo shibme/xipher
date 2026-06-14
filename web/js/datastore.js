@@ -8,9 +8,9 @@ const xipherQuantumSafeStoreId = "xipherQuantumSafe";
 // name is user-editable; a stored host => an external credential provider issued
 // it, and the name/id are managed (read-only).
 const xipherNameStoreId = "xipherName";
-// The id is a labelled identifier: a name (e.g. "Email", "Employee ID") and its
-// value. Stored as two fields so the provider chooses how it's labelled.
-const xipherIdNameStoreId = "xipherIdName";
+// The id is an identifier for the authenticating entity, typed as "user",
+// "group", or "service". Stored as two fields: the entity type and the id value.
+const xipherTypeStoreId = "xipherType";
 const xipherIdValueStoreId = "xipherIdValue";
 const xipherProviderStoreId = "xipherProvider";
 const xipherSecretKindStoreId = "xipherSecretKind"; // "key" | "password"
@@ -223,7 +223,7 @@ async function setXipherSecret(xipherSecret, durationMs = MAX_TIMEOUT_MS) {
         // drop any provider metadata and let the name default again. (The
         // provider flow uses setProviderIdentity instead, which sets these.)
         localStorage.removeItem(xipherNameStoreId);
-        localStorage.removeItem(xipherIdNameStoreId);
+        localStorage.removeItem(xipherTypeStoreId);
         localStorage.removeItem(xipherIdValueStoreId);
         localStorage.removeItem(xipherProviderStoreId);
         localStorage.removeItem(xipherSecretKindStoreId);
@@ -257,7 +257,8 @@ async function setCredentialTimeout(durationMs) {
 // Installs a secret key delivered by an external credential provider, recording
 // the issuing host and the managed name/id alongside it. Unlike setXipherSecret,
 // this marks the identity as provider-managed (name/id read-only in the UI).
-// `id` is an optional labelled identifier { name, value }.
+// `id` is the entity's identifier value (string) and `type` is the entity kind
+// ("user" | "group" | "service"); both optional.
 //
 // `persist` defaults to true: the key is written to localStorage so it survives
 // across sessions. When false (the passkey flow, which re-derives each time), the
@@ -265,7 +266,7 @@ async function setCredentialTimeout(durationMs) {
 // written to localStorage, so it vanishes on reload and must be re-derived. The
 // non-secret identity metadata is removed from localStorage in that case too, so
 // a closed tab leaves no trace of a passkey-only identity.
-async function setProviderIdentity(xipherSecret, providerHost, name, id, persist = true, durationMs = MAX_TIMEOUT_MS) {
+async function setProviderIdentity(xipherSecret, providerHost, name, id, type, persist = true, durationMs = MAX_TIMEOUT_MS) {
     if (persist) {
         // buryXipherSecret applies the timeout envelope. A 0 duration there is
         // itself ephemeral (memory-only), so a provider key with timeout=0 lands
@@ -280,14 +281,20 @@ async function setProviderIdentity(xipherSecret, providerHost, name, id, persist
     localStorage.removeItem(xipherPublicKeyStoreId);
     localStorage.setItem(xipherProviderStoreId, providerHost);
     setIdentityField(xipherNameStoreId, name);
-    // An id is only meaningful when it has a value; label defaults to "ID".
-    const idValue = id && typeof id.value === "string" ? id.value : "";
-    const idName = id && typeof id.name === "string" && id.name.trim() ? id.name : "ID";
+    // An id is stored whenever it has a value. The type (the entity kind the id
+    // names) is optional: a recognised value is kept as the id's label, anything
+    // else is dropped and the id shows under a generic "ID" label.
+    const idValue = typeof id === "string" ? id : "";
+    const validType = type === "user" || type === "group" || type === "service";
     if (sanitiseIdentityField(idValue)) {
-        setIdentityField(xipherIdNameStoreId, idName);
         setIdentityField(xipherIdValueStoreId, idValue);
+        if (validType) {
+            setIdentityField(xipherTypeStoreId, type);
+        } else {
+            localStorage.removeItem(xipherTypeStoreId);
+        }
     } else {
-        localStorage.removeItem(xipherIdNameStoreId);
+        localStorage.removeItem(xipherTypeStoreId);
         localStorage.removeItem(xipherIdValueStoreId);
     }
 }
@@ -373,10 +380,12 @@ function getIdentity() {
     const managed = !!localStorage.getItem(xipherProviderStoreId);
     const nameLocked = managed && provider !== "passkey";
     const idValue = localStorage.getItem(xipherIdValueStoreId) || "";
+    const idType = localStorage.getItem(xipherTypeStoreId) || "";
     return {
         name: localStorage.getItem(xipherNameStoreId) || "",
-        // Labelled identifier; null when none was issued.
-        id: idValue ? { name: localStorage.getItem(xipherIdNameStoreId) || "ID", value: idValue } : null,
+        // Identifier; null when no value was stored. type is "" when the provider
+        // gave no recognised entity kind - the UI then falls back to "ID".
+        id: idValue ? { type: idType, value: idValue } : null,
         provider,
         managed,
         nameLocked,
@@ -392,7 +401,7 @@ function clearStoredIdentity() {
     localStorage.removeItem(xipherSecretStoreId);
     localStorage.removeItem(xipherPublicKeyStoreId);
     localStorage.removeItem(xipherNameStoreId);
-    localStorage.removeItem(xipherIdNameStoreId);
+    localStorage.removeItem(xipherTypeStoreId);
     localStorage.removeItem(xipherIdValueStoreId);
     localStorage.removeItem(xipherProviderStoreId);
     localStorage.removeItem(xipherSecretKindStoreId);

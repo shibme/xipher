@@ -403,16 +403,16 @@ async function completeProviderReturn(ret) {
         showToast("Couldn't open the key from the provider (it wasn't sealed to this session).", "error");
         return;
     }
-    // The provider seals a JSON document {"key"|"seed","name","id","timeout"}
+    // The provider seals a JSON document {"key"|"seed","name","id","type","timeout"}
     // (only the secret material is required). For backward compatibility we also
     // accept a bare XSK_ string. The secret may be a ready key or a seed it is
     // derived from; key wins when both are present. `timeout` is the key's
     // relative validity in SECONDS (capped at 7 days; 0 = ephemeral, tab-only).
     const delivered = parseSealedIdentity(sealedPayload);
-    // timeoutMs: null => default 7-day duration; 0 => ephemeral (key lives only
-    // while the tab is open, like a passkey); otherwise the provider's relative
-    // validity window, capped at the 7-day ceiling.
-    const durationMs = delivered.timeoutMs === null ? MAX_TIMEOUT_MS : delivered.timeoutMs;
+    // timeoutMs: 0 => ephemeral (key lives only while the tab is open, like a
+    // passkey) - this is the default when timeout is absent or invalid; otherwise
+    // the provider's relative validity window, capped at the 7-day ceiling.
+    const durationMs = delivered.timeoutMs;
     let deliveredKey;
     try {
         deliveredKey = await resolveDeliveredKey(delivered);
@@ -444,7 +444,7 @@ async function completeProviderReturn(ret) {
         return;
     }
 
-    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id, true, durationMs);
+    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id, delivered.type, true, durationMs);
     if (typeof refreshIdentity === "function") {
         await refreshIdentity();
     }
@@ -455,11 +455,13 @@ async function completeProviderReturn(ret) {
 }
 
 // parseSealedIdentity reads the decrypted provider payload. It prefers a JSON
-// document { key, seed, name, id: { name, value } } (all but the secret material
-// optional) and falls back to a bare XSK_ string. The secret may be supplied
-// either as a ready XSK_ key or as a seed it is derived from; if both are given,
-// key takes precedence. Returns { key, seed, name, id } where key/seed are
-// strings ("" if absent) and id is a labelled identifier object or null.
+// document { key, seed, name, id, type } (all but the secret material optional)
+// and falls back to a bare XSK_ string. The secret may be supplied either as a
+// ready XSK_ key or as a seed it is derived from; if both are given, key takes
+// precedence. Returns { key, seed, name, id, type } where key/seed/id are
+// strings ("" if absent) and type is "user" | "group" | "service" ("" for a
+// missing or unrecognised value; the id still stores, just without a typed
+// label). timeoutMs defaults to 0 (ephemeral) when timeout is absent or invalid.
 function parseSealedIdentity(payload) {
     const trimmed = (payload || "").trim();
     if (trimmed.startsWith("{")) {
@@ -468,18 +470,14 @@ function parseSealedIdentity(payload) {
             const hasKey = typeof doc.key === "string" && doc.key.trim();
             const hasSeed = typeof doc.seed === "string" && doc.seed.trim();
             if (doc && (hasKey || hasSeed)) {
-                let id = null;
-                if (doc.id && typeof doc.id === "object" && typeof doc.id.value === "string") {
-                    id = {
-                        name: typeof doc.id.name === "string" ? doc.id.name : "",
-                        value: doc.id.value,
-                    };
-                }
+                const id = typeof doc.id === "string" ? doc.id : "";
+                const type = doc.type === "user" || doc.type === "group" || doc.type === "service" ? doc.type : "";
                 return {
                     key: hasKey ? doc.key.trim() : "",
                     seed: hasSeed ? doc.seed.trim() : "",
                     name: typeof doc.name === "string" ? doc.name : "",
                     id,
+                    type,
                     timeoutMs: parseTimeoutSeconds(doc.timeout),
                 };
             }
@@ -487,16 +485,17 @@ function parseSealedIdentity(payload) {
             // Not JSON; fall through to the bare-string form.
         }
     }
-    return { key: trimmed, seed: "", name: "", id: null, timeoutMs: null };
+    return { key: trimmed, seed: "", name: "", id: "", type: "", timeoutMs: 0 };
 }
 
 // parseTimeoutSeconds reads the optional provider `timeout` field (relative
 // validity in SECONDS) and returns it in milliseconds, clamped to the 7-day
-// ceiling. Returns null when absent/invalid (caller treats null as the default
-// 7-day window); 0 is preserved and means an ephemeral, tab-lifetime key.
+// ceiling. Returns 0 when absent/invalid, which means an ephemeral, tab-lifetime
+// key (never written to storage) - so omitting timeout opts into the safest
+// default rather than a long-lived persisted key.
 function parseTimeoutSeconds(value) {
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-        return null;
+        return 0;
     }
     return Math.min(value * 1000, MAX_TIMEOUT_MS);
 }

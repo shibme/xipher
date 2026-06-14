@@ -163,7 +163,10 @@ function renderIdentityCard() {
     const identity = getIdentity();
     identityName.textContent = identity.name || "Anonymous";
     if (identity.id) {
-        identityContact.textContent = `${identity.id.name}: ${identity.id.value}`;
+        const typeLabel = identity.id.type
+            ? identity.id.type.charAt(0).toUpperCase() + identity.id.type.slice(1)
+            : "ID";
+        identityContact.textContent = `${typeLabel}: ${identity.id.value}`;
         identityContact.hidden = false;
     } else {
         identityContact.textContent = "";

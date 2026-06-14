@@ -718,7 +718,8 @@ Content-Type: application/json</code></pre>
                     <pre class="code-block" data-lang="json"><code>{
   "key": "XSK_...",
   "name": "Alice Example",
-  "id": { "name": "Email", "value": "alice@acme.com" },
+  "id": "alice@acme.com",
+  "type": "user",
   "timeout": 604800
 }</code></pre>
                     <div class="docs-table-wrap">
@@ -730,8 +731,9 @@ Content-Type: application/json</code></pre>
                                 <tr><td><code>key</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The user's <code>XSK_…</code> secret key</td></tr>
                                 <tr><td><code>seed</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The 64-byte seed the secret key is deterministically derived from, as <strong>standard base64</strong> (see below), an alternative to sending the key directly. If both <code>key</code> and <code>seed</code> are present, <code>key</code> takes precedence.</td></tr>
                                 <tr><td><code>name</code></td><td>No</td><td>Display name; trimmed and capped at 64 characters</td></tr>
-                                <tr><td><code>id</code></td><td>No</td><td>A labeled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
-                                <tr><td><code>timeout</code></td><td>No</td><td>How long the issued key stays valid in the browser, in <strong>seconds</strong>, capped at 7&nbsp;days (the default when omitted). The window slides forward on each visit and clears the key once it lapses. <code>0</code> makes the key <strong>ephemeral</strong> - it's never written to storage and lives only while the tab stays open, like a passkey. The user can shorten this in their profile but never extend it beyond what you issued.</td></tr>
+                                <tr><td><code>id</code></td><td>No</td><td>The identifier value for the authenticating entity (e.g. an email or service name). Shown read-only in the user's profile, labelled by <code>type</code> (or a generic <code>ID</code> when no type is given).</td></tr>
+                                <tr><td><code>type</code></td><td>No</td><td>The kind of entity the <code>id</code> names: <code>user</code>, <code>group</code>, or <code>service</code>. Used as the read-only label shown beside the id. Any other value (or omitting it) just falls back to an <code>ID</code> label; the id is still kept.</td></tr>
+                                <tr><td><code>timeout</code></td><td>No</td><td>How long the issued key stays valid in the browser, in <strong>seconds</strong>, capped at 7&nbsp;days. The window slides forward on each visit and clears the key once it lapses. <code>0</code> - the default when omitted or invalid - makes the key <strong>ephemeral</strong>: it's never written to storage and lives only while the tab stays open, like a passkey. Send an explicit duration to persist the key. The user can shorten this in their profile but never extend it beyond what you issued.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -745,7 +747,7 @@ Content-Type: application/json</code></pre>
   "name": "Alice Example"
 }</code></pre>
                     <p>For backward compatibility the app also accepts a bare <code>XSK_…</code> string as the sealed
-                        payload (no name or id). Seal with any Xipher binding, such as the Go library:</p>
+                        payload (no name, id, or type). Seal with any Xipher binding, such as the Go library:</p>
                     <pre class="code-block" data-lang="go"><code>import (
     "encoding/json"
     "xipher.org/xipher"
@@ -758,7 +760,8 @@ if err != nil { /* reject: invalid public key */ }
 payload, _ := json.Marshal(map[string]any{
     "key":     userSecretKey, // the XSK_… string you issue to this user
     "name":    "Alice Example",
-    "id":      map[string]string{"name": "Email", "value": "alice@acme.com"},
+    "id":      "alice@acme.com", // the entity's identifier value
+    "type":    "user",           // "user" | "group" | "service"; required with id
     "timeout": 604800, // seconds; capped at 7 days. 0 = ephemeral (tab-only).
 })
 // Or, to send a seed instead of the key (seedBytes is [64]byte):
