@@ -187,7 +187,7 @@
                     <div class="identity-meta">
                         <div class="identity-name-row">
                             <span id="identity-name" class="identity-name">Unnamed identity</span>
-                            <button type="button" id="identity-name-edit" class="icon-button identity-name-edit"
+                            <button type="button" id="identity-name-edit" class="icon-button inline-edit-pencil identity-name-edit"
                                 title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
                             <input type="text" id="identity-name-input" class="text-field identity-name-input"
                                 maxlength="64" placeholder="Set your name" autocomplete="name" spellcheck="false" hidden>
@@ -198,6 +198,20 @@
                 </div>
                 <p id="identity-name-managed" class="field-hint" hidden>Your name is managed by your credential
                     provider and can't be changed here.</p>
+
+                <!-- Session timeout: how long the stored key survives without use.
+                     Slides forward on each visit. Can only be lowered here; raising
+                     it (up to 7 days) requires setting the credential again. Hidden
+                     for passkey identities (which are never stored). -->
+                <div id="timeout-row" class="timeout-row" hidden>
+                    <span class="field-label">Session timeout</span>
+                    <div class="timeout-value-row">
+                        <span id="timeout-summary" class="timeout-value"></span>
+                        <button type="button" id="timeout-edit" class="icon-button inline-edit-pencil"
+                            title="Edit session timeout" aria-label="Edit session timeout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                    </div>
+                    <p class="field-hint">Clears after this long without use. Shorten here. Set the credential again to extend (max 7 days).</p>
+                </div>
 
                 <hr class="settings-divider">
 
@@ -279,6 +293,22 @@
                         </a>
                     </div>
                     <p class="quantum-safe-note" id="provider-modal-toggle-note"></p>
+                </div>
+                <!-- Optional session-timeout picker (e.g. when setting a password
+                     or secret key). Shown only when the caller provides it; Confirm
+                     stays disabled until the value is valid (max 7 days). -->
+                <div id="provider-modal-duration-row" class="timeout-row mt-14" hidden>
+                    <label class="field-label" for="provider-modal-duration-value">Session timeout</label>
+                    <div class="duration-field">
+                        <input type="number" id="provider-modal-duration-value" class="text-field duration-value"
+                            min="1" step="1" inputmode="numeric">
+                        <select id="provider-modal-duration-unit" class="text-field duration-unit">
+                            <option value="minutes">Minutes</option>
+                            <option value="hours">Hours</option>
+                            <option value="days">Days</option>
+                        </select>
+                    </div>
+                    <p id="provider-modal-duration-hint" class="field-hint">The stored key clears after this much inactivity. Maximum 7 days.</p>
                 </div>
             </div>
             <div class="modal-footer">

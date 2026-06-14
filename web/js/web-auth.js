@@ -223,10 +223,14 @@ async function main() {
 
     await loadXipherWASM();
 
-    // Idle-expiry: drop a stored key/identity unused for over a week, same as the
-    // main app. A wiped browser then has no credential to deliver and falls into
-    // the "no credential configured" branch below.
-    enforceIdleExpiry();
+    // Per-credential timeout: drop a stored key/identity whose sliding deadline
+    // has passed (or looks tampered), same as the main app. A wiped browser then
+    // has no credential to deliver and falls into the "no credential configured"
+    // branch below.
+    const timeoutResult = await enforceCredentialTimeout();
+    if (timeoutResult === "suspicious") {
+        showToast("Suspicious activity detected: the stored session looked tampered, so it was cleared.", "error", 5000);
+    }
 
     const existingKey = await getExistingXipherSecret();
     const identity    = getIdentity();

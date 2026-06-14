@@ -718,7 +718,8 @@ Content-Type: application/json</code></pre>
                     <pre class="code-block" data-lang="json"><code>{
   "key": "XSK_...",
   "name": "Alice Example",
-  "id": { "name": "Email", "value": "alice@acme.com" }
+  "id": { "name": "Email", "value": "alice@acme.com" },
+  "timeout": 604800
 }</code></pre>
                     <div class="docs-table-wrap">
                         <table class="docs-table">
@@ -730,6 +731,7 @@ Content-Type: application/json</code></pre>
                                 <tr><td><code>seed</code></td><td>Either <code>key</code> or <code>seed</code></td><td>The 64-byte seed the secret key is deterministically derived from, as <strong>standard base64</strong> (see below), an alternative to sending the key directly. If both <code>key</code> and <code>seed</code> are present, <code>key</code> takes precedence.</td></tr>
                                 <tr><td><code>name</code></td><td>No</td><td>Display name; trimmed and capped at 64 characters</td></tr>
                                 <tr><td><code>id</code></td><td>No</td><td>A labeled identifier: <code>{ "name": "Email", "value": "…" }</code>. You choose the label (e.g. <code>Email</code>, <code>Employee ID</code>); shown read-only in the user's profile</td></tr>
+                                <tr><td><code>timeout</code></td><td>No</td><td>How long the issued key stays valid in the browser, in <strong>seconds</strong>, capped at 7&nbsp;days (the default when omitted). The window slides forward on each visit and clears the key once it lapses. <code>0</code> makes the key <strong>ephemeral</strong> - it's never written to storage and lives only while the tab stays open, like a passkey. The user can shorten this in their profile but never extend it beyond what you issued.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -754,9 +756,10 @@ pubKey, err := xipher.ParsePublicKeyStr(pubKeyStr)
 if err != nil { /* reject: invalid public key */ }
 
 payload, _ := json.Marshal(map[string]any{
-    "key":  userSecretKey, // the XSK_… string you issue to this user
-    "name": "Alice Example",
-    "id":   map[string]string{"name": "Email", "value": "alice@acme.com"},
+    "key":     userSecretKey, // the XSK_… string you issue to this user
+    "name":    "Alice Example",
+    "id":      map[string]string{"name": "Email", "value": "alice@acme.com"},
+    "timeout": 604800, // seconds; capped at 7 days. 0 = ephemeral (tab-only).
 })
 // Or, to send a seed instead of the key (seedBytes is [64]byte):
 //   "seed": base64.StdEncoding.EncodeToString(seedBytes[:]),

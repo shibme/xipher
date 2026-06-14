@@ -127,14 +127,26 @@ const providerModalToggle = document.getElementById("provider-modal-toggle");
 const providerModalToggleLabel = document.getElementById("provider-modal-toggle-label");
 const providerModalToggleNote = document.getElementById("provider-modal-toggle-note");
 const providerModalToggleDocs = document.getElementById("provider-modal-toggle-docs");
+const providerModalDurationRow = document.getElementById("provider-modal-duration-row");
+const providerModalDurationValue = document.getElementById("provider-modal-duration-value");
+const providerModalDurationUnit = document.getElementById("provider-modal-duration-unit");
+const providerModalDurationHint = document.getElementById("provider-modal-duration-hint");
 
 // Opens the consent modal and resolves to true (confirmed) or false (cancelled).
 // opts: { title, message, confirmLabel, confirmClass, detailLabel, detailValue }.
 //
 // When opts.toggle is provided ({ label, note, checked }) an opt-in switch is
 // shown and the promise resolves to an object { confirmed, checked } on every
-// path, so the caller can read the switch state. Without opts.toggle the legacy
-// boolean (or dismissValue) is returned unchanged.
+// path, so the caller can read the switch state.
+//
+// When opts.duration is provided ({ valueMs }) a number+unit "session timeout"
+// field is shown, prefilled from valueMs, and Confirm stays disabled until the
+// entered duration is valid (0 < ms <= MAX_TIMEOUT_MS). Every path then resolves
+// to an object that also carries { durationMs } (the chosen value, or null on a
+// non-confirm path).
+//
+// With neither toggle nor duration the legacy boolean (or dismissValue) is
+// returned unchanged.
 function askProviderConsent(opts) {
     return new Promise((resolve) => {
         // The provider flow runs during startup while the preloader is still up
@@ -178,23 +190,86 @@ function askProviderConsent(opts) {
             providerModalToggle.checked = false;
         }
 
+        // Reads the current duration field as ms, or null when invalid (blank,
+        // non-positive, or above the 7-day ceiling).
+        const readDuration = () => {
+            const value = parseInt(providerModalDurationValue.value, 10);
+            if (!Number.isFinite(value) || value <= 0) {
+                return null;
+            }
+            const ms = value * (TIMEOUT_UNIT_MS[providerModalDurationUnit.value] || 0);
+            if (ms <= 0 || ms > MAX_TIMEOUT_MS) {
+                return null;
+            }
+            return ms;
+        };
+        // Confirm stays disabled while the duration field is invalid.
+        const syncDurationValidity = () => {
+            providerModalConfirm.disabled = readDuration() === null;
+        };
+
+        const hasDuration = !!opts.duration;
+        if (hasDuration) {
+            const { value, unit } = splitDuration(opts.duration.valueMs);
+            providerModalDurationValue.value = String(value);
+            providerModalDurationUnit.value = unit;
+            // Caller-supplied hint; the profile-edit flow drops the "Maximum 7
+            // days" note since there the real ceiling is the current value (the
+            // consent message already says it can only be shortened). Empty hides.
+            const hint = opts.duration.hint !== undefined
+                ? opts.duration.hint
+                : "The stored key clears after this much inactivity. Maximum 7 days.";
+            providerModalDurationHint.textContent = hint;
+            providerModalDurationHint.hidden = !hint;
+            providerModalDurationRow.hidden = false;
+            providerModalDurationValue.addEventListener("input", syncDurationValidity);
+            providerModalDurationUnit.addEventListener("change", syncDurationValidity);
+            syncDurationValidity();
+        } else {
+            providerModalDurationRow.hidden = true;
+            providerModalConfirm.disabled = false;
+        }
+
         const cleanup = () => {
             providerModal.hidden = true;
             document.body.classList.remove("no-scroll");
+            providerModalConfirm.disabled = false;
             providerModalConfirm.removeEventListener("click", onConfirm);
             providerModalCancel.removeEventListener("click", onCancel);
             providerModalClose.removeEventListener("click", onDismiss);
             providerModal.removeEventListener("click", onBackdrop);
             document.removeEventListener("keydown", onKeydown);
+            providerModalDurationValue.removeEventListener("input", syncDurationValidity);
+            providerModalDurationUnit.removeEventListener("change", syncDurationValidity);
         };
         const dismissValue = opts.dismissValue !== undefined ? opts.dismissValue : false;
-        // With a toggle, every path returns { confirmed, checked }; without, the
-        // legacy boolean/dismissValue is preserved.
-        const wrap = (confirmed, fallback) =>
-            hasToggle ? { confirmed, checked: providerModalToggle.checked } : fallback;
-        const onConfirm = () => { cleanup(); resolve(wrap(true, true)); };
-        const onCancel = () => { cleanup(); resolve(wrap(false, false)); };
-        const onDismiss = () => { cleanup(); resolve(wrap(false, dismissValue)); };
+        // With a toggle or duration, every path returns an object; without either,
+        // the legacy boolean/dismissValue is preserved. durationMs is the chosen
+        // value on confirm, null otherwise.
+        const wrap = (confirmed, fallback, durationMs) => {
+            if (!hasToggle && !hasDuration) {
+                return fallback;
+            }
+            const result = { confirmed };
+            if (hasToggle) {
+                result.checked = providerModalToggle.checked;
+            }
+            if (hasDuration) {
+                result.durationMs = durationMs;
+            }
+            return result;
+        };
+        const onConfirm = () => {
+            // Guard against a confirm slipping through while invalid (e.g. Enter).
+            if (hasDuration && readDuration() === null) {
+                return;
+            }
+            const durationMs = hasDuration ? readDuration() : null;
+            cleanup();
+            resolve(wrap(true, true, durationMs));
+        };
+        const onCancel = () => { cleanup(); resolve(wrap(false, false, null)); };
+        const onDismiss = () => { cleanup(); resolve(wrap(false, dismissValue, null)); };
         const onBackdrop = (event) => { if (event.target === providerModal) { onDismiss(); } };
         const onKeydown = (event) => { if (event.key === "Escape") { onDismiss(); } };
 
@@ -328,11 +403,16 @@ async function completeProviderReturn(ret) {
         showToast("Couldn't open the key from the provider (it wasn't sealed to this session).", "error");
         return;
     }
-    // The provider seals a JSON document {"key"|"seed","name","id"} (only the
-    // secret material is required). For backward compatibility we also accept a
-    // bare XSK_ string. The secret may be a ready key or a seed it is derived
-    // from; key wins when both are present.
+    // The provider seals a JSON document {"key"|"seed","name","id","timeout"}
+    // (only the secret material is required). For backward compatibility we also
+    // accept a bare XSK_ string. The secret may be a ready key or a seed it is
+    // derived from; key wins when both are present. `timeout` is the key's
+    // relative validity in SECONDS (capped at 7 days; 0 = ephemeral, tab-only).
     const delivered = parseSealedIdentity(sealedPayload);
+    // timeoutMs: null => default 7-day duration; 0 => ephemeral (key lives only
+    // while the tab is open, like a passkey); otherwise the provider's relative
+    // validity window, capped at the 7-day ceiling.
+    const durationMs = delivered.timeoutMs === null ? MAX_TIMEOUT_MS : delivered.timeoutMs;
     let deliveredKey;
     try {
         deliveredKey = await resolveDeliveredKey(delivered);
@@ -364,7 +444,7 @@ async function completeProviderReturn(ret) {
         return;
     }
 
-    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id);
+    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id, true, durationMs);
     if (typeof refreshIdentity === "function") {
         await refreshIdentity();
     }
@@ -400,13 +480,25 @@ function parseSealedIdentity(payload) {
                     seed: hasSeed ? doc.seed.trim() : "",
                     name: typeof doc.name === "string" ? doc.name : "",
                     id,
+                    timeoutMs: parseTimeoutSeconds(doc.timeout),
                 };
             }
         } catch (error) {
             // Not JSON; fall through to the bare-string form.
         }
     }
-    return { key: trimmed, seed: "", name: "", id: null };
+    return { key: trimmed, seed: "", name: "", id: null, timeoutMs: null };
+}
+
+// parseTimeoutSeconds reads the optional provider `timeout` field (relative
+// validity in SECONDS) and returns it in milliseconds, clamped to the 7-day
+// ceiling. Returns null when absent/invalid (caller treats null as the default
+// 7-day window); 0 is preserved and means an ephemeral, tab-lifetime key.
+function parseTimeoutSeconds(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        return null;
+    }
+    return Math.min(value * 1000, MAX_TIMEOUT_MS);
 }
 
 // decodeSeed decodes a standard- or url-safe base64 seed string into the raw

@@ -14,12 +14,38 @@ const xipherIdNameStoreId = "xipherIdName";
 const xipherIdValueStoreId = "xipherIdValue";
 const xipherProviderStoreId = "xipherProvider";
 const xipherSecretKindStoreId = "xipherSecretKind"; // "key" | "password"
-// Idle-expiry: if the site isn't opened for this long, the stored secret and all
-// identity metadata are wiped on the next visit. A security tool shouldn't keep a
-// key on a machine the user has abandoned. The timestamp is refreshed on every
-// load (see touchLastSeen), so active use never triggers expiry.
-const xipherLastSeenStoreId = "xipherLastSeen";
-const IDLE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Per-credential timeout. The stored secret is wrapped in an envelope carrying a
+// validity duration and a sliding deadline (now + duration), refreshed on every
+// load. A security tool shouldn't keep a key on a machine the user has abandoned;
+// active use slides the deadline forward, so it never expires while in use. The
+// duration is capped at 7 days and can only be lowered (raising it requires
+// setting the credential again). See buryXipherSecret / enforceCredentialTimeout.
+const MAX_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, the hard ceiling
+// Default duration offered when setting a password/secret key directly. The user
+// can change it in the prompt; lowered later in the profile, or raised (up to the
+// ceiling) by setting the credential again. Change here to adjust the default.
+const DEFAULT_NEW_CREDENTIAL_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 1 day
+// Slack on the suspicious-deadline check, to absorb clock skew / write latency so
+// a legitimate now+7d deadline isn't flagged the instant it's written.
+const SUSPICIOUS_MARGIN_MS = 5 * 60 * 1000; // 5 minutes
+// Duration units (ms) shared by the timeout pickers. Largest first so a stored
+// duration renders in the coarsest unit that divides it evenly.
+const TIMEOUT_UNIT_MS = { days: 86400000, hours: 3600000, minutes: 60000 };
+
+// splitDuration renders a duration (ms) as { value, unit } using the largest unit
+// that divides it evenly, rounding to the nearest minute first so a non-aligned
+// value (e.g. a provider-set odd duration) still shows cleanly. Minimum 1 minute.
+function splitDuration(durationMs) {
+    let minutes = Math.max(1, Math.round(durationMs / TIMEOUT_UNIT_MS.minutes));
+    const ms = minutes * TIMEOUT_UNIT_MS.minutes;
+    if (ms % TIMEOUT_UNIT_MS.days === 0) {
+        return { value: ms / TIMEOUT_UNIT_MS.days, unit: "days" };
+    }
+    if (ms % TIMEOUT_UNIT_MS.hours === 0) {
+        return { value: ms / TIMEOUT_UNIT_MS.hours, unit: "hours" };
+    }
+    return { value: minutes, unit: "minutes" };
+}
 const MAX_IDENTITY_FIELD_LEN = 64;
 // C0 and C1 control characters, stripped from untrusted identity fields.
 // Matches CONTROL_CHARS in resolve.js.
@@ -109,6 +135,61 @@ async function dig(id) {
     return originalData;
 }
 
+// clampDuration coerces an arbitrary timeout (ms) into [0, MAX_TIMEOUT_MS]. A
+// non-finite or negative input falls back to the 7-day ceiling (the safe default
+// for a credential that didn't specify one). 0 is preserved (ephemeral).
+function clampDuration(durationMs) {
+    if (!Number.isFinite(durationMs) || durationMs < 0) {
+        return MAX_TIMEOUT_MS;
+    }
+    return Math.min(durationMs, MAX_TIMEOUT_MS);
+}
+
+// buryXipherSecret stores the secret key wrapped in a timeout envelope
+// { key, durationMs, deadline } encrypted at rest. The deadline is now+duration.
+// A 0 duration marks the credential ephemeral: the secret is held only in the
+// in-memory burial cache for this tab (never written to localStorage), so it
+// vanishes on reload -the same treatment as a session-only passkey key.
+async function buryXipherSecret(key, durationMs) {
+    const duration = clampDuration(durationMs);
+    if (duration === 0) {
+        // Ephemeral: keep the raw key in memory only; leave nothing on disk.
+        burialCache.set(xipherSecretStoreId, key);
+        localStorage.removeItem(xipherSecretStoreId);
+        return;
+    }
+    const envelope = JSON.stringify({ key, durationMs: duration, deadline: Date.now() + duration });
+    await bury(xipherSecretStoreId, envelope);
+}
+
+// digXipherSecret reads and parses the stored secret envelope. Returns
+// { key, durationMs, deadline } or null when no secret is stored. For backward
+// compatibility a bare XSK_ string (the pre-envelope format, or an in-memory
+// ephemeral key) is wrapped as a default 7-day envelope with no deadline written
+// yet -enforceCredentialTimeout reburies it to materialise the deadline.
+async function digXipherSecret() {
+    const raw = await dig(xipherSecretStoreId);
+    if (raw === null || raw === undefined) {
+        return null;
+    }
+    if (typeof raw === "string" && raw.startsWith("{")) {
+        try {
+            const env = JSON.parse(raw);
+            if (env && typeof env.key === "string" && env.key) {
+                return {
+                    key: env.key,
+                    durationMs: clampDuration(env.durationMs),
+                    deadline: Number.isFinite(env.deadline) ? env.deadline : null,
+                };
+            }
+        } catch (error) {
+            // Not an envelope; fall through to the bare-key form.
+        }
+    }
+    // Legacy bare key (or in-memory ephemeral key): default to the 7-day ceiling.
+    return { key: raw, durationMs: MAX_TIMEOUT_MS, deadline: null };
+}
+
 // Quantum-safe preference for public key derivation.
 function isQuantumSafe() {
     return localStorage.getItem(xipherQuantumSafeStoreId) === "true";
@@ -129,10 +210,14 @@ function setQuantumSafe(enabled) {
     return false;
 }
 
-async function setXipherSecret(xipherSecret) {
-    const currentXipherSecret = await dig(xipherSecretStoreId);
-    if (currentXipherSecret !== xipherSecret) {
-        await bury(xipherSecretStoreId, xipherSecret);
+// Sets the active secret with a fresh timeout envelope. durationMs defaults to
+// the 7-day ceiling; setting the credential is the only way to *raise* the
+// timeout (a freshly set credential is always allowed up to the cap). A change
+// resets the identity to self-issued, dropping any provider metadata.
+async function setXipherSecret(xipherSecret, durationMs = MAX_TIMEOUT_MS) {
+    const current = await digXipherSecret();
+    if (!current || current.key !== xipherSecret) {
+        await buryXipherSecret(xipherSecret, durationMs);
         localStorage.removeItem(xipherPublicKeyStoreId);
         // A manual key/password change makes this a fresh self-issued identity:
         // drop any provider metadata and let the name default again. (The
@@ -143,6 +228,30 @@ async function setXipherSecret(xipherSecret) {
         localStorage.removeItem(xipherProviderStoreId);
         localStorage.removeItem(xipherSecretKindStoreId);
     }
+}
+
+// Returns the current credential's timeout duration in ms, or null if no secret
+// is stored. Used by the Profile UI to render and bound the duration control.
+async function getCredentialTimeout() {
+    const env = await digXipherSecret();
+    return env ? env.durationMs : null;
+}
+
+// Lowers the credential timeout to durationMs and reburies with a fresh deadline.
+// The duration can only be *reduced*: a request to raise it above the currently
+// stored value is rejected (returns false). Raising requires setting the
+// credential again (setXipherSecret). Returns true when applied.
+async function setCredentialTimeout(durationMs) {
+    const env = await digXipherSecret();
+    if (!env) {
+        return false;
+    }
+    const next = clampDuration(durationMs);
+    if (next > env.durationMs) {
+        return false;
+    }
+    await buryXipherSecret(env.key, next);
+    return true;
 }
 
 // Installs a secret key delivered by an external credential provider, recording
@@ -156,12 +265,15 @@ async function setXipherSecret(xipherSecret) {
 // written to localStorage, so it vanishes on reload and must be re-derived. The
 // non-secret identity metadata is removed from localStorage in that case too, so
 // a closed tab leaves no trace of a passkey-only identity.
-async function setProviderIdentity(xipherSecret, providerHost, name, id, persist = true) {
+async function setProviderIdentity(xipherSecret, providerHost, name, id, persist = true, durationMs = MAX_TIMEOUT_MS) {
     if (persist) {
-        await bury(xipherSecretStoreId, xipherSecret);
+        // buryXipherSecret applies the timeout envelope. A 0 duration there is
+        // itself ephemeral (memory-only), so a provider key with timeout=0 lands
+        // in the same session-only state as a passkey without a separate branch.
+        await buryXipherSecret(xipherSecret, durationMs);
     } else {
-        // Session-only: hold the secret in memory for this tab, and make sure no
-        // stale copy lingers in localStorage from a previous persisted identity.
+        // Session-only (passkey): hold the secret in memory for this tab, and make
+        // sure no stale copy lingers in localStorage from a previous identity.
         burialCache.set(xipherSecretStoreId, xipherSecret);
         localStorage.removeItem(xipherSecretStoreId);
     }
@@ -181,11 +293,12 @@ async function setProviderIdentity(xipherSecret, providerHost, name, id, persist
 }
 
 async function getXipherSecret() {
-    let xipherSecret = await dig(xipherSecretStoreId);
-    if (!xipherSecret) {
-        xipherSecret = await genXipherSecretKey();
-        await setXipherSecret(xipherSecret);
+    const env = await digXipherSecret();
+    if (env) {
+        return env.key;
     }
+    const xipherSecret = await genXipherSecretKey();
+    await setXipherSecret(xipherSecret);
     return xipherSecret;
 }
 
@@ -204,7 +317,8 @@ async function getPublicKey() {
 // delivered key would overwrite (and orphan) an existing identity, and by the
 // startup flow to decide whether a Setup is needed.
 async function getExistingXipherSecret() {
-    return await dig(xipherSecretStoreId);
+    const env = await digXipherSecret();
+    return env ? env.key : null;
 }
 
 // Reports whether this browser already has a usable secret (persisted in
@@ -252,7 +366,7 @@ function setIdentityField(storeId, value) {
 
 // Returns the current identity metadata for display. `provider` is the issuing
 // host (defaults to self). `managed` is true when a stored provider backs the
-// key. `nameLocked` is true only when an *external* provider issued the name —
+// key. `nameLocked` is true only when an *external* provider issued the name -
 // passkey-backed identities are provider-backed but keep a user-editable name.
 function getIdentity() {
     const provider = localStorage.getItem(xipherProviderStoreId) || selfHost();
@@ -287,23 +401,43 @@ function clearStoredIdentity() {
     }
 }
 
-// Idle-expiry gate. If the site hasn't been opened within IDLE_EXPIRY_MS, wipe the
-// stored identity so an abandoned machine doesn't retain a usable key. Always
-// refreshes the last-seen timestamp afterwards, so the window slides with use.
-// Returns true when an expiry wipe happened. Call this once, early on load, before
-// reading the secret. A missing/invalid timestamp is treated as first-ever visit
-// (no wipe) and just seeds the timestamp.
-function enforceIdleExpiry() {
-    const now = Date.now();
-    const raw = localStorage.getItem(xipherLastSeenStoreId);
-    const last = raw ? parseInt(raw, 10) : NaN;
-    let expired = false;
-    if (Number.isFinite(last) && now - last > IDLE_EXPIRY_MS) {
-        clearStoredIdentity();
-        expired = true;
+// Per-credential timeout gate. Reads the stored secret envelope and:
+//   - wipes the identity and returns "expired" when the deadline has passed;
+//   - wipes it and returns "suspicious" when the deadline is implausibly far in
+//     the future (> cap + margin), which means a tampered/forward-dated envelope;
+//   - otherwise slides the deadline forward to now + duration (activity) and
+//     returns false.
+// Call this once, early on load, before reading the secret. Passkey-backed and
+// ephemeral (memory-only) identities have no persisted deadline to enforce and
+// are skipped. A legacy bare-key secret (deadline null) is simply materialised
+// into an envelope with a fresh deadline.
+async function enforceCredentialTimeout() {
+    // Passkeys are session-only by design; nothing persisted to expire.
+    if (getIdentity().provider === "passkey") {
+        return false;
     }
-    localStorage.setItem(xipherLastSeenStoreId, String(now));
-    return expired;
+    const env = await digXipherSecret();
+    if (!env) {
+        return false;
+    }
+    // Held in memory only (ephemeral): leave it alone -it dies with the tab.
+    if (!localStorage.getItem(xipherSecretStoreId)) {
+        return false;
+    }
+    const now = Date.now();
+    if (env.deadline !== null) {
+        if (now > env.deadline) {
+            clearStoredIdentity();
+            return "expired";
+        }
+        if (env.deadline - now > MAX_TIMEOUT_MS + SUSPICIOUS_MARGIN_MS) {
+            clearStoredIdentity();
+            return "suspicious";
+        }
+    }
+    // Activity: slide the deadline forward by the stored duration.
+    await buryXipherSecret(env.key, env.durationMs);
+    return false;
 }
 
 // Updates the user-chosen display name. Allowed for self-issued and

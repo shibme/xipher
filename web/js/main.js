@@ -709,10 +709,17 @@ async function main() {
     loadTheme();
     await loadXipherWASM();
 
-    // Idle-expiry: wipe a stored key/identity if the site hasn't been opened in
-    // over a week. Runs before the provider flow so a key freshly delivered in
-    // this same load (which writes after this point) is never collected.
-    enforceIdleExpiry();
+    // Per-credential timeout: wipe a stored key/identity whose sliding deadline
+    // has passed (or is implausibly far out, i.e. tampered), and slide the
+    // deadline forward on a normal visit. Runs before the provider flow so a key
+    // freshly delivered in this same load (which writes after this point) is
+    // never collected.
+    const timeoutResult = await enforceCredentialTimeout();
+    if (timeoutResult === "expired") {
+        showToast("Your session timed out and the stored key was cleared.", "info", 4000);
+    } else if (timeoutResult === "suspicious") {
+        showToast("Suspicious activity detected: the stored session looked tampered, so it was cleared.", "error", 5000);
+    }
 
     // The credential-provider flow may redirect away (when initiating) or update
     // the stored identity in place (on return). Run it before deriving the public

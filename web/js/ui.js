@@ -120,6 +120,9 @@ const identityProvider = document.getElementById("identity-provider");
 const identityNameInput = document.getElementById("identity-name-input");
 const identityNameEdit = document.getElementById("identity-name-edit");
 const identityNameManaged = document.getElementById("identity-name-managed");
+const timeoutRow = document.getElementById("timeout-row");
+const timeoutSummary = document.getElementById("timeout-summary");
+const timeoutEdit = document.getElementById("timeout-edit");
 
 // Derives up to two uppercase initials from a display name (e.g. "Alice Example"
 // -> "AE", "shibme" -> "S"). Falls back to "" when there's nothing usable.
@@ -188,6 +191,45 @@ function renderIdentityCard() {
     identityNameManaged.hidden = !identity.nameLocked;
 }
 
+// Formats a duration (ms) as a human breakdown across days/hours/minutes,
+// omitting zero parts, e.g. "4 days, 4 hours", "1 hour, 30 minutes", "1 day".
+// Rounds to the nearest minute (matching splitDuration, which prefills the edit
+// field) so the read-only display and the editable value never disagree.
+function formatDuration(durationMs) {
+    const totalMin = Math.max(1, Math.round(durationMs / 60000));
+    const days = Math.floor(totalMin / 1440);
+    const hours = Math.floor((totalMin % 1440) / 60);
+    const minutes = totalMin % 60;
+    const parts = [];
+    if (days) {
+        parts.push(`${days} day${days === 1 ? "" : "s"}`);
+    }
+    if (hours) {
+        parts.push(`${hours} hour${hours === 1 ? "" : "s"}`);
+    }
+    if (minutes) {
+        parts.push(`${minutes} minute${minutes === 1 ? "" : "s"}`);
+    }
+    return parts.join(", ");
+}
+
+// Renders the session-timeout control: a read-only summary of the stored
+// duration plus a pencil that opens the consent modal to change it (see the
+// timeoutEdit handler). Hidden for passkey identities (the key is never
+// stored, so there's nothing to expire), for ephemeral (0-duration) credentials
+// (already minimal, nothing to lower), and when no secret is stored yet. Async
+// because it reads the encrypted envelope.
+async function renderTimeoutRow() {
+    const identity = getIdentity();
+    const current = identity.provider === "passkey" ? null : await getCredentialTimeout();
+    if (current === null || current === 0) {
+        timeoutRow.hidden = true;
+        return;
+    }
+    timeoutRow.hidden = false;
+    timeoutSummary.textContent = formatDuration(current);
+}
+
 // Switches the name row into edit mode: hide the text + pencil, show the input
 // prefilled with the current name, and focus it. No-op for name-locked identities.
 function enterNameEdit() {
@@ -238,6 +280,7 @@ async function openKeyModal(setupMode = false) {
     keySecretInput.placeholder = setupMode ? "Set a password or secret key" : "Leave blank to keep current";
     quantumSafeToggle.checked = isQuantumSafe();
     renderIdentityCard();
+    await renderTimeoutRow();
     // Disable save button and set to Cancel since no changes have been made yet.
     setKeySaveReady(false);
     // Default to the method matching the current identity: passkey if this
@@ -280,6 +323,33 @@ function finishKeySetup() {
 
 keySettingsButton.addEventListener("click", () => openKeyModal(false));
 keyModalClose.addEventListener("click", closeKeyModal);
+
+// Editing the session timeout. Opens the shared consent modal with a duration
+// field (max 7 days enforced there); setCredentialTimeout is the backstop that
+// rejects any value above the stored duration, so this can only ever shorten it.
+timeoutEdit.addEventListener("click", async () => {
+    const current = await getCredentialTimeout();
+    if (current === null || current === 0) {
+        return;
+    }
+    const result = await askProviderConsent({
+        title: "Session timeout",
+        message: "Choose how long your stored key stays valid in this browser. You can only shorten it here.",
+        confirmLabel: "Update",
+        confirmClass: "encrypt-button",
+        // No "Maximum 7 days" hint here: the real ceiling is the current value
+        // (lower-only), already stated in the message above.
+        duration: { valueMs: current, hint: "" },
+    });
+    if (result.confirmed) {
+        const ok = await setCredentialTimeout(result.durationMs);
+        showToast(
+            ok ? "Session timeout updated." : "Can't extend the timeout here - set the credential again to do that.",
+            ok ? "success" : "error"
+        );
+    }
+    await renderTimeoutRow();
+});
 
 keyModal.addEventListener("click", (event) => {
     if (event.target === keyModal) {
@@ -394,12 +464,13 @@ async function handleKeySave() {
             }
         }
 
-        if (!(await confirmKeyReplace())) {
+        const consent = await confirmKeySave();
+        if (!consent.confirmed) {
             setKeySaveReady(true);
             return;
         }
 
-        await setXipherSecret(value);
+        await setXipherSecret(value, consent.durationMs);
         localStorage.setItem("xipherSecretKind", value.startsWith("XSK_") ? "key" : "password");
 
         const wasSetup = keyModalSetupMode;
@@ -501,17 +572,21 @@ passkeyUseButton.addEventListener("click", () => activatePasskeyButton("unlock")
 passkeySetupButton.addEventListener("click", () => activatePasskeyButton("setup"));
 
 // Replace-key consent for password/secret-key entry: true to proceed, false to abort.
-async function confirmKeyReplace() {
+// Consent for saving a password/secret key. Always asks for a session timeout
+// (defaulting to DEFAULT_NEW_CREDENTIAL_TIMEOUT_MS) and, when a key already
+// exists, also warns that saving replaces it. Returns { confirmed, durationMs }.
+async function confirmKeySave() {
     const existing = await getExistingXipherSecret();
-    if (!existing) {
-        return true;
-    }
-    return await askProviderConsent({
-        title: "Replace your current key?",
-        message: "Saving this will replace the key stored in this browser. Anything encrypted to your current key will no longer be readable here.",
-        confirmLabel: "Replace my key",
-        confirmClass: "decrypt-button",
+    const result = await askProviderConsent({
+        title: existing ? "Replace your current key?" : "Set your key",
+        message: existing
+            ? "Saving this will replace the key stored in this browser. Anything encrypted to your current key will no longer be readable here. Choose how long it stays valid:"
+            : "Choose how long this key stays valid in this browser:",
+        confirmLabel: existing ? "Replace my key" : "Save key",
+        confirmClass: existing ? "decrypt-button" : "encrypt-button",
+        duration: { valueMs: DEFAULT_NEW_CREDENTIAL_TIMEOUT_MS },
     });
+    return result;
 }
 
 // Shared replace-key consent: returns true to proceed, false to abort.
@@ -532,7 +607,7 @@ async function resolvePasskeyName() {
     const { name, nameLocked } = getIdentity();
     const existing = !nameLocked && (name || "").trim() ? name.trim() : null;
     if (existing) {
-        // Name already set — confirm or allow change.
+        // Name already set - confirm or allow change.
         const result = await askProviderConsent({
             title: "Name this passkey?",
             message: `This passkey will be labelled "${existing}" in your device or password manager.`,
@@ -541,11 +616,11 @@ async function resolvePasskeyName() {
             confirmClass: "encrypt-button",
         });
         if (result === true) return existing;
-        // "Change name" — open edit, user re-clicks Continue when done.
+        // "Change name" - open edit, user re-clicks Continue when done.
         enterNameEdit();
         return null;
     }
-    // No name set — ask user to set one or cancel entirely.
+    // No name set - ask user to set one or cancel entirely.
     const result = await askProviderConsent({
         title: "Name this passkey?",
         message: "A name labels this passkey in your device or password manager. Set a name to continue.",
@@ -554,8 +629,8 @@ async function resolvePasskeyName() {
         confirmClass: "encrypt-button",
         dismissValue: null,
     });
-    if (result === null || result === false) return null; // cancel or dismiss — abort
-    // "Set a name" — open edit, user re-clicks Continue when done.
+    if (result === null || result === false) return null; // cancel or dismiss - abort
+    // "Set a name" - open edit, user re-clicks Continue when done.
     enterNameEdit();
     return null;
 }

@@ -185,8 +185,9 @@
     cursor: pointer;
 }
 
-/* The pencil sits inline after the name, small and muted. */
-.identity-name-edit {
+/* Small inline pencil that sits after an editable value (the identity name and
+   the session timeout), small and muted, brightening on hover. */
+.inline-edit-pencil {
     width: 22px !important;
     height: 22px !important;
     min-width: 22px !important;
@@ -196,12 +197,12 @@
     transition: color 0.15s;
 }
 
-.identity-name-edit svg {
+.inline-edit-pencil svg {
     width: 16px !important;
     height: 16px !important;
 }
 
-.identity-name-edit:hover {
+.inline-edit-pencil:hover {
     color: var(--text-color);
 }
 
@@ -440,6 +441,54 @@
     line-height: 1.6;
     color: var(--text-faint);
     text-align: center;
+}
+
+/* Session-timeout control in the profile modal. Left-aligned label / hint, with
+   the value+pencil row centered. */
+.timeout-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.timeout-row[hidden] {
+    display: none;
+}
+
+/* Number + unit row, used by the consent-modal timeout pickers (save + profile
+   edit). */
+.duration-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.duration-field .duration-value {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.duration-field .duration-unit {
+    flex: 0 0 auto;
+    width: auto;
+    cursor: pointer;
+}
+
+/* Profile timeout: value text with an inline pencil right after it, mirroring the
+   identity-name row so the two edit affordances look the same. */
+.timeout-value-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.timeout-value {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color);
 }
 
 .link-viewbox {
