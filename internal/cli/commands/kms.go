@@ -46,6 +46,6 @@ func runKMS(configPath string) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "XKMS listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
+	fmt.Fprintf(os.Stderr, "Xipher KMS (XKMS) listening on %s:%d\n", cfg.Server.Host, cfg.Server.Port)
 	return srv.Run(ctx)
 }

@@ -42,7 +42,7 @@ func (s secretSource) resolve() (string, error) {
 	}
 }
 
-// Config is the top-level XKMS server configuration loaded from a YAML file.
+// Config is the top-level Xipher KMS (XKMS) server configuration loaded from a YAML file.
 type Config struct {
 	Server struct {
 		Host string `yaml:"host"`
@@ -99,7 +99,7 @@ const (
 	credTypeBoth = "both"
 )
 
-// LoadConfig reads, parses, and validates the XKMS config from the given path.
+// LoadConfig reads, parses, and validates the Xipher KMS (XKMS) config from the given path.
 func LoadConfig(path string) (*Config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {

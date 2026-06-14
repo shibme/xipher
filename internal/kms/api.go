@@ -93,17 +93,38 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleConsent serves the embedded consent page with the claim mapping
-// injected so the page knows which claims map to which entity type.
+// injected so the page knows which claims map to which entity type. A fresh
+// per-request nonce authorizes the two inline scripts under a strict CSP, so
+// the page allows no other inline or remote script to execute.
 func (s *Server) handleConsent(w http.ResponseWriter, r *http.Request) {
+	nonce, err := nonceB64()
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	claims, _ := json.Marshal(map[string]string{
 		"user":    s.cfg.Claims.User,
 		"group":   s.cfg.Claims.Group,
 		"service": s.cfg.Claims.Service,
 	})
-	inject := []byte("<script>window.__XKMS_CLAIMS__=" + string(claims) + ";</script>\n")
+
+	// Tag the page's own inline <script> with the nonce so it is allowed by CSP.
+	page := strings.Replace(string(consentPage), "<script>", `<script nonce="`+nonce+`">`, 1)
+	inject := `<script nonce="` + nonce + `">window.__XKMS_CLAIMS__=` + scriptSafeJSON(claims) + `;</script>` + "\n"
+
+	w.Header().Set("Content-Security-Policy",
+		"default-src 'none'; "+
+			"script-src 'nonce-"+nonce+"'; "+
+			"style-src 'unsafe-inline'; "+
+			"connect-src 'self'; "+
+			"img-src 'self' data:; "+
+			"base-uri 'none'; "+
+			"frame-ancestors 'none'; "+
+			"form-action 'none'")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(inject)
-	w.Write(consentPage)
+	w.Write([]byte(inject))
+	w.Write([]byte(page))
 }
 
 // --- Credential endpoints -------------------------------------------------
@@ -127,6 +148,12 @@ func (s *Server) handleCredentialGroup(w http.ResponseWriter, r *http.Request) {
 
 // --- Public key endpoints (unauthenticated) -------------------------------
 
+// handlePublicKeyPreflight answers CORS preflight for the public /xpk/ tree.
+func (s *Server) handlePublicKeyPreflight(w http.ResponseWriter, r *http.Request) {
+	allowPublicCORS(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) handlePublicKeyUser(w http.ResponseWriter, r *http.Request) {
 	s.servePublicKey(w, r, entityUser, "User")
 }
@@ -144,6 +171,8 @@ func (s *Server) handlePublicKeyService(w http.ResponseWriter, r *http.Request) 
 // the xipher resolver JSON format. The key kind (ECC vs post-quantum hybrid)
 // follows the post_quantum config. Public keys are safe to expose openly.
 func (s *Server) servePublicKey(w http.ResponseWriter, r *http.Request, entityType, label string) {
+	allowPublicCORS(w)
+
 	entityID := r.PathValue("id")
 	if entityID == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)

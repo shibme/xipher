@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -141,8 +142,63 @@ func TestServePublicKey(t *testing.T) {
 		s.servePublicKey(rec, req, entityUser, "User")
 		return rec
 	}
-	if mkReq().Body.String() != mkReq().Body.String() {
+	first := mkReq().Body.String()
+	second := mkReq().Body.String()
+	if first != second {
 		t.Fatal("served public key not deterministic")
+	}
+}
+
+func TestPublicKeyCORS(t *testing.T) {
+	master := make([]byte, 64)
+	rand.Read(master)
+	s := &Server{cfg: &Config{}, seed: master}
+
+	// /xpk/ responses must allow any origin.
+	req := httptest.NewRequest("GET", "/xpk/user/alice@example.com/.well-known/xipher", nil)
+	req.SetPathValue("id", "alice@example.com")
+	rec := httptest.NewRecorder()
+	s.servePublicKey(rec, req, entityUser, "User")
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("pubkey ACAO = %q, want *", got)
+	}
+
+	// Preflight answers with CORS and no body.
+	rec = httptest.NewRecorder()
+	s.handlePublicKeyPreflight(rec, httptest.NewRequest("OPTIONS", "/xpk/user/x/.well-known/xipher", nil))
+	if rec.Code != 204 {
+		t.Errorf("preflight status = %d, want 204", rec.Code)
+	}
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
+		t.Errorf("preflight ACAO = %q, want *", got)
+	}
+}
+
+func TestSecurityHeadersLockdown(t *testing.T) {
+	// Non-/xpk, non-/consent endpoints must NOT be CORS-open and must carry the
+	// strict default CSP.
+	var inner http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	h := securityHeaders(inner)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("POST", "/api/v1/credential/user", nil))
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("credential endpoint should not be CORS-open, got ACAO=%q", got)
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); csp != "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" {
+		t.Errorf("unexpected default CSP: %q", csp)
+	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Error("missing nosniff")
+	}
+
+	// /consent is exempt from the default CSP (sets its own with a nonce).
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/consent", nil))
+	if csp := rec.Header().Get("Content-Security-Policy"); csp != "" {
+		t.Errorf("default CSP should not be set on /consent, got %q", csp)
 	}
 }
 
@@ -151,11 +207,11 @@ func TestCallbackAllowed(t *testing.T) {
 	s.cfg.AllowedCallbackURLs = []string{"https://xipher.org", "https://xipher.int.example.com"}
 
 	cases := map[string]bool{
-		"https://xipher.org/callback":         true,
-		"https://xipher.int.example.com/x":    true,
-		"https://evil.com":                    false,
-		"http://xipher.org":                   false, // scheme mismatch
-		"not-a-url":                           false,
+		"https://xipher.org/callback":      true,
+		"https://xipher.int.example.com/x": true,
+		"https://evil.com":                 false,
+		"http://xipher.org":                false, // scheme mismatch
+		"not-a-url":                        false,
 	}
 	for url, want := range cases {
 		if got := s.callbackAllowed(url); got != want {

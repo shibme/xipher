@@ -23,7 +23,7 @@ type providerState struct {
 	expires time.Time
 }
 
-// Server is the running XKMS instance.
+// Server is the running Xipher KMS (XKMS) instance.
 type Server struct {
 	cfg  *Config
 	auth *authenticator
@@ -33,7 +33,7 @@ type Server struct {
 	states map[string]providerState
 }
 
-// NewServer builds an XKMS server: loads the master seed (clearing the seed
+// NewServer builds a Xipher KMS (XKMS) server: loads the master seed (clearing the seed
 // file), performs OIDC discovery, and prepares the HTTP handlers.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	seed, err := loadSeed(cfg.SeedFile)
@@ -67,13 +67,16 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.HandleFunc("POST /api/v1/credential/service", s.handleCredentialService)
 
 	// Public, unauthenticated public-key endpoints (xipher resolver format).
+	// These carry permissive CORS so any origin's browser may read them; the
+	// OPTIONS routes answer CORS preflight.
 	mux.HandleFunc("GET /xpk/user/{id}/.well-known/xipher", s.handlePublicKeyUser)
 	mux.HandleFunc("GET /xpk/group/{id}/.well-known/xipher", s.handlePublicKeyGroup)
 	mux.HandleFunc("GET /xpk/service/{id}/.well-known/xipher", s.handlePublicKeyService)
+	mux.HandleFunc("OPTIONS /xpk/", s.handlePublicKeyPreflight)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", s.cfg.Server.Host, s.cfg.Server.Port),
-		Handler: mux,
+		Handler: securityHeaders(mux),
 	}
 
 	errCh := make(chan error, 1)
