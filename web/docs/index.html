@@ -112,6 +112,7 @@
                     <a href="#xkms-credentials" class="docs-nav-link">Credential endpoints</a>
                     <a href="#xkms-pubkeys" class="docs-nav-link">Public key endpoints</a>
                     <a href="#xkms-browser" class="docs-nav-link">Browser provider flow</a>
+                    <a href="#xkms-helm" class="docs-nav-link">Helm deployment</a>
                 </div>
                 <div class="docs-nav-group">
                     <p class="docs-nav-title">Library</p>
@@ -1056,6 +1057,77 @@ xipher encrypt text \
                                 <code>callback_urls</code> restricted to known xipher app origins. These two
                                 allowlists are your primary defenses against credential theft via open-redirect
                                 attacks.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="xkms-helm" class="docs-section">
+                    <h3>Helm deployment</h3>
+                    <p>XKMS ships a Helm chart for Kubernetes deployments. The chart renders the full
+                        <code>config.yaml</code> from Helm values and mounts it into the container.</p>
+                    <pre class="code-block" data-lang="bash"><code>helm repo add xipher https://xipher.org/charts
+helm install xkms xipher/xkms</code></pre>
+                    <p>Override values inline or via a file:</p>
+                    <pre class="code-block" data-lang="bash"><code>helm install xkms xipher/xkms \
+  --set config.oidc.issuer_url=https://accounts.example.com \
+  --set config.oidc.client_id=xkms \
+  --set config.oidc.redirect_uri=https://xkms.example.com/callback \
+  --set-json 'config.callback_urls=["https://xipher.org"]' \
+  --set env[0].name=XKMS_OIDC_CLIENT_SECRET \
+  --set env[0].valueFrom.secretKeyRef.name=xkms-oidc \
+  --set env[0].valueFrom.secretKeyRef.key=client_secret</code></pre>
+                    <h4>Seed injection</h4>
+                    <p>The master seed must reach the container as a file at the path set in
+                        <code>config.seed_file</code> (default <code>/run/secrets/xkms.seed</code>).
+                        XKMS deletes the file after reading it at startup. Use an init container or a
+                        CSI secret provider to write the seed before the main container starts:</p>
+                    <pre class="code-block" data-lang="yaml"><code>initContainers:
+  - name: seed-injector
+    image: busybox
+    command: ["/bin/sh", "-c", "cp /vault/secrets/seed /run/secrets/xkms.seed"]
+    volumeMounts:
+      - name: vault-seed
+        mountPath: /vault/secrets
+
+extraVolumes:
+  - name: vault-seed
+    secret:
+      secretName: xkms-seed
+
+extraVolumeMounts:
+  - name: vault-seed
+    mountPath: /run/secrets
+    readOnly: false</code></pre>
+                    <h4>Ingress / Gateway API</h4>
+                    <p>Enable a standard Ingress:</p>
+                    <pre class="code-block" data-lang="yaml"><code>ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  hosts:
+    - host: xkms.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: xkms-tls
+      hosts:
+        - xkms.example.com</code></pre>
+                    <p>Or enable a Gateway API <code>HTTPRoute</code> instead:</p>
+                    <pre class="code-block" data-lang="yaml"><code>httpRoute:
+  enabled: true
+  parentRefs:
+    - name: prod-gateway
+      namespace: gateway
+  hostnames:
+    - xkms.example.com</code></pre>
+                    <div class="docs-callout docs-callout-info">
+                        <span class="docs-callout-icon">ℹ️</span>
+                        <div>
+                            <p>Enable either <code>ingress</code> or <code>httpRoute</code>, not both.
+                                The service always listens on port 443 (ClusterIP) and forwards to the
+                                container on port 8080.</p>
                         </div>
                     </div>
                 </section>
