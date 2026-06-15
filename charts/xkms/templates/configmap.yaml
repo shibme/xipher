@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "xkms.fullname" . }}
+  labels:
+    {{- include "xkms.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    server:
+      host: "0.0.0.0"
+      port: 8080
+
+    seed_file: {{ .Values.config.seed_file | quote }}
+
+    oidc:
+      issuer_url: {{ .Values.config.oidc.issuer_url | quote }}
+      client_id: {{ .Values.config.oidc.client_id | quote }}
+      client_secret:
+        {{- if .Values.config.oidc.client_secret.env }}
+        env: {{ .Values.config.oidc.client_secret.env | quote }}
+        {{- end }}
+        {{- if .Values.config.oidc.client_secret.file }}
+        file: {{ .Values.config.oidc.client_secret.file | quote }}
+        {{- end }}
+      redirect_uri: {{ .Values.config.oidc.redirect_uri | quote }}
+      scopes:
+        {{- toYaml .Values.config.oidc.scopes | nindent 8 }}
+      use_pkce: {{ .Values.config.oidc.use_pkce }}
+
+    claims:
+      {{- toYaml .Values.config.claims | nindent 6 }}
+
+    auth_header:
+      type: {{ .Values.config.auth_header.type | quote }}
+      name: {{ .Values.config.auth_header.name | quote }}
+
+    credential:
+      type: {{ .Values.config.credential.type | quote }}
+      timeout: {{ .Values.config.credential.timeout }}
+
+    post_quantum: {{ .Values.config.post_quantum }}
+
+    callback_urls:
+      {{- toYaml .Values.config.callback_urls | nindent 6 }}

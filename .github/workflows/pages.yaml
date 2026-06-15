@@ -21,11 +21,39 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download --repo shibme/xipher --pattern 'xipher-web.zip' --dir .
-          unzip xipher-web.zip -d xipher-web
+          gh release download --repo ${{ github.repository }} --pattern 'xipher-web.zip' --dir .
+          unzip xipher-web.zip -d pages
+      - name: Install oras
+        uses: oras-project/setup-oras@v2
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull Helm charts
+        env:
+          PAGES_URL: https://xipher.org
+        run: |
+          set -euo pipefail
+          CHARTS_REPO_BASE="ghcr.io/${{ github.repository }}/charts"
+          HELM_PAGES_DIR="pages/charts"
+          mkdir -p "${HELM_PAGES_DIR}"
+          XKMS_VERSIONS=$(oras repo tags "${CHARTS_REPO_BASE}/xkms" | sort -Vu)
+          if [[ -z "${XKMS_VERSIONS}" ]]; then
+            echo "No chart versions found for xkms" >&2
+            exit 1
+          fi
+          for v in $XKMS_VERSIONS; do
+            helm pull "oci://${CHARTS_REPO_BASE}/xkms" --version "$v" -d "${HELM_PAGES_DIR}"
+          done
+          helm repo index "${HELM_PAGES_DIR}" --url "${{ env.PAGES_URL }}/charts"
+        shell: bash
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy xipher-web --project-name=xipher --branch=main
+          command: pages deploy pages --project-name=xipher --branch=main

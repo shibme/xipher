@@ -906,7 +906,7 @@ credential:
 post_quantum: false
 
 # Allowed xipher app origins for the provider callback (xcb param).
-allowed_callback_urls:
+callback_urls:
   - https://xipher.org
   - https://xipher.int.example.com</code></pre>
                 </section>
@@ -1037,7 +1037,7 @@ xipher encrypt text \
                     <ol>
                         <li>The xipher app generates an ephemeral keypair and redirects to
                             <code>https://xkms.example.com/login?xpk=…&amp;state=…&amp;xcb=…</code>.</li>
-                        <li>XKMS validates <code>xcb</code> against <code>allowed_callback_urls</code>, then initiates
+                        <li>XKMS validates <code>xcb</code> against <code>callback_urls</code>, then initiates
                             the OIDC code flow with the configured IdP.</li>
                         <li>After login the IdP redirects to <code>/callback</code>. XKMS exchanges the code for
                             an id token and redirects the browser to <code>/consent#token=…</code>.</li>
@@ -1053,7 +1053,7 @@ xipher encrypt text \
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
                             <p>Register your XKMS <code>redirect_uri</code> with the IdP and keep
-                                <code>allowed_callback_urls</code> restricted to known xipher app origins. These two
+                                <code>callback_urls</code> restricted to known xipher app origins. These two
                                 allowlists are your primary defenses against credential theft via open-redirect
                                 attacks.</p>
                         </div>

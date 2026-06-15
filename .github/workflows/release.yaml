@@ -116,6 +116,13 @@ jobs:
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:latest
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:${{ env.XIPHER_VERSION }}
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:v${{ env.XIPHER_VERSION }}
+    - name: Setup Helm
+      uses: azure/setup-helm@v5
+    - name: Helm Release Charts
+      run: |
+        sed -i "s/0\.0\.0/${XIPHER_VERSION}/g" charts/xkms/Chart.yaml
+        helm package ./charts/xkms --version ${{ env.XIPHER_VERSION }} --destination .
+        helm push ./xkms-${{ env.XIPHER_VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
     - name: Force Tagging Major Version
       run: |
         FULL_VER_TAG=${{ github.ref_name }}

@@ -1,0 +1,141 @@
+image:
+  repository: shibme/xipher
+  tag: ""  # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 1
+
+# xkms configuration — rendered into /etc/xkms/config.yaml inside the container
+config:
+  # Path inside the container where the seed file will be mounted/written.
+  # The file is deleted by xkms after it reads the seed at startup.
+  seed_file: /run/secrets/xkms.seed
+
+  oidc:
+    issuer_url: "https://accounts.example.com"
+    client_id: "xkms"
+    client_secret:
+      env: XKMS_OIDC_CLIENT_SECRET
+      # file: /run/secrets/oidc_secret
+    redirect_uri: "https://xkms.example.com/callback"
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups
+    # use_pkce: true
+
+  claims:
+    user: email
+    group: groups
+    service: sub
+
+  auth_header:
+    type: bearer
+    name: Authorization
+
+  credential:
+    type: both
+    timeout: 604800
+
+  post_quantum: false
+
+  callback_urls:
+    - https://xipher.org
+
+# Environment variables injected into the container.
+# Use for secrets referenced by config.oidc.client_secret.env, etc.
+env: []
+# - name: XKMS_OIDC_CLIENT_SECRET
+#   valueFrom:
+#     secretKeyRef:
+#       name: xkms-oidc
+#       key: client_secret
+
+envFrom: []
+# - secretRef:
+#     name: xkms-env-secrets
+
+service:
+  type: ClusterIP
+  port: 443
+  # nodePort: 30443  # only used when type=NodePort
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: xkms.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: xkms-tls
+  #   hosts:
+  #     - xkms.example.com
+
+# Gateway API HTTPRoute (alternative to ingress — enable one or the other, not both)
+httpRoute:
+  enabled: false
+  parentRefs:
+    - name: ""
+      namespace: ""
+      # sectionName: https
+  hostnames: []
+  # - xkms.example.com
+  annotations: {}
+
+resources: {}
+# limits:
+#   cpu: 500m
+#   memory: 256Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
+
+initContainers: []
+# - name: seed-injector
+#   image: busybox
+#   command: ["/bin/sh", "-c", "cp /vault/secrets/seed /run/secrets/xkms.seed"]
+#   volumeMounts:
+#     - name: seed-secret
+#       mountPath: /vault/secrets
+
+# Extra volumes to mount into the xkms container
+extraVolumeMounts: []
+# - name: seed-secret
+#   mountPath: /run/secrets
+#   readOnly: true
+
+# Extra volumes to add to the pod
+extraVolumes: []
+# - name: seed-secret
+#   secret:
+#     secretName: xkms-seed
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

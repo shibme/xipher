@@ -87,7 +87,7 @@ type Config struct {
 	PostQuantum bool `yaml:"post_quantum"`
 
 	// AllowedCallbackURLs is the allowlist of xipher app URLs (the xcb param).
-	AllowedCallbackURLs []string `yaml:"allowed_callback_urls"`
+	AllowedCallbackURLs []string `yaml:"callback_urls"`
 }
 
 const (
@@ -150,7 +150,7 @@ func (c *Config) validate() error {
 		return fmt.Errorf("credential.type must be one of %q, %q, %q", credTypeSeed, credTypeKey, credTypeBoth)
 	}
 	if len(c.AllowedCallbackURLs) == 0 {
-		return fmt.Errorf("allowed_callback_urls must list at least one URL")
+		return fmt.Errorf("callback_urls must list at least one URL")
 	}
 	return nil
 }

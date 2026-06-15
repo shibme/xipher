@@ -2,7 +2,7 @@
 
 server:
   host: 0.0.0.0
-  port: 8443
+  port: 8080
 
 # Master seed file: read once at startup, validated (>= 64 bytes, high entropy),
 # loaded into memory, then DELETED from the filesystem. Raw, hex, or base64.
@@ -20,8 +20,8 @@ oidc:
     - openid
     - profile
     - email
-    # - groups
-  use_pkce: true
+    - groups
+  # use_pkce: true
 
 # One OIDC claim per entity type. Omit a type to disable it.
 claims:
@@ -43,7 +43,7 @@ credential:
 # endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, else ECC.
 post_quantum: false
 
-# Allowlist of xipher app callback origins (the xcb param). Matched by scheme+host.
-allowed_callback_urls:
+# List of xipher app callback origins (the xcb param). Matched by scheme+host.
+callback_urls:
   - https://xipher.org
   - https://xipher.int.example.com
