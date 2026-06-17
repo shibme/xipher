@@ -243,7 +243,7 @@ async function setupPasskey(name) {
     const { credentialId, prfOutput } = await registerPasskey(name);
     storeCredentialId(credentialId);
     const xsk = await seedKeyFromPrf(prfOutput);
-    await setProviderIdentity(xsk, "passkey", (name || "").trim() || null, null, false);
+    await setProviderIdentity(xsk, "passkey", (name || "").trim() || null, null, null, false);
     return xsk;
 }
 
@@ -263,6 +263,6 @@ async function unlockWithPasskey() {
     const sameCredential = credentialIdsEqual(previousCredentialId, getStoredCredentialId());
     const name = sameCredential ? (getIdentity().name || null) : null;
     const xsk = await seedKeyFromPrf(prfOutput);
-    await setProviderIdentity(xsk, "passkey", name, null, false);
+    await setProviderIdentity(xsk, "passkey", name, null, null, false);
     return xsk;
 }
