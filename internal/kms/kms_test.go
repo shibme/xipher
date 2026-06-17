@@ -14,11 +14,13 @@ import (
 	"xipher.org/xipher"
 )
 
+const testProviderID = "test-provider"
+
 func TestDeriveSeedDeterministic(t *testing.T) {
 	master := make([]byte, 64)
 	rand.Read(master)
 
-	a, err := deriveSeed(master, entityUser, "alice@example.com")
+	a, err := deriveSeed(master, testProviderID, entityUser, "alice@example.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,26 +28,31 @@ func TestDeriveSeedDeterministic(t *testing.T) {
 		t.Fatalf("want %d bytes, got %d", credentialSeedLength, len(a))
 	}
 	// Same input -> same output.
-	b, _ := deriveSeed(master, entityUser, "alice@example.com")
+	b, _ := deriveSeed(master, testProviderID, entityUser, "alice@example.com")
 	if !bytes.Equal(a, b) {
 		t.Fatal("derivation not deterministic")
 	}
 	// Different type -> different output (no cross-type collision).
-	c, _ := deriveSeed(master, entityService, "alice@example.com")
+	c, _ := deriveSeed(master, testProviderID, entityService, "alice@example.com")
 	if bytes.Equal(a, c) {
 		t.Fatal("user and service collide for same id")
 	}
 	// Different id -> different output.
-	d, _ := deriveSeed(master, entityUser, "bob@example.com")
+	d, _ := deriveSeed(master, testProviderID, entityUser, "bob@example.com")
 	if bytes.Equal(a, d) {
 		t.Fatal("different ids collide")
+	}
+	// Different providerID -> different output.
+	e, _ := deriveSeed(master, "other-provider", entityUser, "alice@example.com")
+	if bytes.Equal(a, e) {
+		t.Fatal("different provider IDs collide for same identity")
 	}
 }
 
 func TestSecretKeyFromDerivedSeed(t *testing.T) {
 	master := make([]byte, 64)
 	rand.Read(master)
-	seed, _ := deriveSeed(master, entityGroup, "platform")
+	seed, _ := deriveSeed(master, testProviderID, entityGroup, "platform")
 	sk, err := secretKeyFromSeed(seed)
 	if err != nil {
 		t.Fatal(err)
@@ -106,14 +113,30 @@ func TestLoadSeed(t *testing.T) {
 	})
 }
 
+func testServer(master []byte) *Server {
+	auth := &authenticator{
+		cfg: OIDCProviderConfig{
+			ID:        "test-provider",
+			Name:      "Test Provider",
+			IssuerURL: "https://sso.example.com",
+		},
+	}
+	return &Server{
+		cfg:   &Config{},
+		auths: []*authenticator{auth},
+		seed:  master,
+	}
+}
+
 func TestServePublicKey(t *testing.T) {
 	master := make([]byte, 64)
 	rand.Read(master)
-	s := &Server{cfg: &Config{}, seed: master}
+	s := testServer(master)
 
 	for _, pq := range []bool{false, true} {
 		s.cfg.PostQuantum = pq
-		req := httptest.NewRequest("GET", "/xpk/group/cloud-engineering/.well-known/xipher", nil)
+		req := httptest.NewRequest("GET", "/xpk/test-provider/group/cloud-engineering/.well-known/xipher", nil)
+		req.SetPathValue("provider", "test-provider")
 		req.SetPathValue("id", "cloud-engineering")
 		rec := httptest.NewRecorder()
 		s.servePublicKey(rec, req, entityGroup, "Group")
@@ -135,7 +158,8 @@ func TestServePublicKey(t *testing.T) {
 
 	// Same identity must yield the same served key (deterministic).
 	mkReq := func() *httptest.ResponseRecorder {
-		req := httptest.NewRequest("GET", "/xpk/user/alice@example.com/.well-known/xipher", nil)
+		req := httptest.NewRequest("GET", "/xpk/test-provider/user/alice@example.com/.well-known/xipher", nil)
+		req.SetPathValue("provider", "test-provider")
 		req.SetPathValue("id", "alice@example.com")
 		rec := httptest.NewRecorder()
 		s.cfg.PostQuantum = false
@@ -152,10 +176,11 @@ func TestServePublicKey(t *testing.T) {
 func TestPublicKeyCORS(t *testing.T) {
 	master := make([]byte, 64)
 	rand.Read(master)
-	s := &Server{cfg: &Config{}, seed: master}
+	s := testServer(master)
 
 	// /xpk/ responses must allow any origin.
-	req := httptest.NewRequest("GET", "/xpk/user/alice@example.com/.well-known/xipher", nil)
+	req := httptest.NewRequest("GET", "/xpk/test-provider/user/alice@example.com/.well-known/xipher", nil)
+	req.SetPathValue("provider", "test-provider")
 	req.SetPathValue("id", "alice@example.com")
 	rec := httptest.NewRecorder()
 	s.servePublicKey(rec, req, entityUser, "User")
@@ -165,7 +190,7 @@ func TestPublicKeyCORS(t *testing.T) {
 
 	// Preflight answers with CORS and no body.
 	rec = httptest.NewRecorder()
-	s.handlePublicKeyPreflight(rec, httptest.NewRequest("OPTIONS", "/xpk/user/x/.well-known/xipher", nil))
+	s.handlePublicKeyPreflight(rec, httptest.NewRequest("OPTIONS", "/xpk/test-provider/user/x/.well-known/xipher", nil))
 	if rec.Code != 204 {
 		t.Errorf("preflight status = %d, want 204", rec.Code)
 	}

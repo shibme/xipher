@@ -1,4 +1,4 @@
-# XKMS — Xipher Key Management Service · example configuration
+# XKMS - Xipher Key Management Service · example configuration
 
 server:
   host: 0.0.0.0
@@ -8,42 +8,64 @@ server:
 # loaded into memory, then DELETED from the filesystem. Raw, hex, or base64.
 seed_file: /run/secrets/xkms.seed
 
-oidc:
-  issuer_url: "https://accounts.example.com"
-  client_id: "xkms"
-  # client_secret is read from an env var OR a file. A file is cleared after read.
-  client_secret:
-    env: XKMS_OIDC_CLIENT_SECRET
-    # file: /run/secrets/oidc_secret
-  redirect_uri: "https://xkms.example.com/callback"
-  scopes:
-    - openid
-    - profile
-    - email
-    - groups
-  # use_pkce: true
+# URL path prefix for the public-key (xpk) discovery endpoints. Optional.
+# Defaults to /xpk/ when unset. Normalized to leading + trailing slash.
+# Routing only - does not affect key derivation.
+pubkey_path: /xpk/
 
-# One OIDC claim per entity type. Omit a type to disable it.
-claims:
-  user: email      # single value
-  group: groups    # array value -> one identity per group
-  service: sub      # single value
+# OIDC identity providers keyed by a URL-safe ID (used in /xpk/{id}/… paths
+# and as part of HKDF key derivation). Each provider has its own claim mapping
+# - omit a claim field to disable that entity type for that provider.
+# With a single provider the sign-in selector page is skipped entirely.
+providers:
+  corp-sso:
+    name: "Corporate SSO"
+    issuer_url: "https://sso.example.com"
+    client_id: "xkms"
+    # client_secret is read from an env var OR a file. A file is cleared after read.
+    client_secret:
+      env: XKMS_OIDC_CLIENT_SECRET
+      # file: /run/secrets/oidc_secret
+    redirect_uri: "https://xkms.example.com/callback"
+    scopes:
+      - openid
+      - profile
+      - email
+      - groups
+    # use_pkce: true
+    claims:
+      user: email      # single value
+      group: groups    # array value -> one identity per group member
+      service: sub     # single value
 
-# Header carrying the OIDC JWT for direct API auth.
+  github:
+    name: "GitHub Actions"
+    issuer_url: "https://token.actions.githubusercontent.com"
+    client_id: "xkms-gh"
+    client_secret:
+      env: XKMS_GITHUB_SECRET
+    redirect_uri: "https://xkms.example.com/callback"
+    scopes:
+      - openid
+    claims:
+      service: sub   # only service identity from GitHub tokens
+
+# Header carrying the OIDC JWT for direct API auth. Shared across all providers.
 auth_header:
   type: bearer          # "bearer" (Authorization: Bearer <jwt>) | "custom"
   name: Authorization   # used only when type is "custom"
 
-# What the credential endpoints return.
+# What the credential endpoints return. At least one of seed/key must be true.
 credential:
-  type: both            # "seed" (base64) | "key" (XSK_) | "both"
+  seed: true            # include the base64-encoded raw seed
+  key: true             # include the XSK_-prefixed key
   timeout: 604800       # seconds; 0 = ephemeral
 
-# Public key kind served by the public /xpk/<type>/<id>/.well-known/xipher
+# Public key kind served by the public /xpk/<provider>/<type>/<id>/.well-known/xipher
 # endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, else ECC.
 post_quantum: false
 
 # List of xipher app callback origins (the xcb param). Matched by scheme+host.
-callback_urls:
+xipher_urls:
   - https://xipher.org
   - https://xipher.int.example.com

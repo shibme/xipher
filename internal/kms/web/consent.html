@@ -78,11 +78,7 @@ body {
   gap: .6rem;
   margin-bottom: 1.25rem;
 }
-.brand .dot {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  background: var(--brand-gradient);
-}
+.brand .logo { width: 30px; height: 30px; display: block; }
 .brand .name { font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
 h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
 .sub { color: var(--text-muted); font-size: .88rem; margin-bottom: 1.25rem; }
@@ -105,6 +101,43 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   color: var(--text-faint); font-family: var(--font-mono);
 }
 .ident .id { font-size: .92rem; color: var(--text-color); word-break: break-all; }
+/* Group picker: a searchable dropdown nested in its own identity row. */
+.group-picker { display: block; margin-bottom: .55rem; }
+.group-picker > .ident { margin-bottom: 0; }
+.group-box {
+  display: none;
+  margin-top: .5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.group-picker:has(input:checked) .group-box { display: block; }
+.group-search {
+  width: 100%; border: none; outline: none;
+  padding: .65rem .8rem;
+  background: transparent; color: var(--text-color);
+  font-family: inherit; font-size: .9rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.group-search::placeholder { color: var(--text-faint); }
+.group-list { max-height: 11rem; overflow-y: auto; }
+.group-opt {
+  display: block; width: 100%; text-align: left;
+  padding: .55rem .8rem; margin: 0;
+  border: none; background: transparent;
+  color: var(--text-color); font-family: inherit; font-size: .9rem;
+  cursor: pointer; word-break: break-all;
+}
+.group-opt:hover { background: var(--surface-color); }
+.group-opt[aria-selected="true"] {
+  background: var(--surface-color);
+  box-shadow: inset 3px 0 0 var(--brand-2);
+  font-weight: 600;
+}
+.group-empty { padding: .55rem .8rem; color: var(--text-faint); font-size: .85rem; }
+.group-chosen { font-size: .92rem; color: var(--text-color); word-break: break-all; }
+.group-chosen.placeholder { color: var(--text-faint); }
 button {
   width: 100%; margin-top: 1rem; padding: .8rem;
   border: none; border-radius: var(--radius-md);
@@ -120,7 +153,19 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
 <body>
 <div class="card">
   <div class="brand">
-    <span class="dot"></span>
+    <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
+      <defs>
+        <linearGradient id="xipher-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="25%" stop-color="#00ddff"/>
+          <stop offset="75%" stop-color="#0044ff"/>
+        </linearGradient>
+        <mask id="xipher-keyhole">
+          <rect width="20" height="20" fill="white"/>
+          <circle cx="10" cy="10" r="2" fill="black"/>
+        </mask>
+      </defs>
+      <polygon points="2,2 7,2 10,7 13,2 18,2 14,10 18,18 12,18 10,8 8,18 2,18 6,10" fill="url(#xipher-gradient)" mask="url(#xipher-keyhole)"/>
+    </svg>
     <span class="name">Xipher KMS</span>
   </div>
   <h1>Choose an identity</h1>
@@ -130,12 +175,13 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
   <p class="err" id="err"></p>
 </div>
 <script>
-// Claim configuration injected by the server.
-const CLAIMS = window.__XKMS_CLAIMS__ || {};
+// Per-provider claim configuration injected by the server.
+// Shape: { "Provider Name": { user: "email", group: "groups", service: "sub" }, ... }
+const PROVIDER_CLAIMS = window.__XKMS_PROVIDER_CLAIMS__ || {};
 
 function readFragment() {
   const h = new URLSearchParams(location.hash.slice(1));
-  const out = { token: h.get("token"), state: h.get("state") };
+  const out = { token: h.get("token"), state: h.get("state"), provider: h.get("provider") };
   // Clear the fragment so the token does not linger in the address bar / history.
   history.replaceState(null, "", location.pathname);
   return out;
@@ -147,18 +193,22 @@ function decodeJWT(token) {
   return JSON.parse(decodeURIComponent(escape(json)));
 }
 
-function identitiesFrom(claims) {
-  const ids = [];
-  if (CLAIMS.user && claims[CLAIMS.user]) {
-    ids.push({ type: "user", id: claims[CLAIMS.user] });
+// identitiesFrom returns the single-valued identities (user, service) and the
+// list of group names separately, using the matched provider's claim config.
+function identitiesFrom(claims, providerName) {
+  const cfg = PROVIDER_CLAIMS[providerName] || {};
+  const singles = [];
+  if (cfg.user && claims[cfg.user]) {
+    singles.push({ type: "user", id: claims[cfg.user] });
   }
-  if (CLAIMS.service && claims[CLAIMS.service]) {
-    ids.push({ type: "service", id: claims[CLAIMS.service] });
+  if (cfg.service && claims[cfg.service]) {
+    singles.push({ type: "service", id: claims[cfg.service] });
   }
-  if (CLAIMS.group && Array.isArray(claims[CLAIMS.group])) {
-    for (const g of claims[CLAIMS.group]) ids.push({ type: "group", id: g });
+  let groups = [];
+  if (cfg.group && Array.isArray(claims[cfg.group])) {
+    groups = claims[cfg.group].filter(g => typeof g === "string" && g.length);
   }
-  return ids;
+  return { singles, groups };
 }
 
 function endpointFor(ident) {
@@ -173,37 +223,125 @@ const err = document.getElementById("err");
 const submit = document.getElementById("submit");
 
 (function init() {
-  const { token, state } = readFragment();
+  const { token, state, provider } = readFragment();
   if (!token) { err.textContent = "No token provided."; return; }
 
   let claims;
   try { claims = decodeJWT(token); }
   catch (e) { err.textContent = "Could not read token."; return; }
 
-  const ids = identitiesFrom(claims);
-  if (ids.length === 0) { err.textContent = "No usable identities in token."; return; }
+  const { singles, groups } = identitiesFrom(claims, provider);
+  if (singles.length === 0 && groups.length === 0) {
+    err.textContent = "No usable identities in token."; return;
+  }
 
   const form = document.getElementById("form");
-  ids.forEach((ident, i) => {
+  // selected holds the identity that will be submitted: {type, id}.
+  let selected = null;
+
+  // Render the single-valued identities as radio rows.
+  singles.forEach((ident, i) => {
     const label = document.createElement("label");
     label.className = "ident";
     label.innerHTML =
-      '<input type="radio" name="ident" value="' + i + '"' + (i === 0 ? " checked" : "") + '">' +
+      '<input type="radio" name="ident" value="single">' +
       '<span class="meta"><span class="type">' + ident.type + '</span><br>' +
       '<span class="id"></span></span>';
     label.querySelector(".id").textContent = ident.id;
+    label.querySelector("input").addEventListener("change", () => {
+      selected = ident;
+      submit.disabled = false;
+    });
     form.appendChild(label);
   });
-  // One identity or many: always show consent; pre-select the first.
-  submit.disabled = false;
+
+  // Render the groups as a single searchable picker row.
+  if (groups.length) {
+    const picker = document.createElement("div");
+    picker.className = "group-picker";
+    picker.innerHTML =
+      '<label class="ident">' +
+        '<input type="radio" name="ident" value="group">' +
+        '<span class="meta"><span class="type">group</span><br>' +
+        '<span class="group-chosen placeholder">Select a group</span></span>' +
+      '</label>' +
+      '<div class="group-box">' +
+        '<input type="text" class="group-search" placeholder="Search groups…" autocomplete="off">' +
+        '<div class="group-list" role="listbox"></div>' +
+      '</div>';
+    form.appendChild(picker);
+
+    const radio = picker.querySelector('input[name="ident"]');
+    const chosen = picker.querySelector(".group-chosen");
+    const search = picker.querySelector(".group-search");
+    const list = picker.querySelector(".group-list");
+    let chosenGroup = null;
+
+    function syncSelected() {
+      if (chosenGroup) {
+        selected = { type: "group", id: chosenGroup };
+        submit.disabled = false;
+      } else {
+        // Group row picked but no group chosen yet: block submit.
+        selected = null;
+        submit.disabled = true;
+      }
+    }
+
+    function renderList(filter) {
+      const q = filter.trim().toLowerCase();
+      const matches = q ? groups.filter(g => g.toLowerCase().includes(q)) : groups;
+      list.innerHTML = "";
+      if (!matches.length) {
+        const empty = document.createElement("div");
+        empty.className = "group-empty";
+        empty.textContent = "No matching groups";
+        list.appendChild(empty);
+        return;
+      }
+      matches.forEach(g => {
+        const opt = document.createElement("button");
+        opt.type = "button";
+        opt.className = "group-opt";
+        opt.textContent = g;
+        opt.setAttribute("role", "option");
+        opt.setAttribute("aria-selected", g === chosenGroup ? "true" : "false");
+        opt.addEventListener("click", () => {
+          chosenGroup = g;
+          chosen.textContent = g;
+          chosen.classList.remove("placeholder");
+          radio.checked = true;
+          renderList(search.value);
+          syncSelected();
+        });
+        list.appendChild(opt);
+      });
+    }
+
+    radio.addEventListener("change", () => {
+      syncSelected();
+      if (radio.checked) search.focus();
+    });
+    search.addEventListener("input", () => renderList(search.value));
+    renderList("");
+  }
+
+  // Pre-select the first single identity when present; otherwise leave the
+  // group row to be chosen by the user (submit stays disabled until a group
+  // is picked).
+  if (singles.length) {
+    const first = form.querySelector('input[name="ident"]');
+    first.checked = true;
+    selected = singles[0];
+    submit.disabled = false;
+  }
 
   submit.addEventListener("click", async () => {
+    if (!selected) { err.textContent = "Select an identity first."; return; }
     submit.disabled = true;
     err.textContent = "";
-    const sel = form.querySelector('input[name="ident"]:checked');
-    const ident = ids[parseInt(sel.value, 10)];
     try {
-      const url = endpointFor(ident) + (state ? "?state=" + encodeURIComponent(state) : "");
+      const url = endpointFor(selected) + (state ? "?state=" + encodeURIComponent(state) : "");
       const res = await fetch(url, {
         method: "POST",
         headers: { "Authorization": "Bearer " + token },

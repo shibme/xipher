@@ -320,17 +320,27 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc) {
     const providerUrl = resolved.url;
 
     const host = new URL(providerUrl).host;
-    const ok = await askProviderConsent({
-        title: "Get a key from a credential provider?",
-        message: `You'll be sent to ${host} to sign in. It will issue a xipher secret key for this browser. ` +
-            `Only continue if you trust this provider; it will be able to read secrets sent to you.`,
-        confirmLabel: "Continue to provider",
-        detailLabel: "Provider",
-        detailValue: providerUrl,
-    });
-    if (!ok) {
-        clearProviderUrl();
-        return null;
+    if (!getTrustedProviderHosts().includes(host)) {
+        const result = await askProviderConsent({
+            title: "Get a key from a credential provider?",
+            message: `You'll be sent to ${host} to sign in. It will issue a xipher secret key for this browser. ` +
+                `Only continue if you trust this provider; it will be able to read secrets sent to you.`,
+            confirmLabel: "Continue to provider",
+            detailLabel: "Provider",
+            detailValue: providerUrl,
+            toggle: {
+                label: "Remember this provider",
+                note: "Skip this confirmation next time you use the same provider.",
+                checked: false,
+            },
+        });
+        if (!result || !result.confirmed) {
+            clearProviderUrl();
+            return null;
+        }
+        if (result.checked) {
+            addTrustedProviderHost(host);
+        }
     }
 
     // Fresh ephemeral keypair for THIS exchange only. We prefer the hybrid
@@ -444,7 +454,10 @@ async function completeProviderReturn(ret) {
         return;
     }
 
-    await setProviderIdentity(deliveredKey, host, delivered.name, delivered.id, delivered.type, true, durationMs);
+    // Store the full provider URL (not just `host`, which is only the consent
+    // sentence's short label) so the profile shows exactly where the redirect
+    // goes and auto-reauth can revisit the same scheme/host/path.
+    await setProviderIdentity(deliveredKey, exchange.providerUrl, delivered.name, delivered.id, delivered.type, true, durationMs);
     if (typeof refreshIdentity === "function") {
         await refreshIdentity();
     }

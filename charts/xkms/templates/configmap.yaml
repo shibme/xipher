@@ -11,34 +11,41 @@ data:
       port: 8080
 
     seed_file: {{ .Values.config.seed_file | quote }}
+    {{- with .Values.config.pubkey_path }}
 
-    oidc:
-      issuer_url: {{ .Values.config.oidc.issuer_url | quote }}
-      client_id: {{ .Values.config.oidc.client_id | quote }}
-      client_secret:
-        {{- if .Values.config.oidc.client_secret.env }}
-        env: {{ .Values.config.oidc.client_secret.env | quote }}
-        {{- end }}
-        {{- if .Values.config.oidc.client_secret.file }}
-        file: {{ .Values.config.oidc.client_secret.file | quote }}
-        {{- end }}
-      redirect_uri: {{ .Values.config.oidc.redirect_uri | quote }}
-      scopes:
-        {{- toYaml .Values.config.oidc.scopes | nindent 8 }}
-      use_pkce: {{ .Values.config.oidc.use_pkce }}
+    pubkey_path: {{ . | quote }}
+    {{- end }}
 
-    claims:
-      {{- toYaml .Values.config.claims | nindent 6 }}
+    providers:
+      {{- range $id, $p := .Values.config.providers }}
+      {{ $id }}:
+        name: {{ $p.name | quote }}
+        issuer_url: {{ $p.issuer_url | quote }}
+        client_id: {{ $p.client_id | quote }}
+        client_secret:
+          {{- if $p.client_secret.env }}
+          env: {{ $p.client_secret.env | quote }}
+          {{- else if $p.client_secret.file }}
+          file: {{ $p.client_secret.file | quote }}
+          {{- end }}
+        redirect_uri: {{ printf "%s/callback" ($.Values.config.external_url | trimSuffix "/") | quote }}
+        scopes:
+          {{- toYaml $p.scopes | nindent 10 }}
+        use_pkce: {{ $p.use_pkce }}
+        claims:
+          {{- toYaml $p.claims | nindent 10 }}
+      {{- end }}
 
     auth_header:
       type: {{ .Values.config.auth_header.type | quote }}
       name: {{ .Values.config.auth_header.name | quote }}
 
     credential:
-      type: {{ .Values.config.credential.type | quote }}
+      seed: {{ .Values.config.credential.seed }}
+      key: {{ .Values.config.credential.key }}
       timeout: {{ .Values.config.credential.timeout }}
 
     post_quantum: {{ .Values.config.post_quantum }}
 
-    callback_urls:
-      {{- toYaml .Values.config.callback_urls | nindent 6 }}
+    xipher_urls:
+      {{- toYaml .Values.config.xipher_urls | nindent 6 }}

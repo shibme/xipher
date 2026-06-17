@@ -269,7 +269,7 @@ const keyModalTitle = document.getElementById("key-modal-title");
 // has actually committed a key via finishKeySetup. Null when no Setup is pending.
 let setupResolve = null;
 
-async function openKeyModal(setupMode = false) {
+async function openKeyModal(setupMode = false, initialPasskeyStatus = null) {
     keyModalSetupMode = setupMode;
     // In setup the modal is mandatory: title reads "Setup", and the dismiss
     // affordances are removed so no key gets chosen by default.
@@ -291,6 +291,11 @@ async function openKeyModal(setupMode = false) {
     // password/key view.
     const usesPasskey = passkeyAvailable && getIdentity().provider === "passkey";
     selectMethod(usesPasskey ? "passkey" : "password");
+    // Restore a passkey error from a pre-modal failure (e.g. auto-unlock at startup).
+    // selectMethod calls resetPasskeyView which clears passkeyStatus, so set it after.
+    if (initialPasskeyStatus && usesPasskey) {
+        passkeyStatus.textContent = initialPasskeyStatus;
+    }
     keyModal.hidden = false;
     document.body.classList.add("no-scroll");
     // A mandatory Setup resolves only when the user commits a key (finishKeySetup).
@@ -688,28 +693,34 @@ async function runPasskeyUnlock() {
 // Maps a passkey failure to user feedback. `phase` is "setup" or "unlock".
 function handlePasskeyError(err, phase) {
     resetPasskeyView();
+    let message;
     if (err && err.name === "PRFNotSupported") {
         // The chosen authenticator completed but returned no PRF output. The
         // user picked something that can't derive keys (an older or misconfigured
         // password-manager extension, or a security key without PRF firmware).
         // Point them at an authenticator that works rather than implying the
         // whole device is unsupported.
-        passkeyStatus.textContent = "That passkey can't derive a key. Try your device's built-in passkey (Touch ID / Windows Hello), or update your password manager.";
+        message = "That passkey can't derive a key. Try your device's built-in passkey (Touch ID / Windows Hello), or update your password manager.";
+        passkeyStatus.textContent = message;
         showToast("That authenticator didn't return a derivation key (PRF). Try a different passkey.", "error", 5000);
     } else if (err && err.name === "NotAllowedError") {
         // User dismissed the OS prompt, or (on unlock) no matching passkey
         // existed and the picker timed out / was cancelled.
-        passkeyStatus.textContent = phase === "setup"
+        message = phase === "setup"
             ? "Passkey setup was cancelled."
             : "No passkey was selected. Set one up if you don't have one yet.";
+        passkeyStatus.textContent = message;
     } else if (err && (err.message === "Registration cancelled." || err.message === "Authentication cancelled.")) {
-        passkeyStatus.textContent = "Cancelled.";
+        message = "Cancelled.";
+        passkeyStatus.textContent = message;
     } else {
-        passkeyStatus.textContent = phase === "setup"
+        message = phase === "setup"
             ? "Passkey setup failed. Try again."
             : "Couldn't use a passkey. Try again or set one up.";
+        passkeyStatus.textContent = message;
         showToast("Passkey operation failed.", "error");
     }
+    return message;
 }
 
 

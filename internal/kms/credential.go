@@ -21,10 +21,11 @@ const credentialSeedLength = 64
 
 // deriveSeed derives a deterministic 64-byte xipher seed for the given entity
 // from the master seed using HKDF-SHA256. The info string binds the output to
-// the entity type and id so that the same (type, id) always yields the same
-// seed, while different entities never collide.
-func deriveSeed(master []byte, entityType, entityID string) ([]byte, error) {
-	info := fmt.Sprintf("xkms:%s:%s", entityType, entityID)
+// the providerID, entity type, and entity id so that the same identity from
+// different providers never collides, and the same (providerID, type, id) always
+// yields the same seed.
+func deriveSeed(master []byte, providerID, entityType, entityID string) ([]byte, error) {
+	info := fmt.Sprintf("xkms:%s:%s:%s", providerID, entityType, entityID)
 	r := hkdf.New(sha256.New, master, nil, []byte(info))
 	seed := make([]byte, credentialSeedLength)
 	if _, err := io.ReadFull(r, seed); err != nil {

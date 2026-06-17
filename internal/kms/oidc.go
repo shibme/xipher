@@ -9,31 +9,31 @@ import (
 )
 
 // authenticator wraps OIDC discovery, token verification, and the OAuth2 code
-// flow configuration. It is built once at startup.
+// flow configuration for a single provider. It is built once at startup.
 type authenticator struct {
-	cfg          *Config
+	cfg          OIDCProviderConfig
 	provider     *oidc.Provider
 	verifier     *oidc.IDTokenVerifier
 	oauth2       oauth2.Config
 	clientSecret string
 }
 
-// newAuthenticator performs OIDC discovery against the issuer and builds the
-// verifier and oauth2 config from the resolved client secret.
-func newAuthenticator(ctx context.Context, cfg *Config) (*authenticator, error) {
-	clientSecret, err := cfg.OIDC.ClientSecret.resolve()
+// newAuthenticator performs OIDC discovery against the provider's issuer and
+// builds the verifier and oauth2 config from the resolved client secret.
+func newAuthenticator(ctx context.Context, cfg OIDCProviderConfig) (*authenticator, error) {
+	clientSecret, err := cfg.ClientSecret.resolve()
 	if err != nil {
-		return nil, fmt.Errorf("resolving client secret: %w", err)
+		return nil, fmt.Errorf("provider %q: resolving client secret: %w", cfg.Name, err)
 	}
 
-	provider, err := oidc.NewProvider(ctx, cfg.OIDC.IssuerURL)
+	provider, err := oidc.NewProvider(ctx, cfg.IssuerURL)
 	if err != nil {
-		return nil, fmt.Errorf("oidc discovery: %w", err)
+		return nil, fmt.Errorf("provider %q: oidc discovery: %w", cfg.Name, err)
 	}
 
-	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.OIDC.ClientID})
+	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.ClientID})
 
-	scopes := cfg.OIDC.Scopes
+	scopes := cfg.Scopes
 	if len(scopes) == 0 {
 		scopes = []string{oidc.ScopeOpenID, "profile", "email"}
 	}
@@ -44,10 +44,10 @@ func newAuthenticator(ctx context.Context, cfg *Config) (*authenticator, error) 
 		verifier:     verifier,
 		clientSecret: clientSecret,
 		oauth2: oauth2.Config{
-			ClientID:     cfg.OIDC.ClientID,
+			ClientID:     cfg.ClientID,
 			ClientSecret: clientSecret,
 			Endpoint:     provider.Endpoint(),
-			RedirectURL:  cfg.OIDC.RedirectURI,
+			RedirectURL:  cfg.RedirectURI,
 			Scopes:       scopes,
 		},
 	}, nil
@@ -105,6 +105,24 @@ func (a *authenticator) hasIdentity(claims map[string]any, entityType, entityID 
 		}
 	}
 	return false
+}
+
+// verifyAny tries each authenticator in order and returns the claims and the
+// index of the matching authenticator. Each verifier only accepts tokens issued
+// by its own provider, so typically only one will succeed.
+func verifyAny(ctx context.Context, rawIDToken string, auths []*authenticator) (map[string]any, int, error) {
+	var lastErr error
+	for i, a := range auths {
+		claims, err := a.verify(ctx, rawIDToken)
+		if err == nil {
+			return claims, i, nil
+		}
+		lastErr = err
+	}
+	if lastErr != nil {
+		return nil, -1, lastErr
+	}
+	return nil, -1, fmt.Errorf("no providers configured")
 }
 
 func stringClaim(claims map[string]any, key string) string {

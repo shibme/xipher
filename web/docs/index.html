@@ -848,7 +848,7 @@ if err != nil { /* handle */ }
                     <p><strong>Xipher KMS</strong> (abbreviated <strong>XKMS</strong>) is a self-hosted credential
                         provider service for Xipher. It authenticates users and services via an external
                         <strong>OIDC identity provider</strong> (Google, Okta, Keycloak, Dex, etc.), derives
-                        deterministic Xipher secret keys from their verified identity, and returns them — either
+                        deterministic Xipher secret keys from their verified identity, and returns them - either
                         directly to services or sealed back to the browser via the
                         <a href="#provider-flow">credential provider flow</a>.</p>
                     <p>A single XKMS deployment issues consistent keys: the same user, group, or service identity always
@@ -872,42 +872,65 @@ if err != nil { /* handle */ }
                     <p>XKMS is configured via a single YAML file passed with <code>--config</code>. All fields:</p>
                     <pre class="code-block" data-lang="yaml"><code>server:
   host: 0.0.0.0
-  port: 8443
+  port: 8080
 
-# Master seed file — read once at startup, then deleted (see below).
+# Master seed file - read once at startup, then deleted (see below).
 seed_file: /run/secrets/xkms.seed
 
-oidc:
-  issuer_url: "https://accounts.example.com"
-  client_id: "xkms"
-  client_secret:
-    env: XKMS_OIDC_CLIENT_SECRET   # read from env var, OR
-    # file: /run/secrets/oidc_secret  # read from file, deleted after read
-  redirect_uri: "https://xkms.example.com/callback"
-  scopes: [openid, profile, email]
-  use_pkce: true
+# URL path prefix for the public-key (xpk) discovery endpoints. Optional;
+# defaults to /xpk/ when unset. Routing only - does not affect key derivation.
+# pubkey_path: /xpk/
 
-# One OIDC claim per entity type. Omit a type to disable it.
-claims:
-  user: email      # single string claim  →  one user identity
-  group: groups    # array claim          →  one identity per group
-  service: sub     # single string claim  →  one service identity
+# OIDC identity providers, keyed by a URL-safe ID. The key is used in the
+# /xpk/{id}/… public key path and as part of HKDF key derivation - so the
+# same identity from different providers always yields different keys.
+# With a single provider the sign-in selector page is skipped entirely.
+providers:
+  corp-sso:
+    name: "Corporate SSO"
+    issuer_url: "https://accounts.example.com"
+    client_id: "xkms"
+    client_secret:
+      env: XKMS_OIDC_CLIENT_SECRET   # read from env var, OR
+      # file: /run/secrets/oidc_secret  # read from file, deleted after read
+    redirect_uri: "https://xkms.example.com/callback"
+    scopes: [openid, profile, email, groups]
+    use_pkce: false
+    # One claim per entity type. Omit a field to disable that type for this provider.
+    claims:
+      user: email      # single string claim  →  one user identity
+      group: groups    # array claim          →  one identity per group
+      service: sub     # single string claim  →  one service identity
 
-# Header used to pass an OIDC JWT to the credential endpoints.
+  # Additional providers are optional. Each may expose different entity types.
+  # github:
+  #   name: "GitHub Actions"
+  #   issuer_url: "https://token.actions.githubusercontent.com"
+  #   client_id: "xkms-gh"
+  #   client_secret:
+  #     env: XKMS_GITHUB_SECRET
+  #   redirect_uri: "https://xkms.example.com/callback"
+  #   scopes: [openid]
+  #   claims:
+  #     service: sub   # only service credentials from GitHub tokens
+
+# Header used to pass an OIDC JWT to the credential endpoints (direct API auth).
+# Shared across all providers.
 auth_header:
   type: bearer          # "bearer" (Authorization: Bearer …) | "custom"
   name: Authorization   # used only when type is "custom"
 
 credential:
-  type: both            # "seed" (base64) | "key" (XSK_) | "both"
+  seed: true            # include the base64-encoded raw seed
+  key: true             # include the XSK_-prefixed key
   timeout: 604800       # seconds the browser keeps the credential; 0 = ephemeral
 
 # Quantum-safe public keys served at /xpk/… endpoints (does not affect
-# the sealed-credential flow — that seals to the requester's own key).
+# the sealed-credential flow - that seals to the requester's own key).
 post_quantum: false
 
 # Allowed xipher app origins for the provider callback (xcb param).
-callback_urls:
+xipher_urls:
   - https://xipher.org
   - https://xipher.int.example.com</code></pre>
                 </section>
@@ -917,10 +940,10 @@ callback_urls:
                     <p>All keys are derived from a single <strong>master seed</strong>. It must be at least
                         <strong>64 bytes of high-entropy random data</strong>. XKMS accepts it in three formats:</p>
                     <ul>
-                        <li><strong>Raw bytes</strong> — a binary file of ≥ 64 bytes.</li>
-                        <li><strong>Hex-encoded</strong> — a text file containing a hex string (e.g.
+                        <li><strong>Raw bytes</strong> - a binary file of ≥ 64 bytes.</li>
+                        <li><strong>Hex-encoded</strong> - a text file containing a hex string (e.g.
                             <code>openssl rand -hex 96 > xkms.seed</code>).</li>
-                        <li><strong>Base64-encoded</strong> — standard or unpadded base64.</li>
+                        <li><strong>Base64-encoded</strong> - standard or unpadded base64.</li>
                     </ul>
                     <pre class="code-block" data-lang="bash"><code># Generate a suitable seed (96 random bytes, hex-encoded)
 openssl rand -hex 96 > /run/secrets/xkms.seed</code></pre>
@@ -931,7 +954,7 @@ openssl rand -hex 96 > /run/secrets/xkms.seed</code></pre>
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
                             <p>The master seed is the root of all derived keys. Back it up securely before writing it
-                                to the seed file — once XKMS deletes the file, the seed exists only in process memory
+                                to the seed file - once XKMS deletes the file, the seed exists only in process memory
                                 until the next restart.</p>
                         </div>
                     </div>
@@ -941,18 +964,23 @@ openssl rand -hex 96 > /run/secrets/xkms.seed</code></pre>
                     <h3>Authentication</h3>
                     <p>XKMS supports two authentication paths:</p>
                     <ul>
-                        <li><strong>OIDC code flow (browser)</strong> — XKMS acts as an OAuth 2.0 client. Unauthenticated
-                            requests to the credential endpoints redirect to <code>/login</code>, which initiates the
-                            code flow with the configured IdP. After a successful callback the browser lands on the
-                            consent page.</li>
-                        <li><strong>Direct JWT (services)</strong> — Services pass a valid OIDC id token in the
+                        <li><strong>OIDC code flow (browser)</strong> - XKMS acts as an OAuth 2.0 client. A request to
+                            <code>/login</code> initiates the code flow. With a single provider configured, the browser
+                            is redirected to the IdP immediately. With multiple providers, XKMS first serves a
+                            <strong>"Sign in with…"</strong> selector page so the user can choose which IdP to use.
+                            After login the browser lands on the consent page.</li>
+                        <li><strong>Direct JWT (services)</strong> - Services pass a valid OIDC id token in the
                             configured header (<code>Authorization: Bearer &lt;jwt&gt;</code> by default). XKMS
-                            validates the token against the IdP's JWKS and processes the request immediately, with no
-                            browser interaction.</li>
+                            tries each configured provider's verifier in order and accepts the first that validates
+                            the token. No browser interaction is required.</li>
                     </ul>
                     <p>Both paths use the same credential endpoints. The presence of a <code>state</code> query
                         parameter on the request tells XKMS whether to seal and redirect (browser flow) or return JSON
                         directly (service flow).</p>
+                    <p>Claim mapping is <strong>per-provider</strong>: if a provider does not have
+                        <code>claims.group</code> set, tokens from that provider cannot obtain group credentials,
+                        even if the token happens to contain a groups claim. This lets you restrict which entity
+                        types each IdP may issue.</p>
                 </section>
 
                 <section id="xkms-credentials" class="docs-section">
@@ -1000,9 +1028,9 @@ curl -X POST https://xkms.example.com/api/v1/credential/service \
                                 <tr><th>Path</th><th>Example</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><code>/xpk/user/&lt;id&gt;/.well-known/xipher</code></td><td><code>/xpk/user/alice@example.com/.well-known/xipher</code></td></tr>
-                                <tr><td><code>/xpk/group/&lt;name&gt;/.well-known/xipher</code></td><td><code>/xpk/group/cloud-engineering/.well-known/xipher</code></td></tr>
-                                <tr><td><code>/xpk/service/&lt;id&gt;/.well-known/xipher</code></td><td><code>/xpk/service/payment-service/.well-known/xipher</code></td></tr>
+                                <tr><td><code>/xpk/&lt;provider&gt;/user/&lt;id&gt;/.well-known/xipher</code></td><td><code>/xpk/corp-sso/user/alice@example.com/.well-known/xipher</code></td></tr>
+                                <tr><td><code>/xpk/&lt;provider&gt;/group/&lt;name&gt;/.well-known/xipher</code></td><td><code>/xpk/corp-sso/group/cloud-engineering/.well-known/xipher</code></td></tr>
+                                <tr><td><code>/xpk/&lt;provider&gt;/service/&lt;id&gt;/.well-known/xipher</code></td><td><code>/xpk/corp-sso/service/payment-service/.well-known/xipher</code></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1014,19 +1042,21 @@ curl -X POST https://xkms.example.com/api/v1/credential/service \
                     <p>The <code>/xpk/</code> endpoints send
                         <code>Access-Control-Allow-Origin: *</code> so the browser-based web app on any origin can
                         resolve keys from them. They carry no authentication and never accept credentials. Every other
-                        XKMS endpoint is locked down — no CORS, a strict <code>default-src 'none'</code> CSP, and
-                        <code>nosniff</code> / <code>DENY</code> framing — so only the <code>/xpk/</code> tree is
+                        XKMS endpoint is locked down - no CORS, a strict <code>default-src 'none'</code> CSP, and
+                        <code>nosniff</code> / <code>DENY</code> framing - so only the <code>/xpk/</code> tree is
                         cross-origin readable.</p>
+                    <p>The <code>/xpk/</code> prefix is configurable via <code>pubkey_path</code> in the config
+                        (defaults to <code>/xpk/</code>). The examples below use the default.</p>
                     <p>The public key kind (ECC or quantum-safe hybrid) is controlled by <code>post_quantum</code> in
                         the config. A sender can encrypt directly to any entity by pointing Xipher at the XKMS host:</p>
-                    <pre class="code-block" data-lang="bash"><code># Encrypt to a group — Xipher resolves the public key automatically
+                    <pre class="code-block" data-lang="bash"><code># Encrypt to a group - Xipher resolves the public key automatically
 xipher encrypt text --fetch \
-  -k "xkms.example.com/xpk/group/cloud-engineering" \
+  -k "xkms.example.com/xpk/corp-sso/group/cloud-engineering" \
   -t "Secret for the cloud team"
 
 # Or use the full URL
 xipher encrypt text \
-  -k "https://xkms.example.com/xpk/user/alice@example.com/.well-known/xipher" \
+  -k "https://xkms.example.com/xpk/corp-sso/user/alice@example.com/.well-known/xipher" \
   -t "Hi Alice"</code></pre>
                 </section>
 
@@ -1037,13 +1067,17 @@ xipher encrypt text \
                     <pre class="code-block" data-lang="text"><code>https://xipher.org/?provider=https://xkms.example.com</code></pre>
                     <ol>
                         <li>The xipher app generates an ephemeral keypair and redirects to
-                            <code>https://xkms.example.com/login?xpk=…&amp;state=…&amp;xcb=…</code>.</li>
-                        <li>XKMS validates <code>xcb</code> against <code>callback_urls</code>, then initiates
-                            the OIDC code flow with the configured IdP.</li>
+                            <code>https://xkms.example.com/login?xpk=…&amp;state=…&amp;xcb=…</code>. The bare host
+                            (<code>/</code>) redirects to <code>/login</code> preserving these params, so the
+                            provider URL may omit <code>/login</code>.</li>
+                        <li>XKMS validates <code>xcb</code> against <code>xipher_urls</code>. With a single
+                            provider it initiates the OIDC code flow immediately; with multiple providers it first
+                            serves a <strong>"Sign in with…"</strong> selector page so the user can choose an IdP.</li>
                         <li>After login the IdP redirects to <code>/callback</code>. XKMS exchanges the code for
                             an id token and redirects the browser to <code>/consent#token=…</code>.</li>
-                        <li>The consent page decodes the token client-side (never sent to a server again), lists all
-                            available identities, and asks the user to choose.</li>
+                        <li>The consent page decodes the token client-side (never sent to a server again) and lists the
+                            available identities. User and service identities appear as direct choices; group
+                            memberships are presented in a searchable dropdown so large group lists stay manageable.</li>
                         <li>On confirmation the browser POSTs to the credential endpoint with the token. XKMS derives
                             the seed, seals the credential JSON to the ephemeral <code>xpk</code>, and returns a
                             redirect URL of the form <code>&lt;xcb&gt;#xck=XCT_…&amp;state=…</code>.</li>
@@ -1054,7 +1088,7 @@ xipher encrypt text \
                         <span class="docs-callout-icon">⚠️</span>
                         <div>
                             <p>Register your XKMS <code>redirect_uri</code> with the IdP and keep
-                                <code>callback_urls</code> restricted to known xipher app origins. These two
+                                <code>xipher_urls</code> restricted to known xipher app origins. These two
                                 allowlists are your primary defenses against credential theft via open-redirect
                                 attacks.</p>
                         </div>
@@ -1067,37 +1101,70 @@ xipher encrypt text \
                         <code>config.yaml</code> from Helm values and mounts it into the container.</p>
                     <pre class="code-block" data-lang="bash"><code>helm repo add xipher https://xipher.org/charts
 helm install xkms xipher/xkms</code></pre>
-                    <p>Override values inline or via a file:</p>
-                    <pre class="code-block" data-lang="bash"><code>helm install xkms xipher/xkms \
-  --set config.oidc.issuer_url=https://accounts.example.com \
-  --set config.oidc.client_id=xkms \
-  --set config.oidc.redirect_uri=https://xkms.example.com/callback \
-  --set-json 'config.callback_urls=["https://xipher.org"]' \
-  --set env[0].name=XKMS_OIDC_CLIENT_SECRET \
-  --set env[0].valueFrom.secretKeyRef.name=xkms-oidc \
-  --set env[0].valueFrom.secretKeyRef.key=client_secret</code></pre>
+                    <p>The recommended approach is a <code>values.yaml</code> file. The chart derives
+                        <code>redirect_uri</code> for every provider from <code>config.external_url</code> -
+                        register <code>&lt;external_url&gt;/callback</code> with each IdP:</p>
+                    <pre class="code-block" data-lang="yaml"><code>config:
+  external_url: https://xkms.example.com
+
+  # Optional - public-key endpoint prefix. Defaults to /xpk/ when empty.
+  pubkey_path: ""
+
+  providers:
+    corp-sso:
+      name: "Corporate SSO"
+      issuer_url: https://accounts.example.com
+      client_id: xkms
+      client_secret:
+        env: XKMS_OIDC_CLIENT_SECRET   # injected via extraEnv below
+      scopes: [openid, profile, email, groups]
+      claims:
+        user: email
+        group: groups
+        service: sub
+
+    # Second provider (optional):
+    # github:
+    #   name: "GitHub Actions"
+    #   issuer_url: https://token.actions.githubusercontent.com
+    #   client_id: xkms-gh
+    #   client_secret:
+    #     env: XKMS_GITHUB_SECRET
+    #   scopes: [openid]
+    #   claims:
+    #     service: sub
+
+  xipher_urls:
+    - https://xipher.org
+
+# Inject OIDC client secrets from Kubernetes Secrets as env vars.
+# Reference the same env var name in providers[*].client_secret.env above.
+extraEnv:
+  - name: XKMS_OIDC_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: xkms-oidc
+        key: client_secret</code></pre>
                     <h4>Seed injection</h4>
                     <p>The master seed must reach the container as a file at the path set in
-                        <code>config.seed_file</code> (default <code>/run/secrets/xkms.seed</code>).
+                        <code>config.seed_file</code> (default <code>/var/run/xkms/seed</code>).
                         XKMS deletes the file after reading it at startup. Use an init container or a
                         CSI secret provider to write the seed before the main container starts:</p>
                     <pre class="code-block" data-lang="yaml"><code>initContainers:
   - name: seed-injector
     image: busybox
-    command: ["/bin/sh", "-c", "cp /vault/secrets/seed /run/secrets/xkms.seed"]
+    command: ["/bin/sh", "-c", "cp /vault/secrets/seed /var/run/xkms/seed"]
     volumeMounts:
+      - name: xipher-run   # chart-managed in-memory volume shared with xkms
+        mountPath: /var/run/xkms
       - name: vault-seed
         mountPath: /vault/secrets
+        readOnly: true
 
 extraVolumes:
   - name: vault-seed
     secret:
-      secretName: xkms-seed
-
-extraVolumeMounts:
-  - name: vault-seed
-    mountPath: /run/secrets
-    readOnly: false</code></pre>
+      secretName: xkms-seed</code></pre>
                     <h4>Ingress / Gateway API</h4>
                     <p>Enable a standard Ingress:</p>
                     <pre class="code-block" data-lang="yaml"><code>ingress:
@@ -1126,8 +1193,8 @@ extraVolumeMounts:
                         <span class="docs-callout-icon">ℹ️</span>
                         <div>
                             <p>Enable either <code>ingress</code> or <code>httpRoute</code>, not both.
-                                The service always listens on port 443 (ClusterIP) and forwards to the
-                                container on port 8080.</p>
+                                The service listens on port 8080 (ClusterIP) and forwards to the
+                                container on the same port.</p>
                         </div>
                     </div>
                 </section>

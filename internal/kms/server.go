@@ -17,36 +17,43 @@ const providerStateTTL = 10 * time.Minute
 // providerState holds the xipher provider parameters for an in-flight browser
 // flow, keyed by an opaque id carried through the OIDC round-trip.
 type providerState struct {
-	xpk     string // ephemeral XPK_ public key from the xipher app
-	state   string // original xipher state token (echoed back in xck redirect)
-	xcb     string // validated callback URL
-	expires time.Time
+	providerIdx int    // index into Server.auths
+	xpk         string // ephemeral XPK_ public key from the xipher app
+	state       string // original xipher state token (echoed back in xck redirect)
+	xcb         string // validated callback URL
+	expires     time.Time
 }
 
 // Server is the running Xipher KMS (XKMS) instance.
 type Server struct {
-	cfg  *Config
-	auth *authenticator
+	cfg   *Config
+	auths []*authenticator // one per provider, same order as cfg.Providers
+
 	seed []byte
 
 	mu     sync.Mutex
 	states map[string]providerState
 }
 
-// NewServer builds a Xipher KMS (XKMS) server: loads the master seed (clearing the seed
-// file), performs OIDC discovery, and prepares the HTTP handlers.
+// NewServer builds a Xipher KMS (XKMS) server: loads the master seed (clearing
+// the seed file), performs OIDC discovery for each configured provider, and
+// prepares the HTTP handlers.
 func NewServer(ctx context.Context, cfg *Config) (*Server, error) {
 	seed, err := loadSeed(cfg.SeedFile)
 	if err != nil {
 		return nil, err
 	}
-	auth, err := newAuthenticator(ctx, cfg)
-	if err != nil {
-		return nil, err
+	auths := make([]*authenticator, len(cfg.Providers))
+	for i, p := range cfg.Providers {
+		a, err := newAuthenticator(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		auths[i] = a
 	}
 	return &Server{
 		cfg:    cfg,
-		auth:   auth,
+		auths:  auths,
 		seed:   seed,
 		states: make(map[string]providerState),
 	}, nil
@@ -59,6 +66,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.handleHealth)
+	mux.HandleFunc("GET /{$}", s.handleRoot)
 	mux.HandleFunc("GET /login", s.handleLogin)
 	mux.HandleFunc("GET /callback", s.handleCallback)
 	mux.HandleFunc("GET /consent", s.handleConsent)
@@ -67,12 +75,15 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.HandleFunc("POST /api/v1/credential/service", s.handleCredentialService)
 
 	// Public, unauthenticated public-key endpoints (xipher resolver format).
+	// Path: {pubkey_path}{provider}/{type}/{id}/.well-known/xipher
+	// The prefix defaults to /xpk/ and is configurable via config.PubKeyPath.
 	// These carry permissive CORS so any origin's browser may read them; the
-	// OPTIONS routes answer CORS preflight.
-	mux.HandleFunc("GET /xpk/user/{id}/.well-known/xipher", s.handlePublicKeyUser)
-	mux.HandleFunc("GET /xpk/group/{id}/.well-known/xipher", s.handlePublicKeyGroup)
-	mux.HandleFunc("GET /xpk/service/{id}/.well-known/xipher", s.handlePublicKeyService)
-	mux.HandleFunc("OPTIONS /xpk/", s.handlePublicKeyPreflight)
+	// OPTIONS route answers CORS preflight for the whole subtree.
+	pk := s.cfg.PubKeyPath
+	mux.HandleFunc("GET "+pk+"{provider}/user/{id}/.well-known/xipher", s.handlePublicKeyUser)
+	mux.HandleFunc("GET "+pk+"{provider}/group/{id}/.well-known/xipher", s.handlePublicKeyGroup)
+	mux.HandleFunc("GET "+pk+"{provider}/service/{id}/.well-known/xipher", s.handlePublicKeyService)
+	mux.HandleFunc("OPTIONS "+pk, s.handlePublicKeyPreflight)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", s.cfg.Server.Host, s.cfg.Server.Port),

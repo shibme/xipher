@@ -3,10 +3,11 @@ const xipherSecretStoreId = "xipherSecret";
 const xipherPublicKeyStoreId = "xipherPublicKey";
 const xipherQuantumSafeStoreId = "xipherQuantumSafe";
 // Identity metadata sidecars (non-secret: a display name, an id/email, and the
-// host that issued the key). Stored in plain localStorage alongside the public
-// key. Absent provider => the key is self-issued by this deployment, and the
-// name is user-editable; a stored host => an external credential provider issued
-// it, and the name/id are managed (read-only).
+// URL of the provider that issued the key). Stored in plain localStorage
+// alongside the public key. Absent provider => the key is self-issued by this
+// deployment, and the name is user-editable; a stored provider URL => an
+// external credential provider issued it, and the name/id are managed
+// (read-only). The literal "passkey" marks a passkey-backed identity.
 const xipherNameStoreId = "xipherName";
 // The id is an identifier for the authenticating entity, typed as "user",
 // "group", or "service". Stored as two fields: the entity type and the id value.
@@ -14,6 +15,13 @@ const xipherTypeStoreId = "xipherType";
 const xipherIdValueStoreId = "xipherIdValue";
 const xipherProviderStoreId = "xipherProvider";
 const xipherSecretKindStoreId = "xipherSecretKind"; // "key" | "password"
+// Hosts the user has trusted for consent-skip on the provider dialog.
+// Stored as a JSON array of host strings (e.g. "shib.me" or "localhost:3000").
+const xipherProviderTrustedHostsStoreId = "xipherProviderTrustedHosts";
+// Provider URL stashed before clearStoredIdentity wipes xipherProviderStoreId,
+// so ensureLocalIdentity can auto-reauth (same scheme/host/path) after a
+// credential expiry.
+const xipherLastProviderStoreId = "xipherLastProvider";
 // Per-credential timeout. The stored secret is wrapped in an envelope carrying a
 // validity duration and a sliding deadline (now + duration), refreshed on every
 // load. A security tool shouldn't keep a key on a machine the user has abandoned;
@@ -210,6 +218,38 @@ function setQuantumSafe(enabled) {
     return false;
 }
 
+function getTrustedProviderHosts() {
+    try {
+        const raw = localStorage.getItem(xipherProviderTrustedHostsStoreId);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+
+function addTrustedProviderHost(host) {
+    if (!host) return;
+    const current = getTrustedProviderHosts();
+    if (!current.includes(host)) {
+        current.push(host);
+        localStorage.setItem(xipherProviderTrustedHostsStoreId, JSON.stringify(current));
+    }
+}
+
+function removeTrustedProviderHost(host) {
+    const current = getTrustedProviderHosts();
+    localStorage.setItem(xipherProviderTrustedHostsStoreId,
+        JSON.stringify(current.filter(h => h !== host)));
+}
+
+function getLastProviderUrl() {
+    return localStorage.getItem(xipherLastProviderStoreId) || null;
+}
+
+function clearLastProviderUrl() {
+    localStorage.removeItem(xipherLastProviderStoreId);
+}
+
 // Sets the active secret with a fresh timeout envelope. durationMs defaults to
 // the 7-day ceiling; setting the credential is the only way to *raise* the
 // timeout (a freshly set credential is always allowed up to the cap). A change
@@ -255,10 +295,13 @@ async function setCredentialTimeout(durationMs) {
 }
 
 // Installs a secret key delivered by an external credential provider, recording
-// the issuing host and the managed name/id alongside it. Unlike setXipherSecret,
-// this marks the identity as provider-managed (name/id read-only in the UI).
-// `id` is the entity's identifier value (string) and `type` is the entity kind
-// ("user" | "group" | "service"); both optional.
+// the issuing provider URL and the managed name/id alongside it. The full URL
+// (not just the host) is stored so the profile can display exactly where the
+// redirect goes and an auto-reauth can revisit the same endpoint, scheme, and
+// path. The passkey flow passes the literal "passkey" as providerUrl. Unlike
+// setXipherSecret, this marks the identity as provider-managed (name/id
+// read-only in the UI). `id` is the entity's identifier value (string) and
+// `type` is the entity kind ("user" | "group" | "service"); both optional.
 //
 // `persist` defaults to true: the key is written to localStorage so it survives
 // across sessions. When false (the passkey flow, which re-derives each time), the
@@ -266,7 +309,7 @@ async function setCredentialTimeout(durationMs) {
 // written to localStorage, so it vanishes on reload and must be re-derived. The
 // non-secret identity metadata is removed from localStorage in that case too, so
 // a closed tab leaves no trace of a passkey-only identity.
-async function setProviderIdentity(xipherSecret, providerHost, name, id, type, persist = true, durationMs = MAX_TIMEOUT_MS) {
+async function setProviderIdentity(xipherSecret, providerUrl, name, id, type, persist = true, durationMs = MAX_TIMEOUT_MS) {
     if (persist) {
         // buryXipherSecret applies the timeout envelope. A 0 duration there is
         // itself ephemeral (memory-only), so a provider key with timeout=0 lands
@@ -279,7 +322,7 @@ async function setProviderIdentity(xipherSecret, providerHost, name, id, type, p
         localStorage.removeItem(xipherSecretStoreId);
     }
     localStorage.removeItem(xipherPublicKeyStoreId);
-    localStorage.setItem(xipherProviderStoreId, providerHost);
+    localStorage.setItem(xipherProviderStoreId, providerUrl);
     setIdentityField(xipherNameStoreId, name);
     // An id is stored whenever it has a value. The type (the entity kind the id
     // names) is optional: a recognised value is kept as the id's label, anything
@@ -297,6 +340,8 @@ async function setProviderIdentity(xipherSecret, providerHost, name, id, type, p
         localStorage.removeItem(xipherTypeStoreId);
         localStorage.removeItem(xipherIdValueStoreId);
     }
+    // Consume any stashed last-provider URL now that a fresh identity is installed.
+    clearLastProviderUrl();
 }
 
 async function getXipherSecret() {
@@ -372,8 +417,9 @@ function setIdentityField(storeId, value) {
 }
 
 // Returns the current identity metadata for display. `provider` is the issuing
-// host (defaults to self). `managed` is true when a stored provider backs the
-// key. `nameLocked` is true only when an *external* provider issued the name -
+// provider URL (defaults to the self host when none is stored), or the literal
+// "passkey". `managed` is true when a stored provider backs the key.
+// `nameLocked` is true only when an *external* provider issued the name -
 // passkey-backed identities are provider-backed but keep a user-editable name.
 function getIdentity() {
     const provider = localStorage.getItem(xipherProviderStoreId) || selfHost();
@@ -403,6 +449,12 @@ function clearStoredIdentity() {
     localStorage.removeItem(xipherNameStoreId);
     localStorage.removeItem(xipherTypeStoreId);
     localStorage.removeItem(xipherIdValueStoreId);
+    // Stash the provider URL before wiping it so ensureLocalIdentity can
+    // auto-reauth after an expiry. Passkey is session-only, not a provider URL.
+    const providerUrl = localStorage.getItem(xipherProviderStoreId);
+    if (providerUrl && providerUrl !== "passkey") {
+        localStorage.setItem(xipherLastProviderStoreId, providerUrl);
+    }
     localStorage.removeItem(xipherProviderStoreId);
     localStorage.removeItem(xipherSecretKindStoreId);
     if (typeof clearStoredCredentialId === "function") {

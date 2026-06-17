@@ -676,6 +676,27 @@ async function ensureLocalIdentity() {
     if (await hasXipherSession()) {
         return;
     }
+
+    // Auto-reauth: detect a provider-backed identity whose key is gone —
+    // either an ephemeral (timeout=0) key that doesn't survive reload, or a
+    // credential that expired and was wiped (provider URL stashed before wipe).
+    const identity = getIdentity();
+    const reauthUrl = (identity.managed && identity.provider !== "passkey")
+        ? identity.provider        // ephemeral: xipherProviderStoreId still holds the URL
+        : getLastProviderUrl();    // expiry: stashed before clearStoredIdentity wiped it
+    if (reauthUrl) {
+        // The stored value is the full provider URL captured at setup time, so it
+        // already carries the right scheme (http for loopback dev, https otherwise)
+        // and path. Pass it through unchanged; initiateProviderFlow re-validates it.
+        clearLastProviderUrl(); // consume stash regardless of flow outcome
+        await initiateProviderFlow(reauthUrl, false);
+        // On success, initiateProviderFlow navigates away via window.location.replace —
+        // execution stops there. On cancel/failure it returns null; fall through to Setup.
+        await openKeyModal(true);
+        return;
+    }
+
+    // Passkey auto-unlock.
     if (typeof hasPasskeyConfigured === "function" && hasPasskeyConfigured()) {
         try {
             await unlockWithPasskey();
@@ -683,15 +704,15 @@ async function ensureLocalIdentity() {
             showToast("Key derived from your passkey.", "success");
             return;
         } catch (err) {
+            let statusMessage = null;
             if (typeof handlePasskeyError === "function") {
-                // Surface the failure, then fall through to Setup.
-                handlePasskeyError(err, "unlock");
+                statusMessage = handlePasskeyError(err, "unlock");
             }
+            await openKeyModal(true, statusMessage);
+            return;
         }
-        // Cancelled or failed: let the user choose a method.
-        await openKeyModal(true);
-        return;
     }
+
     // Fresh browser: mandatory Setup.
     await openKeyModal(true);
 }

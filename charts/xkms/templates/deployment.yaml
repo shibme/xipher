@@ -22,10 +22,6 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ include "xkms.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
@@ -52,12 +48,8 @@ spec:
             - name: https
               containerPort: 8080
               protocol: TCP
-          {{- with .Values.env }}
+          {{- with .Values.extraEnv }}
           env:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.envFrom }}
-          envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.resources }}
@@ -68,13 +60,18 @@ spec:
             - name: config
               mountPath: /etc/xkms
               readOnly: true
-            {{- with .Values.extraVolumeMounts }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
+            # Writable dir for the seed file. xkms reads then deletes the seed here,
+            # so it must be writable even though the root filesystem is read-only.
+            - name: xipher-run
+              mountPath: {{ dir .Values.config.seed_file | quote }}
       volumes:
         - name: config
           configMap:
             name: {{ include "xkms.fullname" . }}
+        # In-memory scratch dir shared with init containers for seed injection.
+        - name: xipher-run
+          emptyDir:
+            medium: Memory
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

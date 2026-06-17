@@ -1,68 +1,88 @@
 image:
   repository: shibme/xipher
   tag: ""  # defaults to .Chart.AppVersion
-  pullPolicy: IfNotPresent
-
-imagePullSecrets: []
+  pullPolicy: IfNotPresent  # IfNotPresent | Always | Never
 
 replicaCount: 1
 
-# xkms configuration — rendered into /etc/xkms/config.yaml inside the container
+# xkms configuration - rendered into /etc/xkms/config.yaml inside the container
 config:
-  # Path inside the container where the seed file will be mounted/written.
-  # The file is deleted by xkms after it reads the seed at startup.
-  seed_file: /run/secrets/xkms.seed
+  # Public base URL of this XKMS deployment (scheme + host, no trailing slash).
+  # The chart derives redirect_uri for each provider by appending /callback.
+  # Register "<external_url>/callback" as the redirect URI with every IdP.
+  external_url: "https://xkms.example.com"
 
-  oidc:
-    issuer_url: "https://accounts.example.com"
-    client_id: "xkms"
-    client_secret:
-      env: XKMS_OIDC_CLIENT_SECRET
-      # file: /run/secrets/oidc_secret
-    redirect_uri: "https://xkms.example.com/callback"
-    scopes:
-      - openid
-      - profile
-      - email
-      - groups
-    # use_pkce: true
+  # Path to the master seed file inside the container.
+  # The chart mounts an in-memory emptyDir (named "xipher-run") at the parent
+  # directory of this path; an init container must write the seed here before
+  # startup. xkms reads, validates, loads the seed into memory, then DELETES
+  # the file - so the directory must be writable (the root filesystem is read-only).
+  seed_file: /var/run/xkms/seed
 
-  claims:
-    user: email
-    group: groups
-    service: sub
+  # URL path prefix for the public-key (xpk) discovery endpoints. Optional;
+  # defaults to /xpk/ when unset. Routing only - does not affect key derivation.
+  pubkey_path: ""
+
+  # OIDC identity providers keyed by a URL-safe ID. The key is used in
+  # /xpk/{id}/… paths and as part of HKDF key derivation. With a single
+  # provider the sign-in selector page is skipped entirely.
+  #
+  # Supply client secrets via extraEnv and reference the env var name here.
+  providers:
+    corp-sso:
+      name: "Corporate SSO"
+      issuer_url: ""
+      client_id: ""
+      client_secret:
+        env: XKMS_OIDC_CLIENT_SECRET  # injected via extraEnv
+      scopes:
+        - openid
+        - profile
+        - email
+        - groups
+      use_pkce: false
+      claims:
+        user: email      # single-value claim
+        group: groups    # array-value claim, one identity per element
+        service: sub     # single-value claim
+
+  # Add more providers as needed:
+  # github:
+  #   name: "GitHub Actions"
+  #   issuer_url: "https://token.actions.githubusercontent.com"
+  #   client_id: "xkms-gh"
+  #   client_secret:
+  #     env: XKMS_GITHUB_SECRET
+  #   scopes: [openid]
+  #   claims:
+  #     service: sub
 
   auth_header:
-    type: bearer
-    name: Authorization
+    # bearer: Authorization: Bearer <jwt>
+    # custom: header name set by .auth_header.name
+    type: bearer  # bearer | custom
+    name: Authorization  # only used when type is "custom"
 
   credential:
-    type: both
-    timeout: 604800
+    # What the credential endpoints return. At least one must be true.
+    seed: true  # include the base64-encoded raw seed
+    key: true    # include the XSK_-prefixed key
+    # Session lifetime in seconds. 0 = ephemeral (credential valid for one use / until browser closes).
+    timeout: 0
 
-  post_quantum: false
+  # Serve quantum-safe hybrid public keys (X25519 + ML-KEM-1024) instead of ECC-only.
+  post_quantum: true  # true | false
 
-  callback_urls:
+  # Allowed xipher app origins for the xcb (callback) parameter. Matched by scheme+host.
+  xipher_urls:
     - https://xipher.org
 
-# Environment variables injected into the container.
-# Use for secrets referenced by config.oidc.client_secret.env, etc.
-env: []
-# - name: XKMS_OIDC_CLIENT_SECRET
-#   valueFrom:
-#     secretKeyRef:
-#       name: xkms-oidc
-#       key: client_secret
-
-envFrom: []
-# - secretRef:
-#     name: xkms-env-secrets
-
 service:
-  type: ClusterIP
-  port: 443
-  # nodePort: 30443  # only used when type=NodePort
+  type: ClusterIP  # ClusterIP | NodePort | LoadBalancer
+  port: 8080
+  # nodePort: 30080  # only used when type=NodePort
 
+# Standard Kubernetes Ingress. Enable one of ingress or httpRoute, not both.
 ingress:
   enabled: false
   className: ""
@@ -71,13 +91,13 @@ ingress:
     - host: xkms.example.com
       paths:
         - path: /
-          pathType: Prefix
+          pathType: Prefix  # Prefix | Exact | ImplementationSpecific
   tls: []
   # - secretName: xkms-tls
   #   hosts:
   #     - xkms.example.com
 
-# Gateway API HTTPRoute (alternative to ingress — enable one or the other, not both)
+# Gateway API HTTPRoute. Enable one of ingress or httpRoute, not both.
 httpRoute:
   enabled: false
   parentRefs:
@@ -96,29 +116,43 @@ resources: {}
 #   cpu: 100m
 #   memory: 128Mi
 
+# Init containers run before xkms starts - required to inject the seed file.
+# Mount the chart-managed "xipher-run" volume (mounted by xkms at the parent of
+# config.seed_file) and write the seed to config.seed_file (default /var/run/xkms/seed).
+# Example: copy a seed from a mounted Kubernetes Secret into the shared volume.
 initContainers: []
 # - name: seed-injector
 #   image: busybox
-#   command: ["/bin/sh", "-c", "cp /vault/secrets/seed /run/secrets/xkms.seed"]
+#   command: ["/bin/sh", "-c", "cp /seed/xkms.seed /var/run/xkms/seed"]
 #   volumeMounts:
-#     - name: seed-secret
-#       mountPath: /vault/secrets
+#     - name: xipher-run        # chart-managed in-memory volume shared with xkms
+#       mountPath: /var/run/xkms
+#     - name: seed-secret       # your own volume holding the raw seed
+#       mountPath: /seed
+#       readOnly: true
 
-# Extra volumes to mount into the xkms container
-extraVolumeMounts: []
-# - name: seed-secret
-#   mountPath: /run/secrets
-#   readOnly: true
-
-# Extra volumes to add to the pod
+# Extra volumes added to the pod (e.g. the raw seed Secret consumed by the init container).
 extraVolumes: []
 # - name: seed-secret
 #   secret:
 #     secretName: xkms-seed
+#     items:
+#       - key: seed
+#         path: xkms.seed
+
+# Extra environment variables injected into the xkms container. Use this to supply
+# OIDC client secrets from Kubernetes Secrets - reference the same env var name in
+# providers[*].client_secret.env in the config section above.
+extraEnv: []
+# - name: XKMS_OIDC_CLIENT_SECRET
+#   valueFrom:
+#     secretKeyRef:
+#       name: xkms-oidc
+#       key: client_secret
 
 serviceAccount:
-  create: false
-  name: ""
+  create: false  # set true to create a dedicated ServiceAccount
+  name: ""       # defaults to the release fullname when create=true
   annotations: {}
 
 podAnnotations: {}
@@ -126,7 +160,7 @@ podLabels: {}
 
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 65532
+  runAsUser: 65532   # matches USER in the distroless image
   fsGroup: 65532
 
 securityContext:
