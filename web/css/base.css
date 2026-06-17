@@ -242,6 +242,24 @@ textarea::-webkit-scrollbar-thumb,
     50% { opacity: 0.55; transform: scale(0.92); }
 }
 
+.preloader-cancel {
+    margin-top: 4px;
+    padding: 8px 20px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.preloader-cancel:hover {
+    border-color: var(--border-strong);
+    color: var(--text-color);
+}
+
 .preloader-spinner {
     position: absolute;
     width: 64px;

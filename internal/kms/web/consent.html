@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Xipher KMS · Choose Identity</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <style>
 :root {
   --brand-1: #00ddff;
@@ -147,7 +149,34 @@ button {
 }
 button:hover:not(:disabled) { filter: brightness(1.06); }
 button:disabled { background: var(--action-disabled-bg); color: var(--action-disabled-text); cursor: not-allowed; }
+.actions { display: flex; gap: .6rem; }
+.actions #submit { flex: 1; }
+.cancel-btn {
+  width: auto; margin-top: 1rem; padding: .8rem 1.2rem;
+  background: transparent; color: var(--text-muted);
+  border: 1px solid var(--border-color); font-weight: 500;
+}
+.cancel-btn:hover:not(:disabled) {
+  filter: none; border-color: var(--border-strong); color: var(--text-color);
+}
 .err { color: var(--error-color); font-size: .85rem; margin-top: .75rem; min-height: 1rem; }
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1rem;
+  background: var(--bg-color);
+  background-image: var(--bg-accent);
+  color: var(--text-muted); font-size: .95rem;
+}
+.overlay.show { display: flex; }
+.spinner {
+  width: 38px; height: 38px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--brand-2);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -171,8 +200,15 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
   <h1>Choose an identity</h1>
   <p class="sub">Select the identity you want to use. A credential will be derived and returned to the requesting application.</p>
   <form id="form"></form>
-  <button id="submit" disabled>Continue</button>
+  <div class="actions">
+    <button id="submit" disabled>Continue</button>
+    <button type="button" id="cancel" class="cancel-btn">Cancel</button>
+  </div>
   <p class="err" id="err"></p>
+</div>
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-text">Issuing your credential…</p>
 </div>
 <script>
 // Per-provider claim configuration injected by the server.
@@ -221,10 +257,29 @@ function endpointFor(ident) {
 
 const err = document.getElementById("err");
 const submit = document.getElementById("submit");
+const cancel = document.getElementById("cancel");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlay-text");
 
 (function init() {
   const { token, state, provider } = readFragment();
   if (!token) { err.textContent = "No token provided."; return; }
+
+  // Cancel aborts the flow: consume the server-side state and bounce the user
+  // back to the requesting xipher app with a "denied" signal. Available whether
+  // or not an identity has been picked. Without a state there's nothing to
+  // cancel server-side, so just disable it.
+  if (state) {
+    cancel.addEventListener("click", function() {
+      submit.disabled = true;
+      cancel.disabled = true;
+      overlayText.textContent = "Cancelling…";
+      overlay.classList.add("show");
+      window.location.href = "/cancel?state=" + encodeURIComponent(state);
+    });
+  } else {
+    cancel.disabled = true;
+  }
 
   let claims;
   try { claims = decodeJWT(token); }
@@ -340,6 +395,8 @@ const submit = document.getElementById("submit");
     if (!selected) { err.textContent = "Select an identity first."; return; }
     submit.disabled = true;
     err.textContent = "";
+    overlayText.textContent = "Issuing your credential…";
+    overlay.classList.add("show");
     try {
       const url = endpointFor(selected) + (state ? "?state=" + encodeURIComponent(state) : "");
       const res = await fetch(url, {
@@ -348,10 +405,17 @@ const submit = document.getElementById("submit");
       });
       if (!res.ok) throw new Error("request failed: " + res.status);
       const data = await res.json();
-      if (data.redirect) { location.href = data.redirect; return; }
+      if (data.redirect) {
+        // Keep the overlay up through the final hop back to the requesting app.
+        overlayText.textContent = "Returning you to the application…";
+        location.href = data.redirect;
+        return;
+      }
       err.textContent = "Credential issued but no redirect was returned.";
+      overlay.classList.remove("show");
     } catch (e) {
       err.textContent = e.message || "Request failed.";
+      overlay.classList.remove("show");
       submit.disabled = false;
     }
   });

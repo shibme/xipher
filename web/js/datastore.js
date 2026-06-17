@@ -171,10 +171,15 @@ async function buryXipherSecret(key, durationMs) {
 }
 
 // digXipherSecret reads and parses the stored secret envelope. Returns
-// { key, durationMs, deadline } or null when no secret is stored. For backward
-// compatibility a bare XSK_ string (the pre-envelope format, or an in-memory
-// ephemeral key) is wrapped as a default 7-day envelope with no deadline written
-// yet -enforceCredentialTimeout reburies it to materialise the deadline.
+// { key, durationMs, deadline } or null when no secret is stored.
+//
+// A bare (non-envelope) XSK_ string is interpreted by where it lives:
+//   - memory only (not in localStorage) => an ephemeral key (timeout=0, e.g. a
+//     provider key delivered with timeout=0); report durationMs 0 so callers
+//     treat it as session-only and the timeout row stays hidden.
+//   - persisted in localStorage => a legacy pre-envelope key; default it to the
+//     7-day ceiling with no deadline yet, which enforceCredentialTimeout
+//     materialises into a real envelope on the next visit.
 async function digXipherSecret() {
     const raw = await dig(xipherSecretStoreId);
     if (raw === null || raw === undefined) {
@@ -194,8 +199,14 @@ async function digXipherSecret() {
             // Not an envelope; fall through to the bare-key form.
         }
     }
-    // Legacy bare key (or in-memory ephemeral key): default to the 7-day ceiling.
-    return { key: raw, durationMs: MAX_TIMEOUT_MS, deadline: null };
+    // Bare key. Memory-only means ephemeral (durationMs 0); persisted means a
+    // legacy key that defaults to the 7-day ceiling.
+    const persisted = localStorage.getItem(xipherSecretStoreId) !== null;
+    return {
+        key: raw,
+        durationMs: persisted ? MAX_TIMEOUT_MS : 0,
+        deadline: null,
+    };
 }
 
 // Quantum-safe preference for public key derivation.
@@ -544,15 +555,30 @@ function newExchangeState() {
 // in the record so the return blob can be opened. The record holds the ephemeral
 // secret key, so it is encrypted at rest with the same scheme as the stored
 // identity key (encryptForStorage) rather than kept in plaintext.
-async function createProviderExchange(providerUrl, ephemeralSecretKey) {
+async function createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth) {
     const state = newExchangeState();
     const record = {
         providerUrl,
         ephemeralSecretKey,
+        // autoReauth marks an exchange started without an explicit user action
+        // (an ephemeral or expired provider key being silently re-fetched on
+        // load). The return path uses it to skip the "use this key?" consent,
+        // which the user already gave when first adopting this provider.
+        autoReauth: autoReauth === true,
         createdAt: Date.now(),
     };
     sessionStorage.setItem(providerExchangePrefix + state, await encryptForStorage(JSON.stringify(record)));
     return state;
+}
+
+// discardProviderExchange deletes a pending exchange record without reading it.
+// Used when the user cancels the redirect before it happens, so the ephemeral
+// secret key doesn't linger in sessionStorage waiting on a return that never comes.
+function discardProviderExchange(state) {
+    if (!state) {
+        return;
+    }
+    sessionStorage.removeItem(providerExchangePrefix + state);
 }
 
 // Reads and DELETES the exchange record for a returned state in one step. Returns

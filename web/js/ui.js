@@ -270,6 +270,13 @@ const keyModalTitle = document.getElementById("key-modal-title");
 let setupResolve = null;
 
 async function openKeyModal(setupMode = false, initialPasskeyStatus = null) {
+    // The modal must be visible and clickable; the startup preloader (z-index
+    // above it) would otherwise cover it and deadlock the load. Hide it here so
+    // every path that opens the modal is safe, including provider-flow declines
+    // that leave the preloader up.
+    if (typeof hidePreloader === "function") {
+        hidePreloader();
+    }
     keyModalSetupMode = setupMode;
     // In setup the modal is mandatory: title reads "Setup", and the dismiss
     // affordances are removed so no key gets chosen by default.

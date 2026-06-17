@@ -66,10 +66,13 @@ func (s *Server) Run(ctx context.Context) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.handleHealth)
+	mux.HandleFunc("GET /favicon.svg", s.handleFavicon)
+	mux.HandleFunc("GET /favicon.ico", s.handleFavicon)
 	mux.HandleFunc("GET /{$}", s.handleRoot)
 	mux.HandleFunc("GET /login", s.handleLogin)
 	mux.HandleFunc("GET /callback", s.handleCallback)
 	mux.HandleFunc("GET /consent", s.handleConsent)
+	mux.HandleFunc("GET /cancel", s.handleCancel)
 	mux.HandleFunc("POST /api/v1/credential/user", s.handleCredentialUser)
 	mux.HandleFunc("POST /api/v1/credential/group/{name}", s.handleCredentialGroup)
 	mux.HandleFunc("POST /api/v1/credential/service", s.handleCredentialService)

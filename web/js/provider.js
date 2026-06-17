@@ -303,9 +303,12 @@ function clearProviderUrl() {
 }
 
 // initiateProviderFlow runs when the app is opened with ?provider=<url>. When
-// forceEcc is true the request uses the compact X25519 key directly. Returns
+// forceEcc is true the request uses the compact X25519 key directly. When
+// autoReauth is true the flow was started silently (re-fetching an ephemeral or
+// expired key on load, not by an explicit user action); the trust prompt is
+// kept but the return path skips the "use this key?" consent. Returns
 // "redirecting" if it navigates away to the provider, otherwise null.
-async function initiateProviderFlow(rawProviderUrl, forceEcc) {
+async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth) {
     const resolved = normalizeProviderUrl(rawProviderUrl);
     if (resolved.error) {
         showToast(
@@ -353,7 +356,7 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc) {
     // ?xecc). The same secret decrypts a blob sealed to either key (the
     // algorithm is carried in the ciphertext), so the return path is unchanged.
     const ephemeralSecretKey = await genXipherSecretKey();
-    const state = await createProviderExchange(providerUrl, ephemeralSecretKey);
+    const state = await createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth === true);
 
     let pubKey = await genXipherPublicKey(ephemeralSecretKey, !forceEcc);
     let target = buildProviderUrl(providerUrl, pubKey, state);
@@ -368,6 +371,23 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc) {
             4000
         );
     }
+    // Hand off to the delayed-redirect overlay: it shows "Redirecting to <host>…"
+    // with a countdown and a Cancel button, then navigates when the countdown
+    // elapses. If the user cancels, drop the pending exchange (its ephemeral
+    // secret would otherwise sit unused in sessionStorage) and return null so the
+    // caller falls through to the normal identity gate.
+    if (typeof redirectWithCancel === "function") {
+        const outcome = await redirectWithCancel(
+            target,
+            `Redirecting to ${host}`,
+            () => {
+                discardProviderExchange(state);
+                showToast("Redirect cancelled. You can set a key manually instead.", "info");
+            }
+        );
+        return outcome === "redirecting" ? "redirecting" : null;
+    }
+    // Fallback if the overlay helper isn't present (defensive): redirect at once.
     window.location.replace(target);
     return "redirecting";
 }
@@ -399,11 +419,11 @@ async function completeProviderReturn(ret) {
 
     if (!exchange) {
         showToast("That credential response is invalid or expired. Start again from your provider.", "error");
-        return;
+        return false;
     }
     if (ret.err) {
         showToast(providerErrorMessage(ret.err), "error");
-        return;
+        return false;
     }
 
     let sealedPayload;
@@ -411,7 +431,7 @@ async function completeProviderReturn(ret) {
         sealedPayload = await decryptStr(exchange.ephemeralSecretKey, ret.key);
     } catch (error) {
         showToast("Couldn't open the key from the provider (it wasn't sealed to this session).", "error");
-        return;
+        return false;
     }
     // The provider seals a JSON document {"key"|"seed","name","id","type","timeout"}
     // (only the secret material is required). For backward compatibility we also
@@ -428,30 +448,37 @@ async function completeProviderReturn(ret) {
         deliveredKey = await resolveDeliveredKey(delivered);
     } catch (error) {
         showToast("The provider returned a seed that couldn't be converted to a key.", "error");
-        return;
+        return false;
     }
     if (!deliveredKey || !(await isValidSecretKey(deliveredKey))) {
         showToast("The provider returned something that isn't a valid secret key.", "error");
-        return;
+        return false;
     }
 
     const existing = await getExistingXipherSecret();
     const host = (() => { try { return new URL(exchange.providerUrl).host; } catch (e) { return "the provider"; } })();
-    const ok = await askProviderConsent({
-        title: "Use the key from your provider?",
-        // The existing key is never revealed here: this consent runs in a context
-        // reached by an external redirect, so showing or backing up the secret
-        // would widen its exposure. The user manages their own key in the profile.
-        message: existing
-            ? `Accepting this key from ${host} will REPLACE the secret key already in this browser. ` +
-              `Anything encrypted to your current key will no longer be readable here.`
-            : `Set the secret key issued by ${host} as this browser's identity?`,
-        confirmLabel: existing ? "Replace my key" : "Use this key",
-        confirmClass: existing ? "decrypt-button" : "encrypt-button",
-    });
-    if (!ok) {
-        showToast("Kept your existing key. The provider's key was discarded.", "info");
-        return;
+    // Auto-reauth (an ephemeral or expired provider key being silently
+    // re-fetched on load) carries no new decision for the user: they already
+    // consented to this provider when first adopting it, and the redirect
+    // happened without them clicking anything. Skip the consent and install
+    // the refreshed key directly. Explicit, user-initiated flows still ask.
+    if (!exchange.autoReauth) {
+        const ok = await askProviderConsent({
+            title: "Use the key from your provider?",
+            // The existing key is never revealed here: this consent runs in a context
+            // reached by an external redirect, so showing or backing up the secret
+            // would widen its exposure. The user manages their own key in the profile.
+            message: existing
+                ? `Accepting this key from ${host} will REPLACE the secret key already in this browser. ` +
+                  `Anything encrypted to your current key will no longer be readable here.`
+                : `Set the secret key issued by ${host} as this browser's identity?`,
+            confirmLabel: existing ? "Replace my key" : "Use this key",
+            confirmClass: existing ? "decrypt-button" : "encrypt-button",
+        });
+        if (!ok) {
+            showToast("Kept your existing key. The provider's key was discarded.", "info");
+            return false;
+        }
     }
 
     // Store the full provider URL (not just `host`, which is only the consent
@@ -465,6 +492,7 @@ async function completeProviderReturn(ret) {
         delivered.name ? `You're now signed in as ${delivered.name}.` : "Your key from the provider is now active.",
         "success"
     );
+    return true;
 }
 
 // parseSealedIdentity reads the decrypted provider payload. It prefers a JSON
@@ -553,14 +581,20 @@ async function resolveDeliveredKey(delivered) {
 }
 
 // handleProviderFlow is the entry point called from main() after the WASM loads.
-// Returns "redirecting" when navigating away (caller should stop initializing),
-// otherwise null. A provider return is handled inline; the app then continues to
-// initialize normally with the (possibly new) identity.
+// Returns:
+//   "redirecting"   - navigating away to the provider; caller should stop init.
+//   "return-failed" - a provider return came back as an error/cancel, or the
+//                     user declined the returned key; caller should NOT auto-
+//                     reauth this load (that would bounce straight back) and
+//                     should open the Setup/Profile gate instead.
+//   null            - nothing special (no return, or a return that succeeded).
+// A provider return is handled inline; the app then continues to initialize
+// normally with the (possibly new) identity.
 async function handleProviderFlow() {
     const ret = parseProviderReturn();
     if (ret) {
-        await completeProviderReturn(ret);
-        return null;
+        const ok = await completeProviderReturn(ret);
+        return ok ? null : "return-failed";
     }
     const params = new URLSearchParams(window.location.search);
     const rawProviderUrl = params.get("provider");

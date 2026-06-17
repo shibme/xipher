@@ -86,6 +86,12 @@ type rawConfig struct {
 		Key     bool `yaml:"key"`
 		Timeout int  `yaml:"timeout"`
 	} `yaml:"credential"`
+	Login struct {
+		// *int so an unset value is distinguishable from an explicit 0; nil
+		// takes the default, 0 means redirect immediately (no countdown).
+		RedirectDelay *int  `yaml:"redirect_delay"`
+		Remember      *bool `yaml:"remember"`
+	} `yaml:"login"`
 	PostQuantum         bool     `yaml:"post_quantum"`
 	AllowedCallbackURLs []string `yaml:"xipher_urls"`
 }
@@ -124,6 +130,17 @@ type Config struct {
 		Timeout int  // seconds; 0 = ephemeral
 	}
 
+	// Login controls the browser sign-in selector page behavior.
+	Login struct {
+		// RedirectDelay is the number of seconds the redirect overlay counts
+		// down (showing a Cancel button) before navigating to the IdP. 0 means
+		// redirect immediately.
+		RedirectDelay int
+		// Remember toggles the "remember my provider on this device" option on
+		// the multi-provider selector page.
+		Remember bool
+	}
+
 	// PostQuantum controls the kind of public key served by the public /xpk
 	// endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, ECC when
 	// false. It does not affect the sealed-credential flow.
@@ -138,6 +155,10 @@ const (
 	authHeaderCustom = "custom"
 
 	defaultPubKeyPath = "/xpk/"
+
+	// defaultLoginRedirectDelay is the redirect-overlay countdown (seconds) used
+	// when login.redirect_delay is unset.
+	defaultLoginRedirectDelay = 3
 )
 
 // normalizePathPrefix returns a URL path prefix with exactly one leading and
@@ -189,6 +210,19 @@ func LoadConfig(path string) (*Config, error) {
 	c.Credential.Seed = raw.Credential.Seed
 	c.Credential.Key = raw.Credential.Key
 	c.Credential.Timeout = raw.Credential.Timeout
+
+	// Login: unset redirect_delay defaults to defaultLoginRedirectDelay; unset
+	// remember defaults to true (offer the convenience). Explicit values win.
+	if raw.Login.RedirectDelay != nil {
+		c.Login.RedirectDelay = *raw.Login.RedirectDelay
+	} else {
+		c.Login.RedirectDelay = defaultLoginRedirectDelay
+	}
+	if raw.Login.Remember != nil {
+		c.Login.Remember = *raw.Login.Remember
+	} else {
+		c.Login.Remember = true
+	}
 
 	if err := c.validate(); err != nil {
 		return nil, err
@@ -243,6 +277,9 @@ func (c *Config) validate() error {
 	}
 	if len(c.AllowedCallbackURLs) == 0 {
 		return fmt.Errorf("xipher_urls must list at least one URL")
+	}
+	if c.Login.RedirectDelay < 0 || c.Login.RedirectDelay > 60 {
+		return fmt.Errorf("login.redirect_delay must be between 0 and 60 seconds")
 	}
 	return nil
 }

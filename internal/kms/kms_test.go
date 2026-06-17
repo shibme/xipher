@@ -219,11 +219,15 @@ func TestSecurityHeadersLockdown(t *testing.T) {
 		t.Error("missing nosniff")
 	}
 
-	// /consent is exempt from the default CSP (sets its own with a nonce).
+	// The middleware applies the strict default CSP to every path, including the
+	// HTML pages. The /login and /consent handlers overwrite it with their own
+	// nonce-based CSP on the success path; setting the strict default first keeps
+	// any early error response locked down. With a stub inner handler (no
+	// overwrite) the default is what we observe.
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", "/consent", nil))
-	if csp := rec.Header().Get("Content-Security-Policy"); csp != "" {
-		t.Errorf("default CSP should not be set on /consent, got %q", csp)
+	if csp := rec.Header().Get("Content-Security-Policy"); csp != "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" {
+		t.Errorf("expected strict default CSP from middleware, got %q", csp)
 	}
 }
 

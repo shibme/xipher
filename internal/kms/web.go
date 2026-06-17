@@ -7,3 +7,6 @@ var consentPage []byte
 
 //go:embed web/login.html
 var loginPage []byte
+
+//go:embed web/favicon.svg
+var faviconSVG []byte

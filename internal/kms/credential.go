@@ -41,6 +41,11 @@ type credential struct {
 	Name string `json:"name,omitempty"`
 	ID   string `json:"id"`
 	Type string `json:"type"`
+	// Timeout is the credential's validity in SECONDS, relayed to the xipher app
+	// so it knows how long to keep the key. 0 (ephemeral) is meaningful, so the
+	// field is always emitted — the app treats a missing field as 0 too, but
+	// sending it explicitly avoids relying on that default.
+	Timeout int `json:"timeout"`
 }
 
 // secretKeyFromSeed builds a xipher SecretKey from a 64-byte derived seed.

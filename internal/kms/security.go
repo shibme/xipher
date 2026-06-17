@@ -18,12 +18,14 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		// The consent page is the only HTML document served; it sets its own
-		// CSP with a nonce. JSON/text endpoints get a maximally strict CSP that
-		// forbids loading or executing anything.
-		if r.URL.Path != "/consent" {
-			h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
-		}
+		// The HTML page handlers (/login, /consent) overwrite this with their own
+		// nonce-based CSP on the success path; setting the strict default here
+		// first keeps any early error response (e.g. a 400 before the handler
+		// sets its CSP) locked down. Every other endpoint (JSON/text APIs, the
+		// favicon) keeps this strict CSP, which forbids loading or executing
+		// anything — harmless on the favicon, whose rendering is governed by the
+		// embedding page's img-src, not its own response CSP.
+		h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -665,6 +665,22 @@ async function autoDecryptIfCT() {
     }
 }
 
+// pendingAutoReauthUrl returns the provider URL the startup gate would redirect
+// to for an automatic re-auth (an ephemeral or expired provider key whose secret
+// is gone), or null when no redirect is pending. Pure: reads state without
+// consuming it, so main() can decide whether to keep the preloader up BEFORE the
+// gate runs. The gate (ensureLocalIdentity) re-derives the same value and owns
+// the actual redirect; this only mirrors its detection.
+async function pendingAutoReauthUrl() {
+    if (await hasXipherSession()) {
+        return null;
+    }
+    const identity = getIdentity();
+    return (identity.managed && identity.provider !== "passkey")
+        ? identity.provider        // ephemeral: xipherProviderStoreId still holds the URL
+        : getLastProviderUrl();    // expiry: stashed before clearStoredIdentity wiped it
+}
+
 // Drives the startup identity gate for the receiver view. Three cases:
 //  1. A session already exists (persisted key, or in-memory passkey key) -nothing
 //     to do.
@@ -672,7 +688,7 @@ async function autoDecryptIfCT() {
 //     authenticator directly to re-derive the key. If the user cancels or it
 //     fails, fall back to the mandatory Setup modal.
 //  3. Nothing set yet: open the mandatory Setup modal so the user picks a method.
-async function ensureLocalIdentity() {
+async function ensureLocalIdentity(skipReauth = false) {
     if (await hasXipherSession()) {
         return;
     }
@@ -680,18 +696,27 @@ async function ensureLocalIdentity() {
     // Auto-reauth: detect a provider-backed identity whose key is gone —
     // either an ephemeral (timeout=0) key that doesn't survive reload, or a
     // credential that expired and was wiped (provider URL stashed before wipe).
-    const identity = getIdentity();
-    const reauthUrl = (identity.managed && identity.provider !== "passkey")
-        ? identity.provider        // ephemeral: xipherProviderStoreId still holds the URL
-        : getLastProviderUrl();    // expiry: stashed before clearStoredIdentity wiped it
+    // Shared with main()'s pre-gate check so the loader stays up across the
+    // redirect (same detection, single source of truth). skipReauth is set when
+    // we just came back from a failed/cancelled provider return — re-redirecting
+    // would bounce the user straight back, so we fall through to Setup instead.
+    const reauthUrl = skipReauth ? null : await pendingAutoReauthUrl();
     if (reauthUrl) {
         // The stored value is the full provider URL captured at setup time, so it
         // already carries the right scheme (http for loopback dev, https otherwise)
         // and path. Pass it through unchanged; initiateProviderFlow re-validates it.
         clearLastProviderUrl(); // consume stash regardless of flow outcome
-        await initiateProviderFlow(reauthUrl, false);
-        // On success, initiateProviderFlow navigates away via window.location.replace —
-        // execution stops there. On cancel/failure it returns null; fall through to Setup.
+        // autoReauth=true: this redirect happens without an explicit user click,
+        // so the return path skips the "use this key?" consent.
+        const result = await initiateProviderFlow(reauthUrl, false, true);
+        // "redirecting" means the overlay committed the navigation; the page is
+        // tearing down, so return without opening any modal (it would flash over
+        // the redirect). Anything else — invalid URL, declined trust, or the user
+        // hitting Cancel on the countdown — falls through to the Setup modal so a
+        // key can still be set manually.
+        if (result === "redirecting") {
+            return;
+        }
         await openKeyModal(true);
         return;
     }
@@ -722,6 +747,89 @@ function hidePreloader() {
     setTimeout(() => preLoader.remove(), PRELOADER_FADE_MS);
 }
 
+// Seconds the redirect overlay stays up, counting down, before navigating. Long
+// enough to read the destination and hit Cancel; short enough not to feel stuck.
+const REDIRECT_DELAY_SECONDS = 3;
+
+// showRedirecting keeps the preloader up (or brings it back) and swaps its text
+// to tell the user a navigation to an external credential provider is underway,
+// so the brief blank moment before window.location.replace isn't unexplained.
+function showRedirecting(message) {
+    if (!preLoader) {
+        return;
+    }
+    if (!preLoader.isConnected) {
+        document.body.appendChild(preLoader);
+    }
+    preLoader.classList.remove("hidden");
+    const text = preLoader.querySelector(".preloader-text");
+    if (text) {
+        text.textContent = message || "Redirecting…";
+    }
+}
+
+// redirectWithCancel shows the redirect overlay with a live countdown and a
+// Cancel button, then navigates to `target` when the countdown elapses. The user
+// can cancel within the window. Returns a promise that resolves "redirecting"
+// once navigation is committed, or "cancelled" if the user backs out (the caller
+// then cleans up and falls through to the normal gate). `label` is the message
+// shown above the countdown (e.g. "Redirecting to provider.example…").
+function redirectWithCancel(target, label, onCancel) {
+    return new Promise((resolve) => {
+        const text = preLoader && preLoader.querySelector(".preloader-text");
+        const cancelBtn = document.getElementById("preloader-cancel");
+        showRedirecting(label);
+
+        let remaining = REDIRECT_DELAY_SECONDS;
+        let timer = null;
+
+        const render = () => {
+            if (text) {
+                text.textContent = `${label} (${remaining})`;
+            }
+        };
+
+        const cleanup = () => {
+            if (timer !== null) {
+                clearInterval(timer);
+                timer = null;
+            }
+            if (cancelBtn) {
+                cancelBtn.hidden = true;
+                cancelBtn.onclick = null;
+            }
+        };
+
+        if (cancelBtn) {
+            cancelBtn.hidden = false;
+            cancelBtn.onclick = () => {
+                cleanup();
+                if (typeof onCancel === "function") {
+                    onCancel();
+                }
+                resolve("cancelled");
+            };
+        }
+
+        render();
+        timer = setInterval(() => {
+            remaining -= 1;
+            if (remaining > 0) {
+                render();
+                return;
+            }
+            // Final tick: commit the navigation. Drop the countdown suffix and
+            // keep the cancel button hidden — we're leaving now.
+            cleanup();
+            if (text) {
+                text.textContent = label;
+            }
+            window.location.replace(target);
+            resolve("redirecting");
+        }, 1000);
+    });
+}
+
 async function main() {
     if (redirecting) {
         // We're navigating to the /resolve/ page; don't initialize the app.
@@ -745,9 +853,16 @@ async function main() {
     // The credential-provider flow may redirect away (when initiating) or update
     // the stored identity in place (on return). Run it before deriving the public
     // key so a freshly delivered key is reflected immediately.
-    if (await handleProviderFlow() === "redirecting") {
+    const providerFlow = await handleProviderFlow();
+    if (providerFlow === "redirecting") {
         return;
     }
+    // A failed/cancelled provider return (the provider or user declined). The
+    // stored identity may still point at that provider, so auto-reauth would
+    // immediately bounce the user straight back into the flow they just left.
+    // Suppress auto-reauth for THIS load and let the gate open Setup/Profile
+    // instead; a later deliberate reload can retry.
+    const skipReauth = providerFlow === "return-failed";
     await refreshIdentity();
     initApp();
     // Passkey UI needs WASM loaded (genXipherSecretKeyFromSeed) and a platform
@@ -756,10 +871,22 @@ async function main() {
     if (typeof initPasskeyUI === "function") {
         initPasskeyUI();
     }
-    // Hide the preloader BEFORE the identity gate. ensureLocalIdentity may block on
-    // the mandatory Setup modal, which the user can only complete once it's visible
-    // -leaving the preloader up here would cover the modal and deadlock the load.
-    hidePreloader();
+    // Decide the redirect BEFORE touching the preloader. When an automatic
+    // provider re-auth is pending, the gate will navigate away to the provider;
+    // keep the loader up and swap its text to "Redirecting…" so the home page
+    // never flashes in the gap before navigation (which could invite a stray
+    // click). Otherwise hide it: ensureLocalIdentity may block on the mandatory
+    // Setup modal, which can only be completed once visible — leaving the loader
+    // up there would cover the modal and deadlock the load. (openKeyModal also
+    // hides it defensively, covering provider-flow declines that fall to Setup.)
+    const reauthUrl = (!xk && !skipReauth) ? await pendingAutoReauthUrl() : null;
+    if (reauthUrl) {
+        let host = "your provider";
+        try { host = new URL(reauthUrl).host; } catch (e) { /* keep fallback */ }
+        showRedirecting(`Redirecting to ${host}…`);
+    } else {
+        hidePreloader();
+    }
     // Gate the receiver view on having a key: a fresh browser must consciously
     // set one (no silently-generated random secret). A non-persisted passkey
     // identity must be re-unlocked on every open, since its key lives only in
@@ -770,7 +897,7 @@ async function main() {
     // browser shows Setup (or the passkey-unlock prompt) first, then decrypts once
     // a key exists - rather than firing decryption immediately and failing.
     if (!xk) {
-        await ensureLocalIdentity();
+        await ensureLocalIdentity(skipReauth);
     }
     await autoDecryptIfCT();
 }

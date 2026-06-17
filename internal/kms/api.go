@@ -29,6 +29,15 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "ok")
 }
 
+// handleFavicon serves the embedded xipher logo as the site favicon. The login
+// and consent pages reference it via /favicon.svg; their CSP allows img-src
+// 'self' so the same-origin fetch is permitted.
+func (s *Server) handleFavicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Write(faviconSVG)
+}
+
 // handleRoot redirects the site root to /login, preserving any query params
 // (xpk, xcb, state, provider) so the xipher app can point at the bare host.
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +71,19 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !s.callbackAllowed(xcb) {
 		http.Error(w, "callback url not allowed", http.StatusBadRequest)
+		return
+	}
+
+	// Cancel from the provider selector: no IdP has been chosen and no state has
+	// been created yet, so just bounce back to the (already-validated) xipher
+	// callback with a "denied" signal. xpk/xcb were validated above.
+	if q.Get("cancel") != "" {
+		frag := url.Values{}
+		frag.Set("xe", "denied")
+		if xst != "" {
+			frag.Set("state", xst)
+		}
+		http.Redirect(w, r, strings.TrimRight(xcb, "/")+"#"+frag.Encode(), http.StatusFound)
 		return
 	}
 
@@ -118,9 +140,18 @@ func (s *Server) handleLoginSelector(w http.ResponseWriter, r *http.Request, xpk
 	}
 	params.Set(providerParamXCB, xcb)
 
+	loginJSON, _ := json.Marshal(struct {
+		RedirectDelay int  `json:"redirectDelay"`
+		Remember      bool `json:"remember"`
+	}{
+		RedirectDelay: s.cfg.Login.RedirectDelay,
+		Remember:      s.cfg.Login.Remember,
+	})
+
 	inject := `<script nonce="` + nonce + `">` +
 		`window.__XKMS_PROVIDERS__=` + scriptSafeJSON(providersJSON) + `;` +
 		`window.__XKMS_PARAMS__=` + scriptSafeJSON([]byte(`"`+params.Encode()+`"`)) + `;` +
+		`window.__XKMS_LOGIN__=` + scriptSafeJSON(loginJSON) + `;` +
 		`</script>` + "\n"
 
 	page := strings.Replace(string(loginPage), "<script>", `<script nonce="`+nonce+`">`, 1)
@@ -129,6 +160,7 @@ func (s *Server) handleLoginSelector(w http.ResponseWriter, r *http.Request, xpk
 		"default-src 'none'; "+
 			"script-src 'nonce-"+nonce+"'; "+
 			"style-src 'unsafe-inline'; "+
+			"img-src 'self'; "+
 			"base-uri 'none'; "+
 			"frame-ancestors 'none'; "+
 			"form-action 'self'")
@@ -413,7 +445,7 @@ func (s *Server) resolveEntityID(auth *authenticator, claims map[string]any, ent
 
 // buildCredential encodes the derived seed into the fields enabled by config.
 func (s *Server) buildCredential(seed []byte, entityType, entityID, name string) (*credential, error) {
-	cred := &credential{Type: entityType, ID: entityID, Name: name}
+	cred := &credential{Type: entityType, ID: entityID, Name: name, Timeout: s.cfg.Credential.Timeout}
 	if s.cfg.Credential.Seed {
 		cred.Seed = base64.StdEncoding.EncodeToString(seed)
 	}
@@ -429,6 +461,29 @@ func (s *Server) buildCredential(seed []byte, entityType, entityID, name string)
 		cred.Key = keyStr
 	}
 	return cred, nil
+}
+
+// handleCancel aborts an in-flight browser flow from the consent page. It
+// consumes the state (so it can't be reused), then redirects the browser back to
+// the xipher app's callback with an error fragment (xe=denied), which the app
+// surfaces as "the provider denied the request" and falls back to manual setup.
+// State is single-use and short-lived, so a missing/expired one just lands the
+// user on a neutral page rather than leaking anything.
+func (s *Server) handleCancel(w http.ResponseWriter, r *http.Request) {
+	stateID := r.URL.Query().Get(queryState)
+	st, ok := s.takeState(stateID)
+	if !ok {
+		// Nothing actionable to redirect to; the flow is already dead.
+		http.Error(w, "invalid or expired state", http.StatusBadRequest)
+		return
+	}
+	frag := url.Values{}
+	frag.Set("xe", "denied")
+	if st.state != "" {
+		frag.Set("state", st.state)
+	}
+	redirect := strings.TrimRight(st.xcb, "/") + "#" + frag.Encode()
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 // respondSealed seals the credential JSON to the ephemeral xpk stored under

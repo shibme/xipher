@@ -38,6 +38,9 @@
             <div class="preloader-spinner"></div>
         </div>
         <p class="preloader-text">Loading Xipher</p>
+        <!-- Shown only during a delayed redirect to a credential provider, so the
+             user can read where they're going and bail before navigation. -->
+        <button type="button" id="preloader-cancel" class="preloader-cancel" hidden>Cancel</button>
     </div>
 
     <!-- Top navigation bar -->

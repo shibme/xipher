@@ -61,6 +61,17 @@ credential:
   key: true             # include the XSK_-prefixed key
   timeout: 604800       # seconds; 0 = ephemeral
 
+# Browser sign-in page behavior (the provider selector shown when more than one
+# provider is configured).
+login:
+  # Seconds the redirect overlay counts down (with a Cancel button) before
+  # navigating to the IdP. 0 = redirect immediately, no countdown. Default 3.
+  redirect_delay: 3
+  # Offer a "remember my provider on this device" option. When set, a returning
+  # user skips the selector and sees a "Signing you in with <provider>…"
+  # interstitial with Cancel / Choose another. Default true.
+  remember: true
+
 # Public key kind served by the public /xpk/<provider>/<type>/<id>/.well-known/xipher
 # endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, else ECC.
 post_quantum: false

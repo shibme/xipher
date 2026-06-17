@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Xipher KMS · Sign in</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <style>
 :root {
   --brand-1: #00ddff;
@@ -94,6 +96,46 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   background: var(--surface-color);
 }
 .err { color: var(--error-color); font-size: .85rem; margin-top: 1rem; min-height: 1rem; }
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1rem;
+  background: var(--bg-color);
+  background-image: var(--bg-accent);
+  color: var(--text-muted); font-size: .95rem;
+}
+.overlay.show { display: flex; }
+.spinner {
+  width: 38px; height: 38px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--brand-2);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay-actions { display: flex; gap: .75rem; margin-top: .25rem; }
+.overlay-btn {
+  padding: .55rem 1.1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill, 999px);
+  background: transparent; color: var(--text-muted);
+  font-family: inherit; font-size: .85rem; cursor: pointer;
+  transition: border-color .15s var(--ease), color .15s var(--ease);
+}
+.overlay-btn:hover { border-color: var(--border-strong); color: var(--text-color); }
+.remember {
+  display: flex; align-items: center; gap: .5rem;
+  margin-top: 1rem; font-size: .85rem; color: var(--text-muted);
+  cursor: pointer;
+}
+.remember input { accent-color: var(--brand-2); width: .95rem; height: .95rem; }
+.cancel-link {
+  display: block; width: 100%; margin-top: 1rem; padding: .6rem;
+  background: transparent; border: none;
+  color: var(--text-muted); font-family: inherit; font-size: .85rem;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.cancel-link:hover { color: var(--text-color); }
 </style>
 </head>
 <body>
@@ -117,28 +159,181 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   <h1>Sign in</h1>
   <p class="sub">Choose an identity provider to continue.</p>
   <div class="providers" id="providers"></div>
+  <label class="remember" id="remember-row" hidden>
+    <input type="checkbox" id="remember"> Remember my choice on this device
+  </label>
+  <button type="button" class="cancel-link" id="cancel" hidden>Cancel and return to the app</button>
   <p class="err" id="err"></p>
+</div>
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-text">Redirecting to your provider…</p>
+  <div class="overlay-actions">
+    <button type="button" class="overlay-btn" id="overlay-cancel">Cancel</button>
+    <button type="button" class="overlay-btn" id="overlay-choose" hidden>Choose another</button>
+  </div>
 </div>
 <script>
 const PROVIDERS = window.__XKMS_PROVIDERS__ || [];
 const PARAMS = window.__XKMS_PARAMS__ || "";
+const LOGIN = window.__XKMS_LOGIN__ || {};
+
+// Seconds the redirect overlay counts down before navigating to the IDP (server-
+// configured via login.redirect_delay; 0 = redirect immediately). Gives the user
+// time to read where they're going and cancel.
+const REDIRECT_DELAY_SECONDS = Number.isInteger(LOGIN.redirectDelay) ? LOGIN.redirectDelay : 3;
+// Whether the "remember my provider" option is offered (login.remember).
+const REMEMBER_ENABLED = LOGIN.remember !== false;
+// Client-side "remember my provider" marker. Scoped to the chosen provider only
+// (NOT the IDP session, which the IDP owns); lets repeat visits skip the picker.
+const REMEMBER_COOKIE = "xkms_remember_provider";
+const REMEMBER_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
+
+function readRemembered() {
+  const m = document.cookie.match(/(?:^|;\s*)xkms_remember_provider=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : "";
+}
+function setRemembered(name) {
+  document.cookie = REMEMBER_COOKIE + "=" + encodeURIComponent(name) +
+    ";path=/;max-age=" + REMEMBER_MAX_AGE + ";SameSite=Lax";
+}
+function clearRemembered() {
+  document.cookie = REMEMBER_COOKIE + "=;path=/;max-age=0;SameSite=Lax";
+}
+
+function providerHref(name) {
+  return "/login?" + PARAMS + "&provider=" + encodeURIComponent(name);
+}
 
 (function init() {
   const err = document.getElementById("err");
   const container = document.getElementById("providers");
+  const rememberRow = document.getElementById("remember-row");
+  const rememberBox = document.getElementById("remember");
+  const overlay = document.getElementById("overlay");
+  const overlayText = document.getElementById("overlay-text");
+  const cancelBtn = document.getElementById("overlay-cancel");
+  const chooseBtn = document.getElementById("overlay-choose");
+  const abortBtn = document.getElementById("cancel");
+
+  // Cancel the whole flow: bounce back to the (server-validated) xipher app
+  // with a "denied" signal. No provider chosen yet and no state created, so the
+  // server rebuilds the callback from the xpk/xcb query it already validated.
+  abortBtn.addEventListener("click", function() {
+    overlayText.textContent = "Returning you to the app…";
+    overlay.classList.add("show");
+    window.location.href = "/login?" + PARAMS + "&cancel=1";
+  });
 
   if (!PROVIDERS.length) {
     err.textContent = "No identity providers configured.";
     return;
   }
 
-  PROVIDERS.forEach(function(p) {
-    const a = document.createElement("a");
-    a.className = "provider-btn";
-    a.textContent = p.name;
-    a.href = "/login?" + PARAMS + "&provider=" + encodeURIComponent(p.name);
-    container.appendChild(a);
-  });
+  let countdownTimer = null;
+
+  function stopCountdown() {
+    if (countdownTimer !== null) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }
+
+  function navigate(name, remember) {
+    if (remember) setRemembered(name);
+    window.location.href = providerHref(name);
+  }
+
+  // beginRedirect shows the redirect overlay, then navigates to the chosen
+  // provider. With REDIRECT_DELAY_SECONDS > 0 it runs a Cancel-able countdown;
+  // with 0 it navigates immediately (overlay still flashes as a loader).
+  // `showChoose` adds a "Choose another" action (used by the remembered
+  // interstitial). onCancel/onChoose let the caller decide what cancelling means.
+  function beginRedirect(name, opts) {
+    opts = opts || {};
+    const label = opts.label || ("Redirecting to " + name);
+    overlay.classList.add("show");
+
+    if (REDIRECT_DELAY_SECONDS <= 0) {
+      // No countdown: no cancel affordance, go now.
+      overlayText.textContent = label;
+      cancelBtn.hidden = true;
+      chooseBtn.hidden = true;
+      navigate(name, opts.remember);
+      return;
+    }
+
+    cancelBtn.hidden = false;
+    chooseBtn.hidden = !opts.showChoose;
+
+    let remaining = REDIRECT_DELAY_SECONDS;
+    const render = function() { overlayText.textContent = label + " (" + remaining + ")"; };
+    render();
+
+    cancelBtn.onclick = function() {
+      stopCountdown();
+      overlay.classList.remove("show");
+      if (typeof opts.onCancel === "function") opts.onCancel();
+    };
+    chooseBtn.onclick = function() {
+      stopCountdown();
+      overlay.classList.remove("show");
+      if (typeof opts.onChoose === "function") opts.onChoose();
+    };
+
+    countdownTimer = setInterval(function() {
+      remaining -= 1;
+      if (remaining > 0) { render(); return; }
+      stopCountdown();
+      overlayText.textContent = label;
+      navigate(name, opts.remember);
+    }, 1000);
+  }
+
+  // Render the provider list. Each row starts the (possibly delayed) redirect;
+  // the "remember" checkbox (when enabled + ticked) persists the choice.
+  function renderPicker() {
+    rememberRow.hidden = !REMEMBER_ENABLED;
+    abortBtn.hidden = false;
+    PROVIDERS.forEach(function(p) {
+      const a = document.createElement("a");
+      a.className = "provider-btn";
+      a.textContent = p.name;
+      a.href = providerHref(p.name);
+      a.addEventListener("click", function(e) {
+        e.preventDefault();
+        beginRedirect(p.name, {
+          remember: REMEMBER_ENABLED && rememberBox.checked,
+          onCancel: function() { /* stay on the picker */ },
+        });
+      });
+      container.appendChild(a);
+    });
+  }
+
+  // If remembering is enabled and a remembered provider is still configured,
+  // skip the picker and show an interstitial that auto-continues but offers an
+  // escape hatch.
+  const remembered = REMEMBER_ENABLED ? readRemembered() : "";
+  const known = remembered && PROVIDERS.some(function(p) { return p.name === remembered; });
+  if (known) {
+    beginRedirect(remembered, {
+      label: "Signing you in with " + remembered,
+      showChoose: true,
+      remember: true, // refresh the cookie's lifetime on use
+      // Cancel / Choose another: clear the remembered choice, show the picker.
+      onCancel: function() { clearRemembered(); renderPicker(); },
+      onChoose: function() { clearRemembered(); renderPicker(); },
+    });
+    return;
+  }
+
+  // Stale remembered name (provider removed), or remembering disabled with a
+  // lingering cookie: drop it silently.
+  if (remembered && !known) {
+    clearRemembered();
+  }
+  renderPicker();
 })();
 </script>
 </body>

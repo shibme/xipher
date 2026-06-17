@@ -47,6 +47,16 @@ data:
       key: {{ .Values.config.credential.key }}
       timeout: {{ .Values.config.credential.timeout }}
 
+    {{- with .Values.config.login }}
+    login:
+      {{- if hasKey . "redirect_delay" }}
+      redirect_delay: {{ .redirect_delay }}
+      {{- end }}
+      {{- if hasKey . "remember" }}
+      remember: {{ .remember }}
+      {{- end }}
+    {{- end }}
+
     post_quantum: {{ .Values.config.post_quantum }}
 
     {{- if not .Values.config.xipher_urls }}
