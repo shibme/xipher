@@ -16,19 +16,23 @@ data:
     pubkey_path: {{ . | quote }}
     {{- end }}
 
+    {{- if not .Values.config.providers }}
+    {{- fail "config.providers must define at least one OIDC provider" }}
+    {{- end }}
     providers:
+      {{- $extURL := required "config.external_url is required" .Values.config.external_url }}
       {{- range $id, $p := .Values.config.providers }}
       {{ $id }}:
         name: {{ $p.name | quote }}
-        issuer_url: {{ $p.issuer_url | quote }}
-        client_id: {{ $p.client_id | quote }}
+        issuer_url: {{ required (printf "config.providers.%s.issuer_url is required" $id) $p.issuer_url | quote }}
+        client_id: {{ required (printf "config.providers.%s.client_id is required" $id) $p.client_id | quote }}
         client_secret:
-          {{- if $p.client_secret.env }}
+          {{- if and $p.client_secret $p.client_secret.env }}
           env: {{ $p.client_secret.env | quote }}
-          {{- else if $p.client_secret.file }}
+          {{- else if and $p.client_secret $p.client_secret.file }}
           file: {{ $p.client_secret.file | quote }}
           {{- end }}
-        redirect_uri: {{ printf "%s/callback" ($.Values.config.external_url | trimSuffix "/") | quote }}
+        redirect_uri: {{ printf "%s/callback" ($extURL | trimSuffix "/") | quote }}
         scopes:
           {{- toYaml $p.scopes | nindent 10 }}
         use_pkce: {{ $p.use_pkce }}
@@ -47,5 +51,8 @@ data:
 
     post_quantum: {{ .Values.config.post_quantum }}
 
+    {{- if not .Values.config.xipher_urls }}
+    {{- fail "config.xipher_urls must list at least one allowed origin" }}
+    {{- end }}
     xipher_urls:
       {{- toYaml .Values.config.xipher_urls | nindent 6 }}

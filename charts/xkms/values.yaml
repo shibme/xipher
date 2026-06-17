@@ -7,10 +7,11 @@ replicaCount: 1
 
 # xkms configuration - rendered into /etc/xkms/config.yaml inside the container
 config:
-  # Public base URL of this XKMS deployment (scheme + host, no trailing slash).
+  # REQUIRED. Public base URL of this XKMS deployment (scheme + host, no trailing slash).
   # The chart derives redirect_uri for each provider by appending /callback.
   # Register "<external_url>/callback" as the redirect URI with every IdP.
-  external_url: "https://xkms.example.com"
+  # Example: https://xkms.example.com
+  external_url: ""
 
   # Path to the master seed file inside the container.
   # The chart mounts an in-memory emptyDir (named "xipher-run") at the parent
@@ -23,30 +24,29 @@ config:
   # defaults to /xpk/ when unset. Routing only - does not affect key derivation.
   pubkey_path: ""
 
-  # OIDC identity providers keyed by a URL-safe ID. The key is used in
+  # REQUIRED. OIDC identity providers keyed by a URL-safe ID. The key is used in
   # /xpk/{id}/… paths and as part of HKDF key derivation. With a single
-  # provider the sign-in selector page is skipped entirely.
+  # provider the sign-in selector page is skipped entirely. At least one
+  # provider is required; each must set issuer_url and client_id.
   #
   # Supply client secrets via extraEnv and reference the env var name here.
-  providers:
-    corp-sso:
-      name: "Corporate SSO"
-      issuer_url: ""
-      client_id: ""
-      client_secret:
-        env: XKMS_OIDC_CLIENT_SECRET  # injected via extraEnv
-      scopes:
-        - openid
-        - profile
-        - email
-        - groups
-      use_pkce: false
-      claims:
-        user: email      # single-value claim
-        group: groups    # array-value claim, one identity per element
-        service: sub     # single-value claim
-
-  # Add more providers as needed:
+  providers: {}
+  # corp-sso:
+  #   name: "Corporate SSO"
+  #   issuer_url: "https://accounts.example.com"   # required
+  #   client_id: "xkms"                            # required
+  #   client_secret:
+  #     env: XKMS_OIDC_CLIENT_SECRET  # injected via extraEnv
+  #   scopes:
+  #     - openid
+  #     - profile
+  #     - email
+  #     - groups
+  #   use_pkce: false
+  #   claims:
+  #     user: email      # single-value claim
+  #     group: groups    # array-value claim, one identity per element
+  #     service: sub     # single-value claim
   # github:
   #   name: "GitHub Actions"
   #   issuer_url: "https://token.actions.githubusercontent.com"
@@ -73,9 +73,10 @@ config:
   # Serve quantum-safe hybrid public keys (X25519 + ML-KEM-1024) instead of ECC-only.
   post_quantum: true  # true | false
 
-  # Allowed xipher app origins for the xcb (callback) parameter. Matched by scheme+host.
-  xipher_urls:
-    - https://xipher.org
+  # REQUIRED. Allowed xipher app origins for the xcb (callback) parameter.
+  # Matched by scheme+host. At least one entry is required.
+  xipher_urls: []
+  # - https://xipher.org
 
 service:
   type: ClusterIP  # ClusterIP | NodePort | LoadBalancer
