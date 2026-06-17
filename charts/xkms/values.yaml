@@ -29,17 +29,17 @@ config:
   # provider the sign-in selector page is skipped entirely. At least one
   # provider is required; each must set issuer_url and client_id.
   #
-  # The client secret is pulled from a Kubernetes Secret via client_secret.secretRef;
-  # the chart wires it into a per-provider env var automatically.
+  # The client secret is pulled from a Kubernetes Secret via clientSecretRef;
+  # the chart wires it into a per-provider env var automatically. Omit it for
+  # public/PKCE clients that have no secret.
   providers: {}
   # corp-sso:
   #   name: "Corporate SSO"
   #   issuer_url: "https://accounts.example.com"   # required
   #   client_id: "xkms"                            # required
-  #   client_secret:
-  #     secretRef:
-  #       name: xkms-oidc        # Kubernetes Secret name
-  #       key: client_secret     # key within the Secret
+  #   clientSecretRef:
+  #     name: xkms-oidc          # Kubernetes Secret name
+  #     key: client_secret       # key within the Secret
   #   scopes:
   #     - openid
   #     - profile
@@ -54,10 +54,9 @@ config:
   #   name: "GitHub Actions"
   #   issuer_url: "https://token.actions.githubusercontent.com"
   #   client_id: "xkms-gh"
-  #   client_secret:
-  #     secretRef:
-  #       name: xkms-github
-  #       key: client_secret
+  #   clientSecretRef:
+  #     name: xkms-github
+  #     key: client_secret
   #   scopes: [openid]
   #   claims:
   #     service: sub

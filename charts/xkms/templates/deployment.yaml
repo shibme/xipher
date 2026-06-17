@@ -50,8 +50,8 @@ spec:
               protocol: TCP
           {{- $secretEnvs := list }}
           {{- range $id, $p := .Values.config.providers }}
-          {{- if and $p.client_secret $p.client_secret.secretRef $p.client_secret.secretRef.name }}
-          {{- $secretEnvs = append $secretEnvs (dict "id" $id "ref" $p.client_secret.secretRef) }}
+          {{- if and $p.clientSecretRef $p.clientSecretRef.name }}
+          {{- $secretEnvs = append $secretEnvs (dict "id" $id "ref" $p.clientSecretRef) }}
           {{- end }}
           {{- end }}
           {{- with $secretEnvs }}
@@ -61,7 +61,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .ref.name | quote }}
-                  key: {{ required (printf "config.providers.%s.client_secret.secretRef.key is required" .id) .ref.key | quote }}
+                  key: {{ required (printf "config.providers.%s.clientSecretRef.key is required" .id) .ref.key | quote }}
             {{- end }}
           {{- end }}
           {{- with .Values.resources }}

@@ -1115,11 +1115,10 @@ helm install xkms xipher/xkms</code></pre>
       name: "Corporate SSO"
       issuer_url: https://accounts.example.com
       client_id: xkms
-      client_secret:
-        # Pulled from a Kubernetes Secret; the chart wires the env var automatically.
-        secretRef:
-          name: xkms-oidc
-          key: client_secret
+      # Pulled from a Kubernetes Secret; the chart wires the env var automatically.
+      clientSecretRef:
+        name: xkms-oidc
+        key: client_secret
       scopes: [openid, profile, email, groups]
       claims:
         user: email
@@ -1131,10 +1130,9 @@ helm install xkms xipher/xkms</code></pre>
     #   name: "GitHub Actions"
     #   issuer_url: https://token.actions.githubusercontent.com
     #   client_id: xkms-gh
-    #   client_secret:
-    #     secretRef:
-    #       name: xkms-github
-    #       key: client_secret
+    #   clientSecretRef:
+    #     name: xkms-github
+    #     key: client_secret
     #   scopes: [openid]
     #   claims:
     #     service: sub
