@@ -29,14 +29,17 @@ config:
   # provider the sign-in selector page is skipped entirely. At least one
   # provider is required; each must set issuer_url and client_id.
   #
-  # Supply client secrets via extraEnv and reference the env var name here.
+  # The client secret is pulled from a Kubernetes Secret via client_secret.secretRef;
+  # the chart wires it into a per-provider env var automatically.
   providers: {}
   # corp-sso:
   #   name: "Corporate SSO"
   #   issuer_url: "https://accounts.example.com"   # required
   #   client_id: "xkms"                            # required
   #   client_secret:
-  #     env: XKMS_OIDC_CLIENT_SECRET  # injected via extraEnv
+  #     secretRef:
+  #       name: xkms-oidc        # Kubernetes Secret name
+  #       key: client_secret     # key within the Secret
   #   scopes:
   #     - openid
   #     - profile
@@ -52,7 +55,9 @@ config:
   #   issuer_url: "https://token.actions.githubusercontent.com"
   #   client_id: "xkms-gh"
   #   client_secret:
-  #     env: XKMS_GITHUB_SECRET
+  #     secretRef:
+  #       name: xkms-github
+  #       key: client_secret
   #   scopes: [openid]
   #   claims:
   #     service: sub
@@ -140,16 +145,6 @@ extraVolumes: []
 #     items:
 #       - key: seed
 #         path: xkms.seed
-
-# Extra environment variables injected into the xkms container. Use this to supply
-# OIDC client secrets from Kubernetes Secrets - reference the same env var name in
-# providers[*].client_secret.env in the config section above.
-extraEnv: []
-# - name: XKMS_OIDC_CLIENT_SECRET
-#   valueFrom:
-#     secretKeyRef:
-#       name: xkms-oidc
-#       key: client_secret
 
 serviceAccount:
   create: false  # set true to create a dedicated ServiceAccount

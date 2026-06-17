@@ -27,10 +27,8 @@ data:
         issuer_url: {{ required (printf "config.providers.%s.issuer_url is required" $id) $p.issuer_url | quote }}
         client_id: {{ required (printf "config.providers.%s.client_id is required" $id) $p.client_id | quote }}
         client_secret:
-          {{- if and $p.client_secret $p.client_secret.env }}
-          env: {{ $p.client_secret.env | quote }}
-          {{- else if and $p.client_secret $p.client_secret.file }}
-          file: {{ $p.client_secret.file | quote }}
+          {{- if and $p.client_secret $p.client_secret.secretRef $p.client_secret.secretRef.name }}
+          env: {{ include "xkms.providerSecretEnv" $id | quote }}
           {{- end }}
         redirect_uri: {{ printf "%s/callback" ($extURL | trimSuffix "/") | quote }}
         scopes:

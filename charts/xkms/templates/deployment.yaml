@@ -48,9 +48,21 @@ spec:
             - name: https
               containerPort: 8080
               protocol: TCP
-          {{- with .Values.extraEnv }}
+          {{- $secretEnvs := list }}
+          {{- range $id, $p := .Values.config.providers }}
+          {{- if and $p.client_secret $p.client_secret.secretRef $p.client_secret.secretRef.name }}
+          {{- $secretEnvs = append $secretEnvs (dict "id" $id "ref" $p.client_secret.secretRef) }}
+          {{- end }}
+          {{- end }}
+          {{- with $secretEnvs }}
           env:
-            {{- toYaml . | nindent 12 }}
+            {{- range . }}
+            - name: {{ include "xkms.providerSecretEnv" .id | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .ref.name | quote }}
+                  key: {{ required (printf "config.providers.%s.client_secret.secretRef.key is required" .id) .ref.key | quote }}
+            {{- end }}
           {{- end }}
           {{- with .Values.resources }}
           resources:

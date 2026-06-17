@@ -1116,7 +1116,10 @@ helm install xkms xipher/xkms</code></pre>
       issuer_url: https://accounts.example.com
       client_id: xkms
       client_secret:
-        env: XKMS_OIDC_CLIENT_SECRET   # injected via extraEnv below
+        # Pulled from a Kubernetes Secret; the chart wires the env var automatically.
+        secretRef:
+          name: xkms-oidc
+          key: client_secret
       scopes: [openid, profile, email, groups]
       claims:
         user: email
@@ -1129,22 +1132,15 @@ helm install xkms xipher/xkms</code></pre>
     #   issuer_url: https://token.actions.githubusercontent.com
     #   client_id: xkms-gh
     #   client_secret:
-    #     env: XKMS_GITHUB_SECRET
+    #     secretRef:
+    #       name: xkms-github
+    #       key: client_secret
     #   scopes: [openid]
     #   claims:
     #     service: sub
 
   xipher_urls:
-    - https://xipher.org
-
-# Inject OIDC client secrets from Kubernetes Secrets as env vars.
-# Reference the same env var name in providers[*].client_secret.env above.
-extraEnv:
-  - name: XKMS_OIDC_CLIENT_SECRET
-    valueFrom:
-      secretKeyRef:
-        name: xkms-oidc
-        key: client_secret</code></pre>
+    - https://xipher.org</code></pre>
                     <h4>Seed injection</h4>
                     <p>The master seed must reach the container as a file at the path set in
                         <code>config.seed_file</code> (default <code>/var/run/xkms/seed</code>).

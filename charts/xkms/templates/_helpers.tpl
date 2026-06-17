@@ -66,3 +66,12 @@ Container image reference.
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
 {{- printf "%s:%s" .Values.image.repository $tag }}
 {{- end }}
+
+{{/*
+Env var name carrying a provider's OIDC client secret.
+Derived from the provider ID so it is stable and valid as a shell identifier.
+Usage: include "xkms.providerSecretEnv" "corp-sso" -> XKMS_SECRET_CORP_SSO
+*/}}
+{{- define "xkms.providerSecretEnv" -}}
+{{- printf "XKMS_SECRET_%s" (. | upper | replace "-" "_" | replace "." "_") }}
+{{- end }}
