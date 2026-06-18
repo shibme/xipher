@@ -59,8 +59,15 @@ data:
 
     post_quantum: {{ .Values.config.post_quantum }}
 
-    {{- if not .Values.config.xipher_urls }}
-    {{- fail "config.xipher_urls must list at least one allowed origin" }}
+    {{- $xipherURLs := default dict .Values.config.xipher_urls }}
+    {{- if and (not $xipherURLs.default) (not $xipherURLs.allowed) }}
+    {{- fail "config.xipher_urls.default or config.xipher_urls.allowed must list at least one xipher app URL" }}
     {{- end }}
     xipher_urls:
-      {{- toYaml .Values.config.xipher_urls | nindent 6 }}
+      {{- with $xipherURLs.default }}
+      default: {{ . | quote }}
+      {{- end }}
+      {{- with $xipherURLs.allowed }}
+      allowed:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

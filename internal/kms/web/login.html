@@ -286,21 +286,22 @@ function providerHref(name) {
   // interstitial). onCancel/onChoose let the caller decide what cancelling means.
   function beginRedirect(name, opts) {
     opts = opts || {};
-    const label = opts.label || ("Redirecting to " + name);
+    const prefix = opts.prefix || "Redirecting to";
+    const providerName = opts.provider || name;
     overlay.classList.add("show");
 
     const render = function(remaining) {
       overlayText.textContent = "";
-      if (opts.prefix && opts.provider) {
-        overlayText.append(document.createTextNode(opts.prefix + " "));
+      if (prefix && providerName) {
+        overlayText.append(document.createTextNode(prefix + " "));
         const provider = document.createElement("strong");
         provider.className = "overlay-provider";
-        provider.textContent = opts.provider;
+        provider.textContent = providerName;
         overlayText.append(provider);
         if (remaining) overlayText.append(document.createTextNode(" (" + remaining + ")"));
         return;
       }
-      overlayText.textContent = label + (remaining ? " (" + remaining + ")" : "");
+      overlayText.textContent = "Redirecting…" + (remaining ? " (" + remaining + ")" : "");
     };
 
     if (REDIRECT_DELAY_SECONDS <= 0) {

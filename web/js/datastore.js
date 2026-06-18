@@ -535,9 +535,9 @@ function setSelfName(name) {
    ========================================================================== */
 
 const providerExchangePrefix = "xipherProviderExchange:";
-// Max lifetime of a pending exchange. Kept tight (<= 1 min) because the sealed
-// payload is a long-term secret key; a stale return is rejected as spoofed.
-const PROVIDER_EXCHANGE_TTL_MS = 60000;
+// Max lifetime of a pending exchange. Long enough for SSO/MFA, still bounded so
+// abandoned ephemeral secrets are not retained for a whole browser session.
+const PROVIDER_EXCHANGE_TTL_MS = 15 * 60 * 1000;
 
 // Generates a random URL-safe state token.
 function newExchangeState() {

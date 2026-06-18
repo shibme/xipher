@@ -116,9 +116,10 @@ func TestLoadSeed(t *testing.T) {
 func testServer(master []byte) *Server {
 	auth := &authenticator{
 		cfg: OIDCProviderConfig{
-			ID:        "test-provider",
-			Name:      "Test Provider",
-			IssuerURL: "https://sso.example.com",
+			ID:          "test-provider",
+			Name:        "Test Provider",
+			IssuerURL:   "https://sso.example.com",
+			RedirectURI: "https://xkms.example.com/callback",
 		},
 	}
 	return &Server{
@@ -246,5 +247,96 @@ func TestCallbackAllowed(t *testing.T) {
 		if got := s.callbackAllowed(url); got != want {
 			t.Errorf("callbackAllowed(%q) = %v, want %v", url, got, want)
 		}
+	}
+}
+
+func TestXipherURLsValidation(t *testing.T) {
+	provider := OIDCProviderConfig{ID: "p", Name: "Provider", IssuerURL: "https://sso.example.com", ClientID: "xkms", RedirectURI: "https://xkms.example.com/callback"}
+	provider.Claims.User = "email"
+	c := &Config{
+		SeedFile:            "/tmp/seed",
+		Providers:           []OIDCProviderConfig{provider},
+		XipherHomeURL:       "https://xipher.org/app",
+		AllowedCallbackURLs: []string{"https://xipher.org/app", "https://xipher.int.example.com"},
+	}
+	c.Server.Port = 8080
+	c.AuthHeader.Type = authHeaderBearer
+	c.Credential.Key = true
+	if err := c.validate(); err != nil {
+		t.Fatalf("expected xipher_urls.default to validate, got %v", err)
+	}
+	if !originAllowed("https://xipher.org/callback", c.AllowedCallbackURLs) {
+		t.Fatal("expected xipher_urls.default origin to be allowed")
+	}
+	if !originAllowed("https://xipher.int.example.com/app", c.AllowedCallbackURLs) {
+		t.Fatal("expected xipher_urls.allowed origin to be allowed")
+	}
+
+	c.XipherHomeURL = "not-a-url"
+	if err := c.validate(); err == nil {
+		t.Fatal("expected invalid xipher_urls.default to fail")
+	}
+}
+
+func TestLoadConfigXipherURLs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "xkms.yaml")
+	cfg := []byte(`
+server:
+  port: 8080
+seed_file: /tmp/xkms.seed
+providers:
+  corp:
+    name: Corporate
+    issuer_url: https://sso.example.com
+    client_id: xkms
+    redirect_uri: https://xkms.example.com/callback
+    claims:
+      user: email
+auth_header:
+  type: bearer
+credential:
+  key: true
+xipher_urls:
+  default: https://xipher.org/app
+  allowed:
+    - https://xipher.int.example.com
+`)
+	if err := os.WriteFile(path, cfg, 0600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.XipherHomeURL != "https://xipher.org/app" {
+		t.Fatalf("XipherHomeURL = %q", c.XipherHomeURL)
+	}
+	if !originAllowed("https://xipher.org/callback", c.AllowedCallbackURLs) {
+		t.Fatal("default xipher URL was not allowed")
+	}
+	if !originAllowed("https://xipher.int.example.com/app", c.AllowedCallbackURLs) {
+		t.Fatal("allowed xipher URL was not allowed")
+	}
+}
+
+func TestHandleRootLaunchesXipherHomeURL(t *testing.T) {
+	s := testServer(make([]byte, 64))
+	s.cfg.XipherHomeURL = "https://xipher.org/app"
+
+	rec := httptest.NewRecorder()
+	s.handleRoot(rec, httptest.NewRequest("GET", "/", nil))
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
+	}
+	want := "https://xipher.org/app?provider=https%3A%2F%2Fxkms.example.com%2Flogin"
+	if got := rec.Header().Get("Location"); got != want {
+		t.Fatalf("Location = %q, want %q", got, want)
+	}
+
+	rec = httptest.NewRecorder()
+	s.handleRoot(rec, httptest.NewRequest("GET", "/?xpk=XPK_test", nil))
+	if got := rec.Header().Get("Location"); got != "/login?xpk=XPK_test" {
+		t.Fatalf("query-bearing root Location = %q", got)
 	}
 }

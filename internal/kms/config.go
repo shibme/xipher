@@ -2,6 +2,7 @@ package kms
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -92,8 +93,11 @@ type rawConfig struct {
 		RedirectDelay *int  `yaml:"redirect_delay"`
 		Remember      *bool `yaml:"remember"`
 	} `yaml:"login"`
-	PostQuantum         bool     `yaml:"post_quantum"`
-	AllowedCallbackURLs []string `yaml:"xipher_urls"`
+	PostQuantum bool `yaml:"post_quantum"`
+	XipherURLs  struct {
+		Default string   `yaml:"default"`
+		Allowed []string `yaml:"allowed"`
+	} `yaml:"xipher_urls"`
 }
 
 // Config is the top-level Xipher KMS (XKMS) server configuration loaded from a YAML file.
@@ -141,12 +145,19 @@ type Config struct {
 		Remember bool
 	}
 
+	// XipherHomeURL is the default xipher app URL used when a user visits the XKMS
+	// homepage without provider-flow query parameters. XKMS redirects there with
+	// ?provider=<this XKMS /login URL>, letting the app generate xpk, state, and
+	// xcb before returning to XKMS. Empty disables the homepage launcher.
+	XipherHomeURL string
+
 	// PostQuantum controls the kind of public key served by the public /xpk
 	// endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, ECC when
 	// false. It does not affect the sealed-credential flow.
 	PostQuantum bool
 
-	// AllowedCallbackURLs is the allowlist of xipher app URLs (the xcb param).
+	// AllowedCallbackURLs is the allowlist of xipher app URLs (the xcb param),
+	// including xipher_urls.default when configured.
 	AllowedCallbackURLs []string
 }
 
@@ -170,6 +181,19 @@ func normalizePathPrefix(p string) string {
 	}
 	p = "/" + strings.Trim(p, "/") + "/"
 	return p
+}
+
+func appendAllowedCallbackURL(urls []string, rawURL string) []string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return urls
+	}
+	for _, existing := range urls {
+		if existing == rawURL {
+			return urls
+		}
+	}
+	return append(urls, rawURL)
 }
 
 // LoadConfig reads, parses, and validates the Xipher KMS (XKMS) config from the given path.
@@ -197,11 +221,10 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	c := &Config{
-		SeedFile:            raw.SeedFile,
-		PubKeyPath:          normalizePathPrefix(raw.PubKeyPath),
-		Providers:           providers,
-		PostQuantum:         raw.PostQuantum,
-		AllowedCallbackURLs: raw.AllowedCallbackURLs,
+		SeedFile:    raw.SeedFile,
+		PubKeyPath:  normalizePathPrefix(raw.PubKeyPath),
+		Providers:   providers,
+		PostQuantum: raw.PostQuantum,
 	}
 	c.Server.Host = raw.Server.Host
 	c.Server.Port = raw.Server.Port
@@ -210,6 +233,11 @@ func LoadConfig(path string) (*Config, error) {
 	c.Credential.Seed = raw.Credential.Seed
 	c.Credential.Key = raw.Credential.Key
 	c.Credential.Timeout = raw.Credential.Timeout
+	c.XipherHomeURL = strings.TrimSpace(raw.XipherURLs.Default)
+	c.AllowedCallbackURLs = appendAllowedCallbackURL(c.AllowedCallbackURLs, c.XipherHomeURL)
+	for _, allowed := range raw.XipherURLs.Allowed {
+		c.AllowedCallbackURLs = appendAllowedCallbackURL(c.AllowedCallbackURLs, allowed)
+	}
 
 	// Login: unset redirect_delay defaults to defaultLoginRedirectDelay; unset
 	// remember defaults to true (offer the convenience). Explicit values win.
@@ -276,10 +304,33 @@ func (c *Config) validate() error {
 		return fmt.Errorf("at least one of credential.seed/credential.key must be true")
 	}
 	if len(c.AllowedCallbackURLs) == 0 {
-		return fmt.Errorf("xipher_urls must list at least one URL")
+		return fmt.Errorf("xipher_urls.default or xipher_urls.allowed must list at least one URL")
 	}
 	if c.Login.RedirectDelay < 0 || c.Login.RedirectDelay > 60 {
 		return fmt.Errorf("login.redirect_delay must be between 0 and 60 seconds")
 	}
+	if c.XipherHomeURL != "" {
+		u, err := url.Parse(c.XipherHomeURL)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			return fmt.Errorf("xipher_urls.default must be an absolute URL")
+		}
+	}
 	return nil
+}
+
+func originAllowed(candidate string, allowed []string) bool {
+	u, err := url.Parse(candidate)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return false
+	}
+	for _, raw := range allowed {
+		a, err := url.Parse(raw)
+		if err != nil {
+			continue
+		}
+		if u.Scheme == a.Scheme && u.Host == a.Host {
+			return true
+		}
+	}
+	return false
 }

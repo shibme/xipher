@@ -12,7 +12,7 @@ import (
 
 // providerStateTTL bounds how long a pending xipher provider request (xpk +
 // state + xcb) is held server-side between /login and the credential call.
-const providerStateTTL = 10 * time.Minute
+const providerStateTTL = 15 * time.Minute
 
 // providerState holds the xipher provider parameters for an in-flight browser
 // flow, keyed by an opaque id carried through the OIDC round-trip.

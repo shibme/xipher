@@ -88,10 +88,14 @@ config:
   # Serve quantum-safe hybrid public keys (X25519 + ML-KEM-1024) instead of ECC-only.
   post_quantum: true  # true | false
 
-  # REQUIRED. Allowed xipher app origins for the xcb (callback) parameter.
-  # Matched by scheme+host. At least one entry is required.
-  xipher_urls: []
-  # - https://xipher.org
+  # REQUIRED. Xipher app URLs for browser provider flow.
+  # default is optional; when set, visiting the XKMS homepage with no query
+  # parameters redirects there with ?provider=<this XKMS /login URL>. default is
+  # automatically allowed as a callback origin. allowed lists additional xipher
+  # app callback origins for the xcb parameter. All are matched by scheme+host.
+  xipher_urls:
+    default: ""
+    allowed: []
 
 service:
   type: ClusterIP  # ClusterIP | NodePort | LoadBalancer

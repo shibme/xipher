@@ -39,13 +39,47 @@ func (s *Server) handleFavicon(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleRoot redirects the site root to /login, preserving any query params
-// (xpk, xcb, state, provider) so the xipher app can point at the bare host.
+// (xpk, xcb, state, provider) so the xipher app can point at the bare host. If
+// no params are present and xipher_urls.default is configured, root acts
+// as a convenience launcher for the xipher app's provider flow.
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.RawQuery == "" && s.cfg.XipherHomeURL != "" {
+		target, err := s.defaultXipherLaunchURL()
+		if err != nil {
+			http.Error(w, "default xipher url unavailable", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, target, http.StatusFound)
+		return
+	}
 	target := "/login"
 	if r.URL.RawQuery != "" {
 		target += "?" + r.URL.RawQuery
 	}
 	http.Redirect(w, r, target, http.StatusFound)
+}
+
+func (s *Server) defaultXipherLaunchURL() (string, error) {
+	if len(s.auths) == 0 {
+		return "", fmt.Errorf("no providers configured")
+	}
+	providerURL, err := url.Parse(s.auths[0].cfg.RedirectURI)
+	if err != nil || providerURL.Scheme == "" || providerURL.Host == "" {
+		return "", fmt.Errorf("invalid provider redirect_uri")
+	}
+	providerURL.Path = "/login"
+	providerURL.RawQuery = ""
+	providerURL.Fragment = ""
+
+	target, err := url.Parse(s.cfg.XipherHomeURL)
+	if err != nil {
+		return "", err
+	}
+	q := target.Query()
+	q.Set("provider", providerURL.String())
+	target.RawQuery = q.Encode()
+	target.Fragment = ""
+	return target.String(), nil
 }
 
 // handleLogin either shows the provider selector page (multiple providers) or

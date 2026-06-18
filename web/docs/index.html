@@ -661,7 +661,7 @@ Content-Type: application/json</code></pre>
                         <li><strong>Return.</strong> Your provider redirects the browser back to the callback URL with the
                             sealed key and the original <code>state</code> in the <strong>URL fragment</strong>.</li>
                         <li><strong>Install.</strong> The app verifies the <code>state</code> (single-use; absent or older
-                            than 60&nbsp;seconds is rejected), decrypts the sealed key with the matching ephemeral secret,
+                            than 15&nbsp;minutes is rejected), decrypts the sealed key with the matching ephemeral secret,
                             warns the user if a key already exists, and on confirmation sets it as the active identity.</li>
                     </ol>
                     <pre class="code-block" data-lang="text"><code>Browser (xipher app)                         Credential provider
@@ -833,7 +833,7 @@ if err != nil { /* handle */ }
                             out of logs and <code>Referer</code> headers.</li>
                         <li><strong>The browser side is one-time and short-lived.</strong> The app consumes
                             <code>state</code> on first read and rejects any response whose exchange is missing or older
-                            than 60&nbsp;seconds. Redirect back promptly and don't expect replays to work.</li>
+                            than 15&nbsp;minutes. Redirect back promptly and don't expect replays to work.</li>
                         <li>The flow uses top-level navigation only, so the app's strict
                             <code>connect-src 'self'</code> CSP is unaffected; your provider is never fetched by script.</li>
                     </ul>
@@ -929,10 +929,13 @@ credential:
 # the sealed-credential flow - that seals to the requester's own key).
 post_quantum: false
 
-# Allowed xipher app origins for the provider callback (xcb param).
+# Xipher app URLs. default is optional: bare visits to https://xkms.example.com
+# redirect there with ?provider=https://xkms.example.com/login. default is also
+# allowed as a callback origin. allowed lists additional callback origins.
 xipher_urls:
-  - https://xipher.org
-  - https://xipher.int.example.com</code></pre>
+  default: https://xipher.org
+  allowed:
+    - https://xipher.int.example.com</code></pre>
                 </section>
 
                 <section id="xkms-seed" class="docs-section">
@@ -1065,6 +1068,11 @@ xipher encrypt text \
                     <p>XKMS implements the <a href="#provider-flow">Xipher credential provider protocol</a> so the
                         web app can use it as a provider. Point users at:</p>
                     <pre class="code-block" data-lang="text"><code>https://xipher.org/?provider=https://xkms.example.com</code></pre>
+                    <p>If <code>xipher_urls.default</code> is configured, users can also visit the XKMS
+                        homepage directly. A bare request to <code>https://xkms.example.com/</code> redirects to the
+                        configured xipher app with <code>?provider=https://xkms.example.com/login</code>, so the app
+                        can generate the ephemeral keypair and return with <code>xpk</code>, <code>state</code>, and
+                        <code>xcb</code>.</p>
                     <ol>
                         <li>The xipher app generates an ephemeral keypair and redirects to
                             <code>https://xkms.example.com/login?xpk=…&amp;state=…&amp;xcb=…</code>. The bare host
@@ -1138,7 +1146,8 @@ helm install xkms xipher/xkms</code></pre>
     #     service: sub
 
   xipher_urls:
-    - https://xipher.org</code></pre>
+    default: https://xipher.org
+    allowed: []</code></pre>
                     <h4>Seed injection</h4>
                     <p>The master seed must reach the container as a file at the path set in
                         <code>config.seed_file</code> (default <code>/var/run/xkms/seed</code>).

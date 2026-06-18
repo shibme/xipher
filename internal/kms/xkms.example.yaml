@@ -76,7 +76,11 @@ login:
 # endpoints: quantum-safe hybrid (X25519 + ML-KEM-1024) when true, else ECC.
 post_quantum: false
 
-# List of xipher app callback origins (the xcb param). Matched by scheme+host.
+# Xipher app URLs. default is optional: when set, visiting the XKMS homepage with
+# no query parameters redirects there with ?provider=<this XKMS /login URL>.
+# default is automatically allowed as a callback origin. allowed lists additional
+# xipher app callback origins (the xcb param). All are matched by scheme+host.
 xipher_urls:
-  - https://xipher.org
-  - https://xipher.int.example.com
+  default: https://xipher.org
+  allowed:
+    - https://xipher.int.example.com
