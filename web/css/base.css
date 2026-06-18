@@ -237,6 +237,20 @@ textarea::-webkit-scrollbar-thumb,
     margin: 0;
 }
 
+.preloader-text-strong {
+    color: var(--text-color);
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.preloader.preloader-redirecting .preloader-text {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
 @keyframes logo-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.55; transform: scale(0.92); }
@@ -258,6 +272,12 @@ textarea::-webkit-scrollbar-thumb,
 .preloader-cancel:hover {
     border-color: var(--border-strong);
     color: var(--text-color);
+}
+
+.preloader.preloader-redirecting .preloader-cancel[hidden] {
+    display: block;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .preloader-spinner {

@@ -743,6 +743,7 @@ async function ensureLocalIdentity(skipReauth = false) {
 }
 
 function hidePreloader() {
+    preLoader.classList.remove("preloader-redirecting");
     preLoader.classList.add("hidden");
     setTimeout(() => preLoader.remove(), PRELOADER_FADE_MS);
 }
@@ -754,7 +755,24 @@ const REDIRECT_DELAY_SECONDS = 3;
 // showRedirecting keeps the preloader up (or brings it back) and swaps its text
 // to tell the user a navigation to an external credential provider is underway,
 // so the brief blank moment before window.location.replace isn't unexplained.
-function showRedirecting(message) {
+function renderRedirectingText(text, prefix, highlight, suffix) {
+    if (!text) {
+        return;
+    }
+    text.textContent = "";
+    text.append(document.createTextNode(prefix || "Redirecting to "));
+    if (highlight) {
+        const strong = document.createElement("strong");
+        strong.className = "preloader-text-strong";
+        strong.textContent = highlight;
+        text.append(strong);
+    }
+    if (suffix) {
+        text.append(document.createTextNode(suffix));
+    }
+}
+
+function showRedirecting(message, highlight, suffix) {
     if (!preLoader) {
         return;
     }
@@ -764,7 +782,11 @@ function showRedirecting(message) {
     preLoader.classList.remove("hidden");
     const text = preLoader.querySelector(".preloader-text");
     if (text) {
-        text.textContent = message || "Redirecting…";
+        if (highlight) {
+            renderRedirectingText(text, message, highlight, suffix || "");
+        } else {
+            text.textContent = message || "Redirecting…";
+        }
     }
 }
 
@@ -774,25 +796,35 @@ function showRedirecting(message) {
 // once navigation is committed, or "cancelled" if the user backs out (the caller
 // then cleans up and falls through to the normal gate). `label` is the message
 // shown above the countdown (e.g. "Redirecting to provider.example…").
-function redirectWithCancel(target, label, onCancel) {
+function redirectWithCancel(target, label, onCancel, highlight) {
     return new Promise((resolve) => {
         const text = preLoader && preLoader.querySelector(".preloader-text");
         const cancelBtn = document.getElementById("preloader-cancel");
-        showRedirecting(label);
+        if (preLoader) {
+            preLoader.classList.add("preloader-redirecting");
+        }
+        showRedirecting(label, highlight);
 
         let remaining = REDIRECT_DELAY_SECONDS;
         let timer = null;
 
         const render = () => {
             if (text) {
-                text.textContent = `${label} (${remaining})`;
+                if (highlight) {
+                    renderRedirectingText(text, label, highlight, ` (${remaining})`);
+                } else {
+                    text.textContent = `${label} (${remaining})`;
+                }
             }
         };
 
-        const cleanup = () => {
+        const cleanup = (keepReservedSpace) => {
             if (timer !== null) {
                 clearInterval(timer);
                 timer = null;
+            }
+            if (!keepReservedSpace && preLoader) {
+                preLoader.classList.remove("preloader-redirecting");
             }
             if (cancelBtn) {
                 cancelBtn.hidden = true;
@@ -803,7 +835,7 @@ function redirectWithCancel(target, label, onCancel) {
         if (cancelBtn) {
             cancelBtn.hidden = false;
             cancelBtn.onclick = () => {
-                cleanup();
+                cleanup(false);
                 if (typeof onCancel === "function") {
                     onCancel();
                 }
@@ -820,9 +852,13 @@ function redirectWithCancel(target, label, onCancel) {
             }
             // Final tick: commit the navigation. Drop the countdown suffix and
             // keep the cancel button hidden — we're leaving now.
-            cleanup();
+            cleanup(true);
             if (text) {
-                text.textContent = label;
+                if (highlight) {
+                    renderRedirectingText(text, label, highlight);
+                } else {
+                    text.textContent = label;
+                }
             }
             window.location.replace(target);
             resolve("redirecting");
@@ -883,7 +919,7 @@ async function main() {
     if (reauthUrl) {
         let host = "your provider";
         try { host = new URL(reauthUrl).host; } catch (e) { /* keep fallback */ }
-        showRedirecting(`Redirecting to ${host}…`);
+        showRedirecting("Redirecting to ", host, "…");
     } else {
         hidePreloader();
     }

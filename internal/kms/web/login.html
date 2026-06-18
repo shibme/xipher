@@ -105,14 +105,34 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   color: var(--text-muted); font-size: .95rem;
 }
 .overlay.show { display: flex; }
-.spinner {
-  width: 38px; height: 38px;
+.overlay-provider { color: var(--text-color); font-weight: 700; }
+.loader {
+  position: relative;
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+.loader-logo {
+  position: absolute;
+  width: 26px; height: 26px;
+  animation: logo-pulse 1.5s infinite;
+}
+.loader-spinner {
+  position: absolute;
+  width: 52px; height: 52px;
   border: 3px solid var(--border-color);
   border-top-color: var(--brand-2);
   border-radius: 50%;
-  animation: spin .8s linear infinite;
+  animation: spin .9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes logo-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-logo,
+  .loader-spinner { animation: none; }
+}
 .overlay-actions { display: flex; gap: .75rem; margin-top: .25rem; }
 .overlay-btn {
   padding: .55rem 1.1rem;
@@ -166,7 +186,22 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   <p class="err" id="err"></p>
 </div>
 <div class="overlay" id="overlay">
-  <div class="spinner"></div>
+  <div class="loader" aria-hidden="true">
+    <svg class="loader-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+      <defs>
+        <linearGradient id="xipher-loader-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="25%" stop-color="#00ddff"/>
+          <stop offset="75%" stop-color="#0044ff"/>
+        </linearGradient>
+        <mask id="xipher-loader-keyhole">
+          <rect width="20" height="20" fill="white"/>
+          <circle cx="10" cy="10" r="2" fill="black"/>
+        </mask>
+      </defs>
+      <polygon points="2,2 7,2 10,7 13,2 18,2 14,10 18,18 12,18 10,8 8,18 2,18 6,10" fill="url(#xipher-loader-gradient)" mask="url(#xipher-loader-keyhole)"/>
+    </svg>
+    <div class="loader-spinner"></div>
+  </div>
   <p id="overlay-text">Redirecting to your provider…</p>
   <div class="overlay-actions">
     <button type="button" class="overlay-btn" id="overlay-cancel">Cancel</button>
@@ -254,9 +289,23 @@ function providerHref(name) {
     const label = opts.label || ("Redirecting to " + name);
     overlay.classList.add("show");
 
+    const render = function(remaining) {
+      overlayText.textContent = "";
+      if (opts.prefix && opts.provider) {
+        overlayText.append(document.createTextNode(opts.prefix + " "));
+        const provider = document.createElement("strong");
+        provider.className = "overlay-provider";
+        provider.textContent = opts.provider;
+        overlayText.append(provider);
+        if (remaining) overlayText.append(document.createTextNode(" (" + remaining + ")"));
+        return;
+      }
+      overlayText.textContent = label + (remaining ? " (" + remaining + ")" : "");
+    };
+
     if (REDIRECT_DELAY_SECONDS <= 0) {
       // No countdown: no cancel affordance, go now.
-      overlayText.textContent = label;
+      render(0);
       cancelBtn.hidden = true;
       chooseBtn.hidden = true;
       navigate(name, opts.remember);
@@ -267,8 +316,7 @@ function providerHref(name) {
     chooseBtn.hidden = !opts.showChoose;
 
     let remaining = REDIRECT_DELAY_SECONDS;
-    const render = function() { overlayText.textContent = label + " (" + remaining + ")"; };
-    render();
+    render(remaining);
 
     cancelBtn.onclick = function() {
       stopCountdown();
@@ -283,9 +331,9 @@ function providerHref(name) {
 
     countdownTimer = setInterval(function() {
       remaining -= 1;
-      if (remaining > 0) { render(); return; }
+      if (remaining > 0) { render(remaining); return; }
       stopCountdown();
-      overlayText.textContent = label;
+      render(0);
       navigate(name, opts.remember);
     }, 1000);
   }
@@ -319,6 +367,8 @@ function providerHref(name) {
   if (known) {
     beginRedirect(remembered, {
       label: "Signing you in with " + remembered,
+      prefix: "Signing you in with",
+      provider: remembered,
       showChoose: true,
       remember: true, // refresh the cookie's lifetime on use
       // Cancel / Choose another: clear the remembered choice, show the picker.

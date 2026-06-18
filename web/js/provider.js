@@ -379,11 +379,12 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth) {
     if (typeof redirectWithCancel === "function") {
         const outcome = await redirectWithCancel(
             target,
-            `Redirecting to ${host}`,
+            "Redirecting to ",
             () => {
                 discardProviderExchange(state);
                 showToast("Redirect cancelled. You can set a key manually instead.", "info");
-            }
+            },
+            host
         );
         return outcome === "redirecting" ? "redirecting" : null;
     }
