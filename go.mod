@@ -3,7 +3,7 @@ module xipher.org/xipher
 go 1.25.0
 
 require (
-	github.com/coreos/go-oidc/v3 v3.18.0
+	github.com/coreos/go-oidc/v3 v3.19.0
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/crypto v0.53.0
