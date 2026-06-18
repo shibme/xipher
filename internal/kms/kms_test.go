@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"xipher.org/xipher"
@@ -323,15 +324,30 @@ xipher_urls:
 func TestHandleRootLaunchesXipherHomeURL(t *testing.T) {
 	s := testServer(make([]byte, 64))
 	s.cfg.XipherHomeURL = "https://xipher.org/app"
+	s.cfg.PubKeyPath = "/xpk/"
+	s.auths[0].cfg.Claims.User = "email"
+	s.auths[0].cfg.Claims.Group = "groups"
 
 	rec := httptest.NewRecorder()
 	s.handleRoot(rec, httptest.NewRequest("GET", "/", nil))
-	if rec.Code != http.StatusFound {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusFound)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	want := "https://xipher.org/app?provider=https%3A%2F%2Fxkms.example.com%2Flogin"
-	if got := rec.Header().Get("Location"); got != want {
-		t.Fatalf("Location = %q, want %q", got, want)
+	body := rec.Body.String()
+	for _, want := range []string{
+		"window.__XKMS_HOME__=",
+		`"defaultXipherURL":"https://xipher.org/app"`,
+		`"providerURL":"https://xkms.example.com/login"`,
+		`"pubKeyPath":"/xpk/"`,
+		`"id":"test-provider"`,
+		`"types":["user","group"]`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("home page missing %q in:\n%s", want, body)
+		}
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "connect-src 'self'") {
+		t.Fatalf("home page CSP missing connect-src self: %q", csp)
 	}
 
 	rec = httptest.NewRecorder()

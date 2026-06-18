@@ -38,18 +38,13 @@ func (s *Server) handleFavicon(w http.ResponseWriter, r *http.Request) {
 	w.Write(faviconSVG)
 }
 
-// handleRoot redirects the site root to /login, preserving any query params
-// (xpk, xcb, state, provider) so the xipher app can point at the bare host. If
-// no params are present and xipher_urls.default is configured, root acts
-// as a convenience launcher for the xipher app's provider flow.
+// handleRoot serves the homepage when xipher_urls.default is configured and no
+// query params are present. Query-bearing requests still redirect to /login,
+// preserving xpk, xcb, state, and provider so the xipher app can point at the
+// bare host as its provider URL.
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.RawQuery == "" && s.cfg.XipherHomeURL != "" {
-		target, err := s.defaultXipherLaunchURL()
-		if err != nil {
-			http.Error(w, "default xipher url unavailable", http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, target, http.StatusFound)
+		s.handleHome(w, r)
 		return
 	}
 	target := "/login"
@@ -59,7 +54,7 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusFound)
 }
 
-func (s *Server) defaultXipherLaunchURL() (string, error) {
+func (s *Server) xkmsProviderURL() (string, error) {
 	if len(s.auths) == 0 {
 		return "", fmt.Errorf("no providers configured")
 	}
@@ -70,16 +65,73 @@ func (s *Server) defaultXipherLaunchURL() (string, error) {
 	providerURL.Path = "/login"
 	providerURL.RawQuery = ""
 	providerURL.Fragment = ""
+	return providerURL.String(), nil
+}
 
-	target, err := url.Parse(s.cfg.XipherHomeURL)
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	nonce, err := nonceB64()
 	if err != nil {
-		return "", err
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
-	q := target.Query()
-	q.Set("provider", providerURL.String())
-	target.RawQuery = q.Encode()
-	target.Fragment = ""
-	return target.String(), nil
+
+	providerURL, err := s.xkmsProviderURL()
+	if err != nil {
+		http.Error(w, "default xipher url unavailable", http.StatusInternalServerError)
+		return
+	}
+
+	type providerInfo struct {
+		ID    string   `json:"id"`
+		Name  string   `json:"name"`
+		Types []string `json:"types"`
+	}
+	providers := make([]providerInfo, 0, len(s.auths))
+	for _, a := range s.auths {
+		types := make([]string, 0, 3)
+		if a.cfg.Claims.User != "" {
+			types = append(types, entityUser)
+		}
+		if a.cfg.Claims.Group != "" {
+			types = append(types, entityGroup)
+		}
+		if a.cfg.Claims.Service != "" {
+			types = append(types, entityService)
+		}
+		providers = append(providers, providerInfo{
+			ID:    a.cfg.ID,
+			Name:  a.cfg.Name,
+			Types: types,
+		})
+	}
+
+	homeJSON, _ := json.Marshal(struct {
+		DefaultXipherURL string         `json:"defaultXipherURL"`
+		ProviderURL      string         `json:"providerURL"`
+		PubKeyPath       string         `json:"pubKeyPath"`
+		Providers        []providerInfo `json:"providers"`
+	}{
+		DefaultXipherURL: s.cfg.XipherHomeURL,
+		ProviderURL:      providerURL,
+		PubKeyPath:       s.cfg.PubKeyPath,
+		Providers:        providers,
+	})
+
+	inject := `<script nonce="` + nonce + `">window.__XKMS_HOME__=` + scriptSafeJSON(homeJSON) + `;</script>` + "\n"
+	page := strings.Replace(string(homePage), "<script>", `<script nonce="`+nonce+`">`, 1)
+
+	w.Header().Set("Content-Security-Policy",
+		"default-src 'none'; "+
+			"script-src 'nonce-"+nonce+"'; "+
+			"style-src 'unsafe-inline'; "+
+			"connect-src 'self'; "+
+			"img-src 'self'; "+
+			"base-uri 'none'; "+
+			"frame-ancestors 'none'; "+
+			"form-action 'self'")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(inject))
+	w.Write([]byte(page))
 }
 
 // handleLogin either shows the provider selector page (multiple providers) or

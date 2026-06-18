@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xipher KMS</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+:root {
+  --brand-1: #00ddff;
+  --brand-2: #0044ff;
+  --brand-gradient: linear-gradient(135deg, #00ddff, #0044ff);
+  --bg-color: #eef2f7;
+  --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0,132,255,0.10), transparent 60%);
+  --surface-color: #ffffff;
+  --surface-2: #f5f8fc;
+  --text-color: #1c2430;
+  --text-muted: #5a6677;
+  --text-faint: #8a96a8;
+  --border-color: #d7dee8;
+  --border-strong: #c2ccd9;
+  --error-color: #e5484d;
+  --shadow-lg: 0 18px 50px rgba(16,30,54,0.18);
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0b0e14;
+    --bg-accent: radial-gradient(1200px 600px at 50% -10%, rgba(0,132,255,0.16), transparent 60%);
+    --surface-color: #151a23;
+    --surface-2: #1b212c;
+    --text-color: #e7ecf3;
+    --text-muted: #a3afc0;
+    --text-faint: #6c7888;
+    --border-color: #2a323f;
+    --border-strong: #38424f;
+    --error-color: #ff6b6b;
+    --shadow-lg: 0 20px 55px rgba(0,0,0,0.6);
+  }
+}
+*,*::before,*::after { box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-color);
+  background-image: var(--bg-accent);
+  background-attachment: fixed;
+  color: var(--text-color);
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1.25rem;
+}
+.brand .logo { width: 30px; height: 30px; display: block; }
+.brand .name { font-weight: 700; font-size: 1.05rem; letter-spacing: .01em; }
+h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
+.sub { color: var(--text-muted); font-size: .88rem; margin: 0 0 1.25rem; }
+.section {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  padding: .95rem;
+  margin-top: .8rem;
+}
+.section h2 { font-size: .95rem; font-weight: 600; margin: 0 0 .25rem; }
+.section p { color: var(--text-muted); font-size: .85rem; margin: 0 0 .85rem; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+label { display: block; color: var(--text-muted); font-size: .75rem; font-weight: 600; margin-bottom: .3rem; }
+select,input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: .9rem;
+  padding: .7rem .75rem;
+  outline: none;
+  transition: border-color .15s var(--ease);
+}
+select:focus,input:focus { border-color: var(--brand-2); }
+.field { margin-top: .65rem; }
+button {
+  width: 100%;
+  margin-top: .75rem;
+  padding: .8rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--brand-gradient);
+  color: #fff;
+  font-family: inherit;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s var(--ease), filter .15s var(--ease);
+}
+button:hover:not(:disabled) { filter: brightness(1.06); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  font-weight: 500;
+}
+.secondary:hover:not(:disabled) {
+  filter: none;
+  border-color: var(--border-strong);
+  color: var(--text-color);
+}
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.result {
+  display: none;
+  margin-top: .75rem;
+  padding: .7rem .75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  word-break: break-all;
+}
+.result.show { display: block; }
+.err { color: var(--error-color); font-size: .85rem; margin-top: .75rem; min-height: 1rem; }
+.err.ok { color: var(--text-muted); }
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1rem;
+  background: var(--bg-color);
+  background-image: var(--bg-accent);
+  color: var(--text-muted); font-size: .95rem;
+}
+.overlay.show { display: flex; }
+.loader {
+  position: relative;
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+.loader-logo {
+  position: absolute;
+  width: 26px; height: 26px;
+  animation: logo-pulse 1.5s infinite;
+}
+.loader-spinner {
+  position: absolute;
+  width: 52px; height: 52px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--brand-2);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes logo-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .55; transform: scale(.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-logo,
+  .loader-spinner { animation: none; }
+}
+@media (max-width: 520px) {
+  .grid,
+  .actions { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true">
+      <defs>
+        <linearGradient id="xipher-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="25%" stop-color="#00ddff"/>
+          <stop offset="75%" stop-color="#0044ff"/>
+        </linearGradient>
+        <mask id="xipher-keyhole">
+          <rect width="20" height="20" fill="white"/>
+          <circle cx="10" cy="10" r="2" fill="black"/>
+        </mask>
+      </defs>
+      <polygon points="2,2 7,2 10,7 13,2 18,2 14,10 18,18 12,18 10,8 8,18 2,18 6,10" fill="url(#xipher-gradient)" mask="url(#xipher-keyhole)"/>
+    </svg>
+    <span class="name">Xipher KMS</span>
+  </div>
+  <h1>What would you like to do?</h1>
+  <p class="sub">Sign in to Xipher or securely encrypt to a user, group, or service.</p>
+
+  <div class="section">
+    <h2>Set credential</h2>
+    <p>Sign in and set up this browser for Xipher.</p>
+    <button type="button" id="signin">Continue to Xipher</button>
+  </div>
+
+  <div class="section">
+    <h2>Encrypt for someone</h2>
+    <p>Create an encryption link for a user, group, or service.</p>
+    <div class="grid">
+      <div>
+        <label for="provider">Identity provider</label>
+        <select id="provider"></select>
+      </div>
+      <div>
+        <label for="type">Identity type</label>
+        <select id="type"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="identity">Identity name</label>
+      <input id="identity" type="text" autocomplete="off" placeholder="alice@example.com">
+    </div>
+    <div class="actions">
+      <button type="button" id="open">Open in Xipher</button>
+      <button type="button" id="copy" class="secondary">Copy link</button>
+    </div>
+    <div class="result" id="result"></div>
+    <p class="err" id="err"></p>
+  </div>
+</div>
+<div class="overlay" id="overlay">
+  <div class="loader" aria-hidden="true">
+    <svg class="loader-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+      <defs>
+        <linearGradient id="xipher-loader-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="25%" stop-color="#00ddff"/>
+          <stop offset="75%" stop-color="#0044ff"/>
+        </linearGradient>
+        <mask id="xipher-loader-keyhole">
+          <rect width="20" height="20" fill="white"/>
+          <circle cx="10" cy="10" r="2" fill="black"/>
+        </mask>
+      </defs>
+      <polygon points="2,2 7,2 10,7 13,2 18,2 14,10 18,18 12,18 10,8 8,18 2,18 6,10" fill="url(#xipher-loader-gradient)" mask="url(#xipher-loader-keyhole)"/>
+    </svg>
+    <div class="loader-spinner"></div>
+  </div>
+  <p id="overlay-text">Opening Xipher…</p>
+</div>
+<script>
+const HOME = window.__XKMS_HOME__ || {};
+
+const providerSelect = document.getElementById("provider");
+const typeSelect = document.getElementById("type");
+const identityInput = document.getElementById("identity");
+const err = document.getElementById("err");
+const result = document.getElementById("result");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlay-text");
+
+function providerByID(id) {
+  return (HOME.providers || []).find(p => p.id === id);
+}
+
+function xipherURL(params) {
+  const u = new URL(HOME.defaultXipherURL);
+  Object.keys(params).forEach(k => u.searchParams.set(k, params[k]));
+  u.hash = "";
+  return u.toString();
+}
+
+function publicKeyURL() {
+  const provider = providerByID(providerSelect.value);
+  const type = typeSelect.value;
+  const id = identityInput.value.trim();
+  if (!provider || !type || !id) return "";
+  const path = HOME.pubKeyPath + encodeURIComponent(provider.id) + "/" +
+    encodeURIComponent(type) + "/" + encodeURIComponent(id) + "/.well-known/xipher";
+  return location.origin + path;
+}
+
+function encryptionURL() {
+  const pk = publicKeyURL();
+  return pk ? xipherURL({ xk: pk }) : "";
+}
+
+function typeLabel(type) {
+  switch (type) {
+    case "user": return "User";
+    case "group": return "Group";
+    case "service": return "Service";
+    default: return type;
+  }
+}
+
+function syncIdentityPlaceholder() {
+  switch (typeSelect.value) {
+    case "group":
+      identityInput.placeholder = "engineering-team";
+      return;
+    case "service":
+      identityInput.placeholder = "payment-api";
+      return;
+    default:
+      identityInput.placeholder = "alice@example.com";
+  }
+}
+
+function renderTypes() {
+  const provider = providerByID(providerSelect.value);
+  typeSelect.innerHTML = "";
+  (provider ? provider.types : []).forEach(t => {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = typeLabel(t);
+    typeSelect.appendChild(opt);
+  });
+  syncIdentityPlaceholder();
+}
+
+function renderProviders() {
+  providerSelect.innerHTML = "";
+  (HOME.providers || []).forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.name;
+    providerSelect.appendChild(opt);
+  });
+  renderTypes();
+}
+
+function showResult(url) {
+  result.textContent = url;
+  result.classList.add("show");
+}
+
+async function verifyPublicKey(url) {
+  const res = await fetch(url, { headers: { "Accept": "application/json" } });
+  if (!res.ok) throw new Error("Could not resolve that public key.");
+}
+
+async function buildURL() {
+  err.textContent = "";
+  err.classList.remove("ok");
+  const url = encryptionURL();
+  if (!url) {
+    err.textContent = "Choose an identity and enter a name.";
+    return "";
+  }
+  await verifyPublicKey(publicKeyURL());
+  showResult(url);
+  return url;
+}
+
+document.getElementById("signin").addEventListener("click", () => {
+  overlayText.textContent = "Opening Xipher…";
+  overlay.classList.add("show");
+  location.href = xipherURL({ provider: HOME.providerURL });
+});
+
+document.getElementById("open").addEventListener("click", async () => {
+  try {
+    const url = await buildURL();
+    if (!url) return;
+    overlayText.textContent = "Opening Xipher…";
+    overlay.classList.add("show");
+    location.href = url;
+  } catch (e) {
+    err.textContent = e.message || "Could not build link.";
+  }
+});
+
+document.getElementById("copy").addEventListener("click", async () => {
+  try {
+    const url = await buildURL();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    err.classList.add("ok");
+    err.textContent = "Link copied.";
+  } catch (e) {
+    err.classList.remove("ok");
+    err.textContent = e.message || "Could not copy link.";
+  }
+});
+
+providerSelect.addEventListener("change", renderTypes);
+typeSelect.addEventListener("change", syncIdentityPlaceholder);
+renderProviders();
+</script>
+</body>
+</html>

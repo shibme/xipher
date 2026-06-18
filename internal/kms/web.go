@@ -2,6 +2,9 @@ package kms
 
 import _ "embed"
 
+//go:embed web/home.html
+var homePage []byte
+
 //go:embed web/consent.html
 var consentPage []byte
 

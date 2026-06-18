@@ -1069,10 +1069,15 @@ xipher encrypt text \
                         web app can use it as a provider. Point users at:</p>
                     <pre class="code-block" data-lang="text"><code>https://xipher.org/?provider=https://xkms.example.com</code></pre>
                     <p>If <code>xipher_urls.default</code> is configured, users can also visit the XKMS
-                        homepage directly. A bare request to <code>https://xkms.example.com/</code> redirects to the
-                        configured xipher app with <code>?provider=https://xkms.example.com/login</code>, so the app
-                        can generate the ephemeral keypair and return with <code>xpk</code>, <code>state</code>, and
-                        <code>xcb</code>.</p>
+                        homepage directly. A bare request to <code>https://xkms.example.com/</code> serves a small
+                        homepage with two actions: set this browser's credential, or build an encryption link for
+                        a configured provider/entity. The credential action opens the configured xipher app with
+                        <code>?provider=https://xkms.example.com/login</code>, so the app can generate the ephemeral
+                        keypair and return with <code>xpk</code>, <code>state</code>, and <code>xcb</code>.</p>
+                    <p>The homepage's encryption form builds URLs like
+                        <code>https://xipher.org/?xk=https://xkms.example.com/xpk/corp-sso/user/alice@example.com/.well-known/xipher</code>.
+                        The xipher app then resolves that public key through XKMS's unauthenticated
+                        <code>/xpk/</code> endpoint.</p>
                     <ol>
                         <li>The xipher app generates an ephemeral keypair and redirects to
                             <code>https://xkms.example.com/login?xpk=…&amp;state=…&amp;xcb=…</code>. The bare host
