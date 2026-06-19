@@ -36,6 +36,10 @@ data:
         use_pkce: {{ $p.use_pkce }}
         claims:
           {{- toYaml $p.claims | nindent 10 }}
+        {{- with $p.placeholders }}
+        placeholders:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       {{- end }}
 
     auth_header:

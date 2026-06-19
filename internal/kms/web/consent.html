@@ -140,6 +140,12 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
 .group-empty { padding: .55rem .8rem; color: var(--text-faint); font-size: .85rem; }
 .group-chosen { font-size: .92rem; color: var(--text-color); word-break: break-all; }
 .group-chosen.placeholder { color: var(--text-faint); }
+.remember {
+  display: flex; align-items: center; gap: .5rem;
+  margin-top: .9rem; font-size: .85rem; color: var(--text-muted);
+  cursor: pointer;
+}
+.remember input { accent-color: var(--brand-2); width: .95rem; height: .95rem; }
 button {
   width: 100%; margin-top: 1rem; padding: .8rem;
   border: none; border-radius: var(--radius-md);
@@ -169,6 +175,29 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
   color: var(--text-muted); font-size: .95rem;
 }
 .overlay.show { display: flex; }
+.overlay-identity { color: var(--text-color); font-weight: 700; }
+.overlay-actions { display: flex; gap: .75rem; margin-top: .25rem; }
+.overlay-actions[hidden] { display: none; }
+.overlay-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: auto; margin-top: 0; padding: .55rem 1.1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  background: transparent; color: var(--text-muted);
+  font-family: inherit; font-size: .85rem; line-height: 1; font-weight: 500; cursor: pointer;
+  transition: border-color .15s var(--ease), color .15s var(--ease), filter .15s var(--ease);
+}
+.overlay-btn:hover { filter: none; border-color: var(--border-strong); color: var(--text-color); }
+.overlay-btn.primary {
+  background: linear-gradient(180deg, var(--surface-color), var(--surface-2));
+  border-color: var(--border-strong);
+  color: var(--text-color);
+}
+.overlay-btn.primary:hover {
+  filter: none;
+  border-color: var(--brand-2);
+  color: var(--text-color);
+}
 .loader {
   position: relative;
   width: 64px; height: 64px;
@@ -219,6 +248,9 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
   <h1>Choose an identity</h1>
   <p class="sub">Select the identity you want to use. A credential will be derived and returned to the requesting application.</p>
   <form id="form"></form>
+  <label class="remember" id="remember-row" hidden>
+    <input type="checkbox" id="remember"> Remember this identity on this device
+  </label>
   <div class="actions">
     <button id="submit" disabled>Continue</button>
     <button type="button" id="cancel" class="cancel-btn">Cancel</button>
@@ -243,11 +275,43 @@ button:disabled { background: var(--action-disabled-bg); color: var(--action-dis
     <div class="loader-spinner"></div>
   </div>
   <p id="overlay-text">Issuing your credential…</p>
+  <div class="overlay-actions" id="overlay-actions" hidden>
+    <button type="button" class="overlay-btn primary" id="overlay-continue" hidden>Continue</button>
+    <button type="button" class="overlay-btn" id="overlay-cancel" hidden>Cancel</button>
+  </div>
 </div>
 <script>
 // Per-provider claim configuration injected by the server.
 // Shape: { "Provider Name": { user: "email", group: "groups", service: "sub" }, ... }
 const PROVIDER_CLAIMS = window.__XKMS_PROVIDER_CLAIMS__ || {};
+const REMEMBER_COOKIE = "xkms_remember_identity";
+const REMEMBER_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
+const REMEMBER_REDIRECT_DELAY_SECONDS = 3;
+
+function readRemembered() {
+  const m = document.cookie.match(/(?:^|;\s*)xkms_remember_identity=([^;]*)/);
+  if (!m) return null;
+  try {
+    const remembered = JSON.parse(decodeURIComponent(m[1]));
+    if (!remembered || typeof remembered !== "object") return null;
+    if (typeof remembered.provider !== "string") return null;
+    if (typeof remembered.type !== "string") return null;
+    if (typeof remembered.id !== "string") return null;
+    return remembered;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setRemembered(provider, ident) {
+  const value = JSON.stringify({ provider: provider, type: ident.type, id: ident.id });
+  document.cookie = REMEMBER_COOKIE + "=" + encodeURIComponent(value) +
+    ";path=/;max-age=" + REMEMBER_MAX_AGE + ";SameSite=Lax";
+}
+
+function clearRemembered() {
+  document.cookie = REMEMBER_COOKIE + "=;path=/;max-age=0;SameSite=Lax";
+}
 
 function readFragment() {
   const h = new URLSearchParams(location.hash.slice(1));
@@ -281,6 +345,23 @@ function identitiesFrom(claims, providerName) {
   return { singles, groups };
 }
 
+function typeLabel(type) {
+  switch (type) {
+    case "user": return "User";
+    case "group": return "Group";
+    case "service": return "Service";
+    default: return type;
+  }
+}
+
+function allIdentityCandidates(singles, groups) {
+  return singles.concat(groups.map(g => ({ type: "group", id: g })));
+}
+
+function sameIdentity(a, b) {
+  return !!a && !!b && a.type === b.type && a.id === b.id;
+}
+
 function endpointFor(ident) {
   switch (ident.type) {
     case "user": return "/api/v1/credential/user";
@@ -294,6 +375,11 @@ const submit = document.getElementById("submit");
 const cancel = document.getElementById("cancel");
 const overlay = document.getElementById("overlay");
 const overlayText = document.getElementById("overlay-text");
+const overlayActions = document.getElementById("overlay-actions");
+const overlayContinue = document.getElementById("overlay-continue");
+const overlayCancel = document.getElementById("overlay-cancel");
+const rememberRow = document.getElementById("remember-row");
+const rememberBox = document.getElementById("remember");
 
 (function init() {
   const { token, state, provider } = readFragment();
@@ -327,6 +413,92 @@ const overlayText = document.getElementById("overlay-text");
   const form = document.getElementById("form");
   // selected holds the identity that will be submitted: {type, id}.
   let selected = null;
+  let countdownTimer = null;
+
+  function stopCountdown() {
+    if (countdownTimer !== null) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }
+
+  async function submitIdentity(ident, remember) {
+    if (!ident) { err.textContent = "Select an identity first."; return; }
+    if (remember) setRemembered(provider, ident);
+    submit.disabled = true;
+    cancel.disabled = true;
+    overlayActions.hidden = true;
+    overlayContinue.hidden = true;
+    overlayCancel.hidden = true;
+    err.textContent = "";
+    overlayText.textContent = "Issuing your credential…";
+    overlay.classList.add("show");
+    try {
+      const url = endpointFor(ident) + (state ? "?state=" + encodeURIComponent(state) : "");
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+      });
+      if (!res.ok) throw new Error("request failed: " + res.status);
+      const data = await res.json();
+      if (data.redirect) {
+        // Keep the overlay up through the final hop back to the requesting app.
+        overlayText.textContent = "Returning you to the application…";
+        location.href = data.redirect;
+        return;
+      }
+      err.textContent = "Credential issued but no redirect was returned.";
+      overlay.classList.remove("show");
+    } catch (e) {
+      err.textContent = e.message || "Request failed.";
+      overlay.classList.remove("show");
+      submit.disabled = false;
+      cancel.disabled = !state;
+    }
+  }
+
+  function showRememberedInterstitial(ident, onCancel) {
+    overlay.classList.add("show");
+    overlayActions.hidden = false;
+    overlayContinue.hidden = false;
+    overlayCancel.hidden = false;
+
+    const render = function(remaining) {
+      overlayText.textContent = "";
+      overlayText.append(document.createTextNode("Issuing credential for "));
+      const identity = document.createElement("strong");
+      identity.className = "overlay-identity";
+      identity.textContent = typeLabel(ident.type) + ": " + ident.id;
+      overlayText.append(identity);
+      if (remaining) overlayText.append(document.createTextNode(" (" + remaining + ")"));
+    };
+
+    const chooseAnother = function() {
+      stopCountdown();
+      clearRemembered();
+      overlay.classList.remove("show");
+      overlayActions.hidden = true;
+      overlayContinue.hidden = true;
+      overlayCancel.hidden = true;
+      onCancel();
+    };
+    overlayContinue.onclick = function() {
+      stopCountdown();
+      render(0);
+      submitIdentity(ident, true);
+    };
+    overlayCancel.onclick = chooseAnother;
+
+    let remaining = REMEMBER_REDIRECT_DELAY_SECONDS;
+    render(remaining);
+    countdownTimer = setInterval(function() {
+      remaining -= 1;
+      if (remaining > 0) { render(remaining); return; }
+      stopCountdown();
+      render(0);
+      submitIdentity(ident, true);
+    }, 1000);
+  }
 
   // Render the single-valued identities as radio rows.
   singles.forEach((ident, i) => {
@@ -424,34 +596,22 @@ const overlayText = document.getElementById("overlay-text");
     selected = singles[0];
     submit.disabled = false;
   }
+  rememberRow.hidden = false;
+
+  const remembered = readRemembered();
+  const candidates = allIdentityCandidates(singles, groups);
+  const rememberedMatch = remembered && remembered.provider === provider
+    ? candidates.find(ident => sameIdentity(ident, remembered))
+    : null;
+  if (remembered && !rememberedMatch) {
+    clearRemembered();
+  }
+  if (rememberedMatch) {
+    showRememberedInterstitial(rememberedMatch, function() { /* picker already rendered underneath */ });
+  }
 
   submit.addEventListener("click", async () => {
-    if (!selected) { err.textContent = "Select an identity first."; return; }
-    submit.disabled = true;
-    err.textContent = "";
-    overlayText.textContent = "Issuing your credential…";
-    overlay.classList.add("show");
-    try {
-      const url = endpointFor(selected) + (state ? "?state=" + encodeURIComponent(state) : "");
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + token },
-      });
-      if (!res.ok) throw new Error("request failed: " + res.status);
-      const data = await res.json();
-      if (data.redirect) {
-        // Keep the overlay up through the final hop back to the requesting app.
-        overlayText.textContent = "Returning you to the application…";
-        location.href = data.redirect;
-        return;
-      }
-      err.textContent = "Credential issued but no redirect was returned.";
-      overlay.classList.remove("show");
-    } catch (e) {
-      err.textContent = e.message || "Request failed.";
-      overlay.classList.remove("show");
-      submit.disabled = false;
-    }
+    await submitIdentity(selected, rememberBox.checked);
   });
 })();
 </script>

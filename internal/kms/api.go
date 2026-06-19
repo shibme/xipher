@@ -82,9 +82,10 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type providerInfo struct {
-		ID    string   `json:"id"`
-		Name  string   `json:"name"`
-		Types []string `json:"types"`
+		ID           string            `json:"id"`
+		Name         string            `json:"name"`
+		Types        []string          `json:"types"`
+		Placeholders map[string]string `json:"placeholders,omitempty"`
 	}
 	providers := make([]providerInfo, 0, len(s.auths))
 	for _, a := range s.auths {
@@ -98,10 +99,24 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		if a.cfg.Claims.Service != "" {
 			types = append(types, entityService)
 		}
+		placeholders := map[string]string{}
+		if a.cfg.Placeholders.User != "" {
+			placeholders[entityUser] = a.cfg.Placeholders.User
+		}
+		if a.cfg.Placeholders.Group != "" {
+			placeholders[entityGroup] = a.cfg.Placeholders.Group
+		}
+		if a.cfg.Placeholders.Service != "" {
+			placeholders[entityService] = a.cfg.Placeholders.Service
+		}
+		if len(placeholders) == 0 {
+			placeholders = nil
+		}
 		providers = append(providers, providerInfo{
-			ID:    a.cfg.ID,
-			Name:  a.cfg.Name,
-			Types: types,
+			ID:           a.cfg.ID,
+			Name:         a.cfg.Name,
+			Types:        types,
+			Placeholders: placeholders,
 		})
 	}
 

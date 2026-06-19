@@ -790,15 +790,17 @@ function showRedirecting(message, highlight, suffix) {
     }
 }
 
-// redirectWithCancel shows the redirect overlay with a live countdown and a
-// Cancel button, then navigates to `target` when the countdown elapses. The user
-// can cancel within the window. Returns a promise that resolves "redirecting"
-// once navigation is committed, or "cancelled" if the user backs out (the caller
-// then cleans up and falls through to the normal gate). `label` is the message
-// shown above the countdown (e.g. "Redirecting to provider.example…").
+// redirectWithCancel shows the redirect overlay with a live countdown plus
+// Continue/Cancel actions, then navigates to `target` when the countdown elapses
+// or Continue is clicked. Returns a promise that resolves "redirecting" once
+// navigation is committed, or "cancelled" if the user backs out (the caller then
+// cleans up and falls through to the normal gate). `label` is the message shown
+// above the countdown (e.g. "Redirecting to provider.example…").
 function redirectWithCancel(target, label, onCancel, highlight) {
     return new Promise((resolve) => {
         const text = preLoader && preLoader.querySelector(".preloader-text");
+        const actions = document.getElementById("preloader-actions");
+        const continueBtn = document.getElementById("preloader-continue");
         const cancelBtn = document.getElementById("preloader-cancel");
         if (preLoader) {
             preLoader.classList.add("preloader-redirecting");
@@ -826,14 +828,39 @@ function redirectWithCancel(target, label, onCancel, highlight) {
             if (!keepReservedSpace && preLoader) {
                 preLoader.classList.remove("preloader-redirecting");
             }
+            if (actions) {
+                actions.hidden = true;
+            }
+            if (continueBtn) {
+                continueBtn.onclick = null;
+            }
             if (cancelBtn) {
-                cancelBtn.hidden = true;
                 cancelBtn.onclick = null;
             }
         };
 
+        const commitNavigation = () => {
+            // Commit the navigation now. Drop the countdown suffix and keep the
+            // action row hidden while the browser leaves the page.
+            cleanup(true);
+            if (text) {
+                if (highlight) {
+                    renderRedirectingText(text, label, highlight);
+                } else {
+                    text.textContent = label;
+                }
+            }
+            window.location.replace(target);
+            resolve("redirecting");
+        };
+
+        if (actions) {
+            actions.hidden = false;
+        }
+        if (continueBtn) {
+            continueBtn.onclick = commitNavigation;
+        }
         if (cancelBtn) {
-            cancelBtn.hidden = false;
             cancelBtn.onclick = () => {
                 cleanup(false);
                 if (typeof onCancel === "function") {
@@ -850,18 +877,7 @@ function redirectWithCancel(target, label, onCancel, highlight) {
                 render();
                 return;
             }
-            // Final tick: commit the navigation. Drop the countdown suffix and
-            // keep the cancel button hidden — we're leaving now.
-            cleanup(true);
-            if (text) {
-                if (highlight) {
-                    renderRedirectingText(text, label, highlight);
-                } else {
-                    text.textContent = label;
-                }
-            }
-            window.location.replace(target);
-            resolve("redirecting");
+            commitNavigation();
         }, 1000);
     });
 }

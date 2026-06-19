@@ -500,10 +500,11 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth, priorP
         );
     }
     // Hand off to the delayed-redirect overlay: it shows "Redirecting to <host>…"
-    // with a countdown and a Cancel button, then navigates when the countdown
-    // elapses. If the user cancels, drop the pending exchange (its ephemeral
-    // secret would otherwise sit unused in sessionStorage) and return null so the
-    // caller falls through to the normal identity gate.
+    // with a countdown plus Continue/Cancel actions, then navigates when the
+    // countdown elapses or Continue is clicked. If the user cancels, drop the
+    // pending exchange (its ephemeral secret would otherwise sit unused in
+    // sessionStorage) and return null so the caller falls through to the normal
+    // identity gate.
     if (typeof redirectWithCancel === "function") {
         const outcome = await redirectWithCancel(
             target,

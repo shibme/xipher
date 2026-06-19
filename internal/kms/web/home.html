@@ -306,17 +306,19 @@ function typeLabel(type) {
   }
 }
 
-function syncIdentityPlaceholder() {
-  switch (typeSelect.value) {
-    case "group":
-      identityInput.placeholder = "engineering-team";
-      return;
-    case "service":
-      identityInput.placeholder = "payment-api";
-      return;
-    default:
-      identityInput.placeholder = "alice@example.com";
+function defaultPlaceholder(type) {
+  switch (type) {
+    case "group": return "engineering-team";
+    case "service": return "payment-api";
+    default: return "alice@example.com";
   }
+}
+
+function syncIdentityPlaceholder() {
+  const provider = providerByID(providerSelect.value);
+  const type = typeSelect.value;
+  const placeholders = provider ? provider.placeholders || {} : {};
+  identityInput.placeholder = placeholders[type] || defaultPlaceholder(type);
 }
 
 function renderTypes() {

@@ -134,15 +134,26 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
   .loader-spinner { animation: none; }
 }
 .overlay-actions { display: flex; gap: .75rem; margin-top: .25rem; }
+.overlay-actions[hidden] { display: none; }
 .overlay-btn {
+  display: inline-flex; align-items: center; justify-content: center;
   padding: .55rem 1.1rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-pill, 999px);
   background: transparent; color: var(--text-muted);
-  font-family: inherit; font-size: .85rem; cursor: pointer;
-  transition: border-color .15s var(--ease), color .15s var(--ease);
+  font-family: inherit; font-size: .85rem; line-height: 1; font-weight: 500; cursor: pointer;
+  transition: border-color .15s var(--ease), color .15s var(--ease), filter .15s var(--ease);
 }
 .overlay-btn:hover { border-color: var(--border-strong); color: var(--text-color); }
+.overlay-btn.primary {
+  background: linear-gradient(180deg, var(--surface-color), var(--surface-2));
+  border-color: var(--border-strong);
+  color: var(--text-color);
+}
+.overlay-btn.primary:hover {
+  border-color: var(--brand-2);
+  color: var(--text-color);
+}
 .remember {
   display: flex; align-items: center; gap: .5rem;
   margin-top: 1rem; font-size: .85rem; color: var(--text-muted);
@@ -203,9 +214,9 @@ h1 { font-size: 1.2rem; font-weight: 600; margin: 0 0 .35rem; }
     <div class="loader-spinner"></div>
   </div>
   <p id="overlay-text">Redirecting to your provider…</p>
-  <div class="overlay-actions">
+  <div class="overlay-actions" id="overlay-actions" hidden>
+    <button type="button" class="overlay-btn primary" id="overlay-continue">Continue</button>
     <button type="button" class="overlay-btn" id="overlay-cancel">Cancel</button>
-    <button type="button" class="overlay-btn" id="overlay-choose" hidden>Choose another</button>
   </div>
 </div>
 <script>
@@ -215,7 +226,7 @@ const LOGIN = window.__XKMS_LOGIN__ || {};
 
 // Seconds the redirect overlay counts down before navigating to the IDP (server-
 // configured via login.redirect_delay; 0 = redirect immediately). Gives the user
-// time to read where they're going and cancel.
+// time to read where they're going, continue immediately, or cancel.
 const REDIRECT_DELAY_SECONDS = Number.isInteger(LOGIN.redirectDelay) ? LOGIN.redirectDelay : 3;
 // Whether the "remember my provider" option is offered (login.remember).
 const REMEMBER_ENABLED = LOGIN.remember !== false;
@@ -247,8 +258,9 @@ function providerHref(name) {
   const rememberBox = document.getElementById("remember");
   const overlay = document.getElementById("overlay");
   const overlayText = document.getElementById("overlay-text");
+  const overlayActions = document.getElementById("overlay-actions");
+  const continueBtn = document.getElementById("overlay-continue");
   const cancelBtn = document.getElementById("overlay-cancel");
-  const chooseBtn = document.getElementById("overlay-choose");
   const abortBtn = document.getElementById("cancel");
 
   // Cancel the whole flow: bounce back to the (server-validated) xipher app
@@ -280,10 +292,10 @@ function providerHref(name) {
   }
 
   // beginRedirect shows the redirect overlay, then navigates to the chosen
-  // provider. With REDIRECT_DELAY_SECONDS > 0 it runs a Cancel-able countdown;
-  // with 0 it navigates immediately (overlay still flashes as a loader).
-  // `showChoose` adds a "Choose another" action (used by the remembered
-  // interstitial). onCancel/onChoose let the caller decide what cancelling means.
+  // provider. With REDIRECT_DELAY_SECONDS > 0 it runs a countdown with Continue
+  // and Cancel actions; with 0 it navigates immediately (overlay still flashes
+  // as a loader).
+  // onCancel lets the caller decide what cancelling means.
   function beginRedirect(name, opts) {
     opts = opts || {};
     const prefix = opts.prefix || "Redirecting to";
@@ -307,27 +319,27 @@ function providerHref(name) {
     if (REDIRECT_DELAY_SECONDS <= 0) {
       // No countdown: no cancel affordance, go now.
       render(0);
-      cancelBtn.hidden = true;
-      chooseBtn.hidden = true;
+      overlayActions.hidden = true;
       navigate(name, opts.remember);
       return;
     }
 
-    cancelBtn.hidden = false;
-    chooseBtn.hidden = !opts.showChoose;
+    overlayActions.hidden = false;
 
     let remaining = REDIRECT_DELAY_SECONDS;
     render(remaining);
 
+    continueBtn.onclick = function() {
+      stopCountdown();
+      render(0);
+      overlayActions.hidden = true;
+      navigate(name, opts.remember);
+    };
     cancelBtn.onclick = function() {
       stopCountdown();
       overlay.classList.remove("show");
+      overlayActions.hidden = true;
       if (typeof opts.onCancel === "function") opts.onCancel();
-    };
-    chooseBtn.onclick = function() {
-      stopCountdown();
-      overlay.classList.remove("show");
-      if (typeof opts.onChoose === "function") opts.onChoose();
     };
 
     countdownTimer = setInterval(function() {
@@ -335,6 +347,7 @@ function providerHref(name) {
       if (remaining > 0) { render(remaining); return; }
       stopCountdown();
       render(0);
+      overlayActions.hidden = true;
       navigate(name, opts.remember);
     }, 1000);
   }
@@ -370,11 +383,9 @@ function providerHref(name) {
       label: "Signing you in with " + remembered,
       prefix: "Signing you in with",
       provider: remembered,
-      showChoose: true,
       remember: true, // refresh the cookie's lifetime on use
-      // Cancel / Choose another: clear the remembered choice, show the picker.
+      // Cancel: clear the remembered choice, show the picker.
       onCancel: function() { clearRemembered(); renderPicker(); },
-      onChoose: function() { clearRemembered(); renderPicker(); },
     });
     return;
   }

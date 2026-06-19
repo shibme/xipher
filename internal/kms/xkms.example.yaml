@@ -37,6 +37,12 @@ providers:
       user: email      # single value
       group: groups    # array value -> one identity per group member
       service: sub     # single value
+    # Optional homepage identity-name input placeholders. Omit any value to use
+    # the built-in default for that identity type.
+    placeholders:
+      user: alice@example.com
+      group: engineering-team
+      service: payment-api
 
   github:
     name: "GitHub Actions"
@@ -49,6 +55,8 @@ providers:
       - openid
     claims:
       service: sub   # only service identity from GitHub tokens
+    placeholders:
+      service: org/repo/.github/workflows/deploy.yml@refs/heads/main
 
 # Header carrying the OIDC JWT for direct API auth. Shared across all providers.
 auth_header:
@@ -64,12 +72,12 @@ credential:
 # Browser sign-in page behavior (the provider selector shown when more than one
 # provider is configured).
 login:
-  # Seconds the redirect overlay counts down (with a Cancel button) before
-  # navigating to the IdP. 0 = redirect immediately, no countdown. Default 3.
+  # Seconds the redirect overlay counts down (with Continue/Cancel buttons)
+  # before navigating to the IdP. 0 = redirect immediately, no countdown. Default 3.
   redirect_delay: 3
   # Offer a "remember my provider on this device" option. When set, a returning
   # user skips the selector and sees a "Signing you in with <provider>…"
-  # interstitial with Cancel / Choose another. Default true.
+  # interstitial with Continue / Cancel. Default true.
   remember: true
 
 # Public key kind served by the public /xpk/<provider>/<type>/<id>/.well-known/xipher

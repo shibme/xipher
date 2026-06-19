@@ -39,8 +39,11 @@
         </div>
         <p class="preloader-text">Loading Xipher</p>
         <!-- Shown only during a delayed redirect to a credential provider, so the
-             user can read where they're going and bail before navigation. -->
-        <button type="button" id="preloader-cancel" class="preloader-cancel" hidden>Cancel</button>
+             user can read where they're going, proceed immediately, or bail. -->
+        <div id="preloader-actions" class="preloader-actions" hidden>
+            <button type="button" id="preloader-continue" class="preloader-action primary">Continue</button>
+            <button type="button" id="preloader-cancel" class="preloader-action">Cancel</button>
+        </div>
     </div>
 
     <!-- Top navigation bar -->
@@ -228,21 +231,21 @@
                             <span class="credential-option-icon" aria-hidden="true">🔑</span>
                             <span class="credential-option-text">
                                 <span class="credential-option-title">Passkey</span>
-                                <span class="credential-option-sub">Use a device-backed passkey. Nothing is stored in this browser.</span>
+                                <span class="credential-option-sub">Device-backed. Nothing stored here.</span>
                             </span>
                         </button>
                         <button type="button" id="credential-password-option" class="credential-option" role="listitem">
                             <span class="credential-option-icon" aria-hidden="true">🔒</span>
                             <span class="credential-option-text">
                                 <span class="credential-option-title">Secret Key / Password</span>
-                                <span class="credential-option-sub">Set a password or Xipher secret key stored locally with a timeout.</span>
+                                <span class="credential-option-sub">Stored locally with a timeout.</span>
                             </span>
                         </button>
                         <button type="button" id="credential-provider-option" class="credential-option" role="listitem">
                             <span class="credential-option-icon" aria-hidden="true">↗</span>
                             <span class="credential-option-text">
                                 <span class="credential-option-title">Credential Provider</span>
-                                <span class="credential-option-sub">Sign in with a trusted provider that issues this browser's key.</span>
+                                <span class="credential-option-sub">Use a key from your provider.</span>
                             </span>
                         </button>
                     </div>

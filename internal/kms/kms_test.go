@@ -294,6 +294,8 @@ providers:
     redirect_uri: https://xkms.example.com/callback
     claims:
       user: email
+    placeholders:
+      user: teammate@example.com
 auth_header:
   type: bearer
 credential:
@@ -313,6 +315,9 @@ xipher_urls:
 	if c.XipherHomeURL != "https://xipher.org/app" {
 		t.Fatalf("XipherHomeURL = %q", c.XipherHomeURL)
 	}
+	if c.Providers[0].Placeholders.User != "teammate@example.com" {
+		t.Fatalf("provider placeholder user = %q", c.Providers[0].Placeholders.User)
+	}
 	if !originAllowed("https://xipher.org/callback", c.AllowedCallbackURLs) {
 		t.Fatal("default xipher URL was not allowed")
 	}
@@ -327,6 +332,8 @@ func TestHandleRootLaunchesXipherHomeURL(t *testing.T) {
 	s.cfg.PubKeyPath = "/xpk/"
 	s.auths[0].cfg.Claims.User = "email"
 	s.auths[0].cfg.Claims.Group = "groups"
+	s.auths[0].cfg.Placeholders.User = "person@example.com"
+	s.auths[0].cfg.Placeholders.Group = "platform-team"
 
 	rec := httptest.NewRecorder()
 	s.handleRoot(rec, httptest.NewRequest("GET", "/", nil))
@@ -341,6 +348,7 @@ func TestHandleRootLaunchesXipherHomeURL(t *testing.T) {
 		`"pubKeyPath":"/xpk/"`,
 		`"id":"test-provider"`,
 		`"types":["user","group"]`,
+		`"placeholders":{"group":"platform-team","user":"person@example.com"}`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("home page missing %q in:\n%s", want, body)

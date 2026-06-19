@@ -66,6 +66,14 @@ type OIDCProviderConfig struct {
 		Group   string `yaml:"group"`   // array value, e.g. "groups"
 		Service string `yaml:"service"` // single value, e.g. "sub"
 	} `yaml:"claims"`
+
+	// Placeholders customizes homepage identity-name input hints for each entity type.
+	// Empty values fall back to the built-in examples.
+	Placeholders struct {
+		User    string `yaml:"user"`
+		Group   string `yaml:"group"`
+		Service string `yaml:"service"`
+	} `yaml:"placeholders"`
 }
 
 // rawConfig is used for YAML parsing only. providers is a map so the key

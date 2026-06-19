@@ -50,6 +50,10 @@ config:
   #     user: email      # single-value claim
   #     group: groups    # array-value claim, one identity per element
   #     service: sub     # single-value claim
+  #   placeholders:
+  #     user: alice@example.com
+  #     group: engineering-team
+  #     service: payment-api
   # github:
   #   name: "GitHub Actions"
   #   issuer_url: "https://token.actions.githubusercontent.com"
@@ -60,6 +64,8 @@ config:
   #   scopes: [openid]
   #   claims:
   #     service: sub
+  #   placeholders:
+  #     service: org/repo/.github/workflows/deploy.yml@refs/heads/main
 
   auth_header:
     # bearer: Authorization: Bearer <jwt>
@@ -77,12 +83,12 @@ config:
   # Browser sign-in selector page behavior (shown when more than one provider
   # is configured). Omit a key to use the server default.
   login:
-    # Seconds the redirect overlay counts down (with a Cancel button) before
-    # navigating to the IdP. 0 = redirect immediately, no countdown. Default 3.
+    # Seconds the redirect overlay counts down (with Continue/Cancel buttons)
+    # before navigating to the IdP. 0 = redirect immediately, no countdown. Default 3.
     redirect_delay: 3
     # Offer "remember my provider on this device". A returning user then skips
     # the selector and sees a "Signing you in with <provider>…" interstitial
-    # with Cancel / Choose another. Default true.
+    # with Continue / Cancel. Default true.
     remember: true
 
   # Serve quantum-safe hybrid public keys (X25519 + ML-KEM-1024) instead of ECC-only.
