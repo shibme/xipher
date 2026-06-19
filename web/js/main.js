@@ -708,7 +708,7 @@ async function ensureLocalIdentity(skipReauth = false) {
         clearLastProviderUrl(); // consume stash regardless of flow outcome
         // autoReauth=true: this redirect happens without an explicit user click,
         // so the return path skips the "use this key?" consent.
-        const result = await initiateProviderFlow(reauthUrl, false, true);
+        const result = await initiateProviderFlow(reauthUrl, false, true, reauthUrl);
         // "redirecting" means the overlay committed the navigation; the page is
         // tearing down, so return without opening any modal (it would flash over
         // the redirect). Anything else — invalid URL, declined trust, or the user

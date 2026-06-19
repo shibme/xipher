@@ -185,6 +185,10 @@
     cursor: pointer;
 }
 
+.identity-name.is-locked {
+    cursor: default;
+}
+
 /* Small inline pencil that sits after an editable value (the identity name and
    the session timeout), small and muted, brightening on hover. */
 .inline-edit-pencil {
@@ -204,6 +208,25 @@
 
 .inline-edit-pencil:hover {
     color: var(--text-color);
+}
+
+.identity-name-managed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.identity-name-managed[hidden] {
+    display: none;
+}
+
+.identity-name-managed:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-select-file-bg) 22%, transparent);
 }
 
 /* The inline editor replaces the name span while editing. */
@@ -443,17 +466,37 @@
     text-align: center;
 }
 
-/* Session-timeout control in the profile modal. Left-aligned label / hint, with
-   the value+pencil row centered. */
+/* Session-timeout control in the profile modal: compact label/value/edit row. */
 .timeout-row {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
     margin-top: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
 }
 
 .timeout-row[hidden] {
     display: none;
+}
+
+#provider-modal-duration-row.timeout-row {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+}
+
+.timeout-row > .field-label {
+    margin-bottom: 0;
+    line-height: 1.4;
 }
 
 /* Number + unit row, used by the consent-modal timeout pickers (save + profile
@@ -480,15 +523,18 @@
 .timeout-value-row {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 6px;
+    flex: 0 0 auto;
     min-width: 0;
 }
 
 .timeout-value {
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 13.5px;
     color: var(--text-color);
+    line-height: 1.4;
+    white-space: nowrap;
 }
 
 .link-viewbox {
@@ -986,7 +1032,95 @@ textarea:focus::placeholder {
     flex: 1;
 }
 
-/* ---- Method selector (passkey vs password) ------------------------------ */
+/* ---- Credential options ------------------------------------------------- */
+
+.credential-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.credential-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.credential-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.credential-option:hover {
+    background: var(--surface-color);
+    border-color: var(--button-select-file-bg);
+    transform: translateY(-1px);
+}
+
+.credential-option:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-select-file-bg) 22%, transparent);
+}
+
+.credential-option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--button-select-file-bg) 12%, var(--surface-color));
+    color: var(--button-select-file-bg);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.credential-option-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.credential-option-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.credential-option-sub {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.provider-input-row {
+    margin-bottom: 16px;
+}
+
+.provider-input-row .text-field {
+    width: 100%;
+    margin-top: 6px;
+    text-align: left;
+}
+
+.provider-input-row .text-field.text-error {
+    text-align: left;
+}
+
+/* ---- Method selector (legacy passkey vs password styles) ---------------- */
 
 .method-selector {
     display: flex;

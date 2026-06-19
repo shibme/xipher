@@ -554,12 +554,15 @@ function newExchangeState() {
 // ephemeral PUBLIC key and this state to the provider; the matching secret stays
 // in the record so the return blob can be opened. The record holds the ephemeral
 // secret key, so it is encrypted at rest with the same scheme as the stored
-// identity key (encryptForStorage) rather than kept in plaintext.
-async function createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth) {
+// identity key (encryptForStorage) rather than kept in plaintext. priorProviderHost
+// captures the configured provider before the redirect, including expiry flows
+// where active identity metadata has already been wiped.
+async function createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth, priorProviderHost) {
     const state = newExchangeState();
     const record = {
         providerUrl,
         ephemeralSecretKey,
+        priorProviderHost: typeof priorProviderHost === "string" ? priorProviderHost : "",
         // autoReauth marks an exchange started without an explicit user action
         // (an ephemeral or expired provider key being silently re-fetched on
         // load). The return path uses it to skip the "use this key?" consent,

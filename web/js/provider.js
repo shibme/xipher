@@ -116,6 +116,9 @@ function providerErrorMessage(reason) {
 const providerModal = document.getElementById("provider-modal");
 const providerModalTitle = document.getElementById("provider-modal-title");
 const providerModalMessage = document.getElementById("provider-modal-message");
+const providerModalInputRow = document.getElementById("provider-modal-input-row");
+const providerModalInput = document.getElementById("provider-modal-input");
+const providerModalInputHint = document.getElementById("provider-modal-input-hint");
 const providerModalDetail = document.getElementById("provider-modal-detail");
 const providerModalDetailValue = document.getElementById("provider-modal-detail-value");
 const providerModalDetailCopy = document.getElementById("provider-modal-detail-copy");
@@ -139,6 +142,9 @@ const providerModalDurationHint = document.getElementById("provider-modal-durati
 // shown and the promise resolves to an object { confirmed, checked } on every
 // path, so the caller can read the switch state.
 //
+// When opts.input is provided ({ label, value, placeholder, hint, validate }) an
+// editable text field is shown and the promise resolves with { value }.
+//
 // When opts.duration is provided ({ valueMs }) a number+unit "session timeout"
 // field is shown, prefilled from valueMs, and Confirm stays disabled until the
 // entered duration is valid (0 < ms <= MAX_TIMEOUT_MS). Every path then resolves
@@ -156,10 +162,46 @@ function askProviderConsent(opts) {
             hidePreloader();
         }
         providerModalTitle.textContent = opts.title;
-        providerModalMessage.textContent = opts.message;
+        providerModalMessage.textContent = "";
+        const inputRequested = !!opts.input;
+        const inputAvailable = !!(providerModalInputRow && providerModalInput && providerModalInputHint);
+        if (inputRequested && !inputAvailable) {
+            showToast("Refresh this page before entering a credential provider URL.", "error", 5000);
+            resolve({ confirmed: false, value: "" });
+            return;
+        }
+        if (Array.isArray(opts.messageParts)) {
+            opts.messageParts.forEach((part) => {
+                if (part && part.strong) {
+                    const strong = document.createElement("strong");
+                    strong.textContent = part.text || "";
+                    providerModalMessage.appendChild(strong);
+                } else {
+                    providerModalMessage.appendChild(document.createTextNode(part && part.text ? part.text : ""));
+                }
+            });
+        } else {
+            providerModalMessage.textContent = opts.message;
+        }
         providerModalConfirm.textContent = opts.confirmLabel || "Continue";
         providerModalConfirm.className = "app-button " + (opts.confirmClass || "encrypt-button");
         providerModalCancel.textContent = opts.cancelLabel || "Cancel";
+        const hasInput = inputRequested && inputAvailable;
+        const inputDefaultHint = hasInput ? (opts.input.hint || "") : "";
+        if (hasInput) {
+            const label = providerModalInputRow.querySelector("label");
+            label.textContent = opts.input.label || "Value";
+            providerModalInput.value = opts.input.value || "";
+            providerModalInput.placeholder = opts.input.placeholder || "";
+            providerModalInputHint.textContent = inputDefaultHint;
+            providerModalInputHint.hidden = !inputDefaultHint;
+            providerModalInputRow.hidden = false;
+        } else if (inputAvailable) {
+            providerModalInput.value = "";
+            providerModalInputRow.hidden = true;
+            providerModalInputHint.textContent = "";
+            providerModalInputHint.hidden = true;
+        }
         if (opts.detailValue) {
             providerModalDetailValue.value = opts.detailValue;
             providerModalDetailValue.setAttribute("aria-label", opts.detailLabel || "Details");
@@ -205,7 +247,33 @@ function askProviderConsent(opts) {
         };
         // Confirm stays disabled while the duration field is invalid.
         const syncDurationValidity = () => {
-            providerModalConfirm.disabled = readDuration() === null;
+            syncConfirmValidity();
+        };
+
+        const readInput = () => providerModalInput.value.trim();
+        const inputError = () => {
+            if (!hasInput) {
+                return "";
+            }
+            if (!readInput()) {
+                return opts.input.requiredMessage || "Enter a value to continue.";
+            }
+            if (typeof opts.input.validate === "function") {
+                return opts.input.validate(readInput()) || "";
+            }
+            return "";
+        };
+        const syncInputValidity = () => {
+            const error = inputError();
+            providerModalInputHint.textContent = error || inputDefaultHint;
+            providerModalInputHint.hidden = !(error || inputDefaultHint);
+            providerModalInput.classList.toggle("text-error", !!error);
+            syncConfirmValidity();
+        };
+        const syncConfirmValidity = () => {
+            providerModalConfirm.disabled =
+                (hasDuration && readDuration() === null) ||
+                (hasInput && !!inputError());
         };
 
         const hasDuration = !!opts.duration;
@@ -224,21 +292,31 @@ function askProviderConsent(opts) {
             providerModalDurationRow.hidden = false;
             providerModalDurationValue.addEventListener("input", syncDurationValidity);
             providerModalDurationUnit.addEventListener("change", syncDurationValidity);
-            syncDurationValidity();
         } else {
             providerModalDurationRow.hidden = true;
-            providerModalConfirm.disabled = false;
         }
+        if (hasInput) {
+            providerModalInput.addEventListener("input", syncInputValidity);
+        }
+        syncConfirmValidity();
 
         const cleanup = () => {
             providerModal.hidden = true;
-            document.body.classList.remove("no-scroll");
+            if (typeof syncBodyScrollLock === "function") {
+                syncBodyScrollLock();
+            } else {
+                document.body.classList.remove("no-scroll");
+            }
             providerModalConfirm.disabled = false;
+            if (inputAvailable) {
+                providerModalInput.classList.remove("text-error");
+                providerModalInput.removeEventListener("input", syncInputValidity);
+            }
             providerModalConfirm.removeEventListener("click", onConfirm);
             providerModalCancel.removeEventListener("click", onCancel);
             providerModalClose.removeEventListener("click", onDismiss);
             providerModal.removeEventListener("click", onBackdrop);
-            document.removeEventListener("keydown", onKeydown);
+            document.removeEventListener("keydown", onKeydown, true);
             providerModalDurationValue.removeEventListener("input", syncDurationValidity);
             providerModalDurationUnit.removeEventListener("change", syncDurationValidity);
         };
@@ -246,8 +324,8 @@ function askProviderConsent(opts) {
         // With a toggle or duration, every path returns an object; without either,
         // the legacy boolean/dismissValue is preserved. durationMs is the chosen
         // value on confirm, null otherwise.
-        const wrap = (confirmed, fallback, durationMs) => {
-            if (!hasToggle && !hasDuration) {
+        const wrap = (confirmed, fallback, durationMs, value) => {
+            if (!hasToggle && !hasDuration && !hasInput) {
                 return fallback;
             }
             const result = { confirmed };
@@ -257,21 +335,31 @@ function askProviderConsent(opts) {
             if (hasDuration) {
                 result.durationMs = durationMs;
             }
+            if (hasInput) {
+                result.value = value || "";
+            }
             return result;
         };
         const onConfirm = () => {
             // Guard against a confirm slipping through while invalid (e.g. Enter).
-            if (hasDuration && readDuration() === null) {
+            if ((hasDuration && readDuration() === null) || (hasInput && inputError())) {
                 return;
             }
             const durationMs = hasDuration ? readDuration() : null;
+            const value = hasInput ? readInput() : "";
             cleanup();
-            resolve(wrap(true, true, durationMs));
+            resolve(wrap(true, true, durationMs, value));
         };
-        const onCancel = () => { cleanup(); resolve(wrap(false, false, null)); };
-        const onDismiss = () => { cleanup(); resolve(wrap(false, dismissValue, null)); };
+        const onCancel = () => { cleanup(); resolve(wrap(false, false, null, "")); };
+        const onDismiss = () => { cleanup(); resolve(wrap(false, dismissValue, null, "")); };
         const onBackdrop = (event) => { if (event.target === providerModal) { onDismiss(); } };
-        const onKeydown = (event) => { if (event.key === "Escape") { onDismiss(); } };
+        const onKeydown = (event) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                onDismiss();
+            }
+        };
 
         providerModalConfirm.addEventListener("click", onConfirm);
         providerModalCancel.addEventListener("click", onCancel);
@@ -281,7 +369,7 @@ function askProviderConsent(opts) {
         // dismiss but uses the default name on Cancel). Matches the cleanup remover.
         providerModalClose.addEventListener("click", onDismiss);
         providerModal.addEventListener("click", onBackdrop);
-        document.addEventListener("keydown", onKeydown);
+        document.addEventListener("keydown", onKeydown, true);
 
         providerModalDetailCopy.onclick = () => {
             copyToClipboard(providerModalDetailValue.value, providerModalDetailCopy, "Copied.");
@@ -289,6 +377,10 @@ function askProviderConsent(opts) {
 
         providerModal.hidden = false;
         document.body.classList.add("no-scroll");
+        if (hasInput) {
+            providerModalInput.focus();
+            providerModalInput.select();
+        }
     });
 }
 
@@ -302,13 +394,23 @@ function clearProviderUrl() {
     history.replaceState(null, "", callbackUrl());
 }
 
+// providerHostFromUrl returns the host used for same-provider decisions. Invalid
+// stored metadata is treated as "no match" rather than blocking the flow.
+function providerHostFromUrl(providerUrl) {
+    try {
+        return new URL(providerUrl).host;
+    } catch (e) {
+        return "";
+    }
+}
+
 // initiateProviderFlow runs when the app is opened with ?provider=<url>. When
 // forceEcc is true the request uses the compact X25519 key directly. When
 // autoReauth is true the flow was started silently (re-fetching an ephemeral or
-// expired key on load, not by an explicit user action); the trust prompt is
-// kept but the return path skips the "use this key?" consent. Returns
-// "redirecting" if it navigates away to the provider, otherwise null.
-async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth) {
+// expired key on load, not by an explicit user action); priorProviderUrl carries
+// the pre-expiry provider when active identity metadata was already wiped.
+// Returns "redirecting" if it navigates away to the provider, otherwise null.
+async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth, priorProviderUrl, trustAlreadyConfirmed) {
     const resolved = normalizeProviderUrl(rawProviderUrl);
     if (resolved.error) {
         showToast(
@@ -323,7 +425,33 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth) {
     const providerUrl = resolved.url;
 
     const host = new URL(providerUrl).host;
-    if (!getTrustedProviderHosts().includes(host)) {
+    const identity = getIdentity();
+    const configuredProviderUrl = priorProviderUrl || (
+        identity.managed && identity.provider !== "passkey" ? identity.provider : ""
+    );
+    const priorProviderHost = providerHostFromUrl(configuredProviderUrl);
+    const sameConfiguredProvider = priorProviderHost === host;
+    if (sameConfiguredProvider && await hasXipherSession()) {
+        const ok = await askProviderConsent({
+            title: "Session already exists",
+            messageParts: [
+                { text: "You're already signed in with " },
+                { text: host, strong: true },
+                { text: ". Changing credentials will replace the key for this browser." },
+            ],
+            confirmLabel: "Change credential",
+            cancelLabel: "Cancel re-auth",
+            confirmClass: "decrypt-button",
+            detailLabel: "Provider",
+            detailValue: providerUrl,
+        });
+        if (!ok) {
+            clearProviderUrl();
+            return null;
+        }
+    }
+
+    if (!trustAlreadyConfirmed && !getTrustedProviderHosts().includes(host)) {
         const result = await askProviderConsent({
             title: "Get a key from a credential provider?",
             message: `You'll be sent to ${host} to sign in. It will issue a xipher secret key for this browser. ` +
@@ -356,7 +484,7 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth) {
     // ?xecc). The same secret decrypts a blob sealed to either key (the
     // algorithm is carried in the ciphertext), so the return path is unchanged.
     const ephemeralSecretKey = await genXipherSecretKey();
-    const state = await createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth === true);
+    const state = await createProviderExchange(providerUrl, ephemeralSecretKey, autoReauth === true, priorProviderHost);
 
     let pubKey = await genXipherPublicKey(ephemeralSecretKey, !forceEcc);
     let target = buildProviderUrl(providerUrl, pubKey, state);
@@ -457,24 +585,24 @@ async function completeProviderReturn(ret) {
     }
 
     const existing = await getExistingXipherSecret();
-    const host = (() => { try { return new URL(exchange.providerUrl).host; } catch (e) { return "the provider"; } })();
+    const host = providerHostFromUrl(exchange.providerUrl) || "the provider";
+    const sameProvider = !!exchange.priorProviderHost && exchange.priorProviderHost === providerHostFromUrl(exchange.providerUrl);
     // Auto-reauth (an ephemeral or expired provider key being silently
     // re-fetched on load) carries no new decision for the user: they already
     // consented to this provider when first adopting it, and the redirect
-    // happened without them clicking anything. Skip the consent and install
-    // the refreshed key directly. Explicit, user-initiated flows still ask.
-    if (!exchange.autoReauth) {
+    // happened without them clicking anything. First-time installs and same-
+    // provider refreshes also carry no replacement decision, so prompt only when
+    // a different provider would replace an existing local credential.
+    if (!exchange.autoReauth && existing && !sameProvider) {
         const ok = await askProviderConsent({
             title: "Use the key from your provider?",
             // The existing key is never revealed here: this consent runs in a context
             // reached by an external redirect, so showing or backing up the secret
             // would widen its exposure. The user manages their own key in the profile.
-            message: existing
-                ? `Accepting this key from ${host} will REPLACE the secret key already in this browser. ` +
-                  `Anything encrypted to your current key will no longer be readable here.`
-                : `Set the secret key issued by ${host} as this browser's identity?`,
-            confirmLabel: existing ? "Replace my key" : "Use this key",
-            confirmClass: existing ? "decrypt-button" : "encrypt-button",
+            message: `Accepting this key from ${host} will REPLACE the secret key already in this browser. ` +
+                `Anything encrypted to your current key will no longer be readable here.`,
+            confirmLabel: "Replace my key",
+            confirmClass: "decrypt-button",
         });
         if (!ok) {
             showToast("Kept your existing key. The provider's key was discarded.", "info");

@@ -106,7 +106,21 @@ dropArea.addEventListener("drop", (event) => {
 const keyModal = document.getElementById("key-modal");
 const keySettingsButton = document.getElementById("settings-button");
 const keyModalClose = document.getElementById("key-modal-close");
+const keyModalCancelButton = document.getElementById("key-modal-cancel-button");
 const keySaveButton = document.getElementById("key-save-button");
+const credentialPasskeyOption = document.getElementById("credential-passkey-option");
+const credentialPasswordOption = document.getElementById("credential-password-option");
+const credentialProviderOption = document.getElementById("credential-provider-option");
+const passkeyModal = document.getElementById("passkey-modal");
+const passkeyModalClose = document.getElementById("passkey-modal-close");
+const passkeyModalCancel = document.getElementById("passkey-modal-cancel");
+const passkeyUseButton = document.getElementById("passkey-use-button");
+const passkeySetupButton = document.getElementById("passkey-setup-button");
+const passkeyStatus = document.getElementById("passkey-status");
+const passkeyUnsupported = document.getElementById("passkey-unsupported");
+const passwordModal = document.getElementById("password-modal");
+const passwordModalClose = document.getElementById("password-modal-close");
+const passwordModalCancel = document.getElementById("password-modal-cancel");
 const keySecretInput = document.getElementById("key-secret-input");
 const keySecretReveal = document.getElementById("key-secret-reveal");
 const keySecretGenerate = document.getElementById("key-secret-generate");
@@ -123,6 +137,13 @@ const identityNameManaged = document.getElementById("identity-name-managed");
 const timeoutRow = document.getElementById("timeout-row");
 const timeoutSummary = document.getElementById("timeout-summary");
 const timeoutEdit = document.getElementById("timeout-edit");
+const MANAGED_NAME_MESSAGE = "Your name is managed by your credential provider and can't be changed here.";
+
+function onOptional(element, eventName, handler) {
+    if (element) {
+        element.addEventListener(eventName, handler);
+    }
+}
 
 // Derives up to two uppercase initials from a display name (e.g. "Alice Example"
 // -> "AE", "shibme" -> "S"). Falls back to "" when there's nothing usable.
@@ -180,7 +201,7 @@ function renderIdentityCard() {
         return kind === "password" ? "Password" : kind === "key" ? "Secret key" : null;
     })();
     if (backingLabel) {
-        identityProvider.innerHTML = `Backed by <strong class="identity-provider-label">${backingLabel}</strong>`;
+        identityProvider.innerHTML = `<strong class="identity-provider-label">${backingLabel}</strong>`;
         identityProvider.hidden = false;
     } else {
         identityProvider.innerHTML = "";
@@ -190,6 +211,7 @@ function renderIdentityCard() {
     // The name is editable for self-issued and passkey-backed identities; for an
     // externally provider-managed one the pencil is hidden and a note explains why.
     exitNameEdit();
+    identityName.classList.toggle("is-locked", identity.nameLocked);
     identityNameEdit.hidden = identity.nameLocked;
     identityNameManaged.hidden = !identity.nameLocked;
 }
@@ -269,6 +291,13 @@ const keyModalTitle = document.getElementById("key-modal-title");
 // has actually committed a key via finishKeySetup. Null when no Setup is pending.
 let setupResolve = null;
 
+function syncBodyScrollLock() {
+    const providerModalEl = document.getElementById("provider-modal");
+    const anyModalOpen = [keyModal, passkeyModal, passwordModal, providerModalEl]
+        .some((modal) => modal && !modal.hidden);
+    document.body.classList.toggle("no-scroll", anyModalOpen);
+}
+
 async function openKeyModal(setupMode = false, initialPasskeyStatus = null) {
     // The modal must be visible and clickable; the startup preloader (z-index
     // above it) would otherwise cover it and deadlock the load. Hide it here so
@@ -280,8 +309,12 @@ async function openKeyModal(setupMode = false, initialPasskeyStatus = null) {
     keyModalSetupMode = setupMode;
     // In setup the modal is mandatory: title reads "Setup", and the dismiss
     // affordances are removed so no key gets chosen by default.
-    keyModalTitle.textContent = setupMode ? "Setup" : "Profile";
-    keyModalClose.hidden = setupMode;
+    if (keyModalTitle) {
+        keyModalTitle.textContent = setupMode ? "Setup" : "Profile";
+    }
+    if (keyModalClose) {
+        keyModalClose.hidden = setupMode;
+    }
     // Reset transient inputs. The field stays empty (we never load the saved
     // secret back); the masked placeholder just signals that one is set, and
     // leaving it blank keeps the current key.
@@ -291,20 +324,23 @@ async function openKeyModal(setupMode = false, initialPasskeyStatus = null) {
     quantumSafeToggle.checked = isQuantumSafe();
     renderIdentityCard();
     await renderTimeoutRow();
-    // Disable save button and set to Cancel since no changes have been made yet.
-    setKeySaveReady(false);
-    // Default to the method matching the current identity: passkey if this
-    // browser's key came from a passkey (and passkeys are available), else the
-    // password/key view.
-    const usesPasskey = passkeyAvailable && getIdentity().provider === "passkey";
-    selectMethod(usesPasskey ? "passkey" : "password");
-    // Restore a passkey error from a pre-modal failure (e.g. auto-unlock at startup).
-    // selectMethod calls resetPasskeyView which clears passkeyStatus, so set it after.
-    if (initialPasskeyStatus && usesPasskey) {
-        passkeyStatus.textContent = initialPasskeyStatus;
+    if (keyModalCancelButton) {
+        keyModalCancelButton.disabled = setupMode;
+        keyModalCancelButton.textContent = setupMode ? "Set up" : "Cancel";
+        keyModalCancelButton.classList.toggle("grey-button", true);
+        keyModalCancelButton.classList.remove("encrypt-button");
     }
-    keyModal.hidden = false;
-    document.body.classList.add("no-scroll");
+    resetPasswordCredentialModal();
+    resetPasskeyView();
+    if (initialPasskeyStatus) {
+        if (passkeyStatus) {
+            passkeyStatus.textContent = initialPasskeyStatus;
+        }
+    }
+    if (keyModal) {
+        keyModal.hidden = false;
+    }
+    syncBodyScrollLock();
     // A mandatory Setup resolves only when the user commits a key (finishKeySetup).
     // Non-setup (Profile) opens have nothing to await, so resolve immediately.
     if (setupMode) {
@@ -317,18 +353,32 @@ function closeKeyModal() {
     if (keyModalSetupMode) {
         return;
     }
-    keyModal.hidden = true;
-    document.body.classList.remove("no-scroll");
+    if (keyModal) {
+        keyModal.hidden = true;
+    }
+    syncBodyScrollLock();
 }
 
 // Marks a key as successfully set from the modal: leave setup mode and close.
 // Called by the password/passkey save paths after they commit an identity.
 function finishKeySetup() {
     keyModalSetupMode = false;
-    keyModalClose.hidden = false;
-    keyModalTitle.textContent = "Profile";
-    keyModal.hidden = true;
-    document.body.classList.remove("no-scroll");
+    if (keyModalClose) {
+        keyModalClose.hidden = false;
+    }
+    if (keyModalTitle) {
+        keyModalTitle.textContent = "Profile";
+    }
+    if (keyModal) {
+        keyModal.hidden = true;
+    }
+    if (passkeyModal) {
+        passkeyModal.hidden = true;
+    }
+    if (passwordModal) {
+        passwordModal.hidden = true;
+    }
+    syncBodyScrollLock();
     // Unblock any ensureLocalIdentity() awaiting this Setup.
     if (setupResolve) {
         setupResolve();
@@ -336,13 +386,21 @@ function finishKeySetup() {
     }
 }
 
-keySettingsButton.addEventListener("click", () => openKeyModal(false));
-keyModalClose.addEventListener("click", closeKeyModal);
+onOptional(keySettingsButton, "click", () => openKeyModal(false));
+onOptional(keyModalClose, "click", closeKeyModal);
+onOptional(keyModalCancelButton, "click", closeKeyModal);
+onOptional(credentialPasskeyOption, "click", openPasskeyCredentialModal);
+onOptional(credentialPasswordOption, "click", openPasswordCredentialModal);
+onOptional(credentialProviderOption, "click", openProviderCredentialModal);
+onOptional(passkeyModalClose, "click", closePasskeyCredentialModal);
+onOptional(passkeyModalCancel, "click", closePasskeyCredentialModal);
+onOptional(passwordModalClose, "click", closePasswordCredentialModal);
+onOptional(passwordModalCancel, "click", closePasswordCredentialModal);
 
 // Editing the session timeout. Opens the shared consent modal with a duration
 // field (max 7 days enforced there); setCredentialTimeout is the backstop that
 // rejects any value above the stored duration, so this can only ever shorten it.
-timeoutEdit.addEventListener("click", async () => {
+onOptional(timeoutEdit, "click", async () => {
     const current = await getCredentialTimeout();
     if (current === null || current === 0) {
         return;
@@ -366,39 +424,49 @@ timeoutEdit.addEventListener("click", async () => {
     await renderTimeoutRow();
 });
 
-keyModal.addEventListener("click", (event) => {
+onOptional(keyModal, "click", (event) => {
     if (event.target === keyModal) {
         closeKeyModal();
     }
 });
+onOptional(passkeyModal, "click", (event) => {
+    if (event.target === passkeyModal) {
+        closePasskeyCredentialModal();
+    }
+});
+onOptional(passwordModal, "click", (event) => {
+    if (event.target === passwordModal) {
+        closePasswordCredentialModal();
+    }
+});
 
 document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !keyModal.hidden) {
+    if (event.key !== "Escape") {
+        return;
+    }
+    if (!passwordModal.hidden) {
+        closePasswordCredentialModal();
+    } else if (!passkeyModal.hidden) {
+        closePasskeyCredentialModal();
+    } else if (!keyModal.hidden) {
         closeKeyModal();
     }
 });
 
-keySecretReveal.addEventListener("click", () => {
+onOptional(keySecretReveal, "click", () => {
     keySecretInput.type = keySecretInput.type === "password" ? "text" : "password";
 });
 
 function setKeySaveReady(ready) {
     keySaveButton.disabled = !ready;
-    // In Setup the modal can't be dismissed, so the idle label is a disabled
-    // "Set up" prompt rather than a "Cancel" that would close the modal.
-    keySaveButton.textContent = ready ? "Ok" : (keyModalSetupMode ? "Set up" : "Cancel");
+    keySaveButton.textContent = "Ok";
     keySaveButton.classList.toggle("encrypt-button", ready);
     keySaveButton.classList.toggle("grey-button", !ready);
 }
 
-keySecretInput.addEventListener("input", () => {
+onOptional(keySecretInput, "input", () => {
     setKeySaveReady(!!keySecretInput.value.trim());
 });
-
-quantumSafeToggle.addEventListener("change", () => {
-    setKeySaveReady(true);
-});
-
 
 // Persist the display name from the inline editor (self-issued identities only),
 // then return the row to display mode. Committed on blur and on Enter.
@@ -411,14 +479,15 @@ function commitSelfName() {
     exitNameEdit();
 }
 
-identityNameEdit.addEventListener("click", enterNameEdit);
-identityName.addEventListener("click", () => {
+onOptional(identityNameEdit, "click", enterNameEdit);
+onOptional(identityNameManaged, "click", () => showToast(MANAGED_NAME_MESSAGE, "info", 3500));
+onOptional(identityName, "click", () => {
     if (!getIdentity().nameLocked) {
         enterNameEdit();
     }
 });
-identityNameInput.addEventListener("blur", commitSelfName);
-identityNameInput.addEventListener("keydown", (event) => {
+onOptional(identityNameInput, "blur", commitSelfName);
+onOptional(identityNameInput, "keydown", (event) => {
     if (event.key === "Enter") {
         event.preventDefault();
         identityNameInput.blur(); // triggers commitSelfName via blur handler
@@ -430,7 +499,7 @@ identityNameInput.addEventListener("keydown", (event) => {
 });
 
 // Fill the input with a fresh random secret key, revealed so it's visible.
-keySecretGenerate.addEventListener("click", async () => {
+onOptional(keySecretGenerate, "click", async () => {
     keySecretGenerate.disabled = true;
     try {
         keySecretInput.value = await genXipherSecretKey();
@@ -452,15 +521,70 @@ function validatePassword(pwd) {
     return null;
 }
 
+function resetPasswordCredentialModal() {
+    keySecretInput.value = "";
+    keySecretInput.type = "password";
+    keySecretInput.placeholder = keyModalSetupMode ? "Set a password or secret key" : "Leave blank to keep current";
+    setKeySaveReady(false);
+}
+
+function openPasswordCredentialModal() {
+    resetPasswordCredentialModal();
+    passwordModal.hidden = false;
+    syncBodyScrollLock();
+    keySecretInput.focus();
+}
+
+function closePasswordCredentialModal() {
+    passwordModal.hidden = true;
+    syncBodyScrollLock();
+}
+
+function providerInputError(value) {
+    const resolved = normalizeProviderUrl(value);
+    if (!resolved.error) {
+        return "";
+    }
+    return resolved.error === "insecure"
+        ? "Credential providers must use https. Only loopback development hosts may use http."
+        : "Enter a valid provider URL or host.";
+}
+
+async function openProviderCredentialModal() {
+    const result = await askProviderConsent({
+        title: "Get a key from a credential provider?",
+        message: "Enter a credential provider URL or host. You'll be sent there to sign in, and it will issue a Xipher secret key for this browser.",
+        confirmLabel: "Continue to provider",
+        confirmClass: "encrypt-button",
+        input: {
+            label: "Provider URL or host",
+            placeholder: "https://provider.example/login",
+            hint: "HTTPS is required except for loopback development hosts.",
+            validate: providerInputError,
+        },
+        toggle: {
+            label: "Remember this provider",
+            note: "Skip this confirmation next time you use the same provider.",
+            checked: false,
+        },
+    });
+    if (!result || !result.confirmed) {
+        return;
+    }
+    const resolved = normalizeProviderUrl(result.value);
+    if (resolved.error) {
+        showToast(providerInputError(result.value), "error");
+        return;
+    }
+    const providerUrl = resolved.url;
+    const host = new URL(providerUrl).host;
+    if (result.checked) {
+        addTrustedProviderHost(host);
+    }
+    await initiateProviderFlow(providerUrl, false, false, null, true);
+}
+
 async function handleKeySave() {
-    if (keySaveButton.textContent === "Continue") {
-        pendingPasskeyAction === "unlock" ? runPasskeyUnlock() : runPasskeySetup();
-        return;
-    }
-    if (keySaveButton.textContent === "Cancel") {
-        closeKeyModal();
-        return;
-    }
     keySaveButton.disabled = true;
     try {
         const value = keySecretInput.value.trim();
@@ -469,12 +593,14 @@ async function handleKeySave() {
         if (value.startsWith("XSK_")) {
             if (!(await isValidSecretKey(value))) {
                 showToast("That doesn't look like a valid secret key (XSK_…).", "error");
+                setKeySaveReady(true);
                 return;
             }
         } else {
             const err = validatePassword(value);
             if (err) {
                 showToast(err, "error");
+                setKeySaveReady(true);
                 return;
             }
         }
@@ -496,6 +622,7 @@ async function handleKeySave() {
         if (wasSetup) {
             finishKeySetup();
         } else {
+            closePasswordCredentialModal();
             closeKeyModal();
         }
     } catch (error) {
@@ -505,20 +632,11 @@ async function handleKeySave() {
     }
 }
 
-keySaveButton.addEventListener("click", handleKeySave);
+onOptional(keySaveButton, "click", handleKeySave);
 
 /* ==========================================================================
    Passkey UI
    ========================================================================== */
-
-const methodTabPasskey = document.getElementById("method-tab-passkey");
-const methodTabPassword = document.getElementById("method-tab-password");
-const methodViewPasskey = document.getElementById("method-view-passkey");
-const methodViewPassword = document.getElementById("method-view-password");
-const passkeyUseButton = document.getElementById("passkey-use-button");
-const passkeySetupButton = document.getElementById("passkey-setup-button");
-const passkeyStatus = document.getElementById("passkey-status");
-const passkeyUnsupported = document.getElementById("passkey-unsupported");
 
 // Whether the platform authenticator check has passed. Determined once at
 // startup; gates the passkey tab.
@@ -526,39 +644,24 @@ let passkeyAvailable = false;
 // The default WebAuthn label when the user declines to set a name.
 const PASSKEY_DEFAULT_NAME = "Xipher";
 
-// Selects a method tab ("passkey" or "password") and shows its view.
-function selectMethod(method) {
-    const passkey = method === "passkey";
-    methodTabPasskey.setAttribute("aria-selected", String(passkey));
-    methodTabPassword.setAttribute("aria-selected", String(!passkey));
-    methodTabPasskey.classList.toggle("is-active", passkey);
-    methodTabPassword.classList.toggle("is-active", !passkey);
-    methodViewPasskey.hidden = !passkey;
-    methodViewPassword.hidden = passkey;
-    if (passkey) {
-        resetPasskeyView();
-    } else {
-        setKeySaveReady(false);
-    }
-}
-
 // Resets the passkey view to its idle state.
 function resetPasskeyView() {
-    passkeyUnsupported.hidden = passkeyAvailable;
-    passkeyUseButton.hidden = !passkeyAvailable;
-    passkeySetupButton.hidden = !passkeyAvailable;
-    passkeyUseButton.disabled = false;
-    passkeySetupButton.disabled = false;
-    passkeyUseButton.classList.remove("is-active");
-    passkeySetupButton.classList.remove("is-active");
-    passkeyStatus.textContent = "";
-    setKeySaveReady(false);
-    keySaveButton.hidden = false;
-    keySaveButton.textContent = keyModalSetupMode ? "Set up" : "Cancel";
-    keySaveButton.classList.remove("encrypt-button");
-    keySaveButton.classList.add("grey-button");
-    // In Setup the idle footer is a disabled prompt, not a dismiss button.
-    keySaveButton.disabled = keyModalSetupMode;
+    if (passkeyUnsupported) {
+        passkeyUnsupported.hidden = passkeyAvailable;
+    }
+    if (passkeyUseButton) {
+        passkeyUseButton.hidden = !passkeyAvailable;
+        passkeyUseButton.disabled = false;
+        passkeyUseButton.classList.remove("is-active");
+    }
+    if (passkeySetupButton) {
+        passkeySetupButton.hidden = !passkeyAvailable;
+        passkeySetupButton.disabled = false;
+        passkeySetupButton.classList.remove("is-active");
+    }
+    if (passkeyStatus) {
+        passkeyStatus.textContent = "";
+    }
 }
 
 // Initialises passkey availability. Called once after WASM loads (from main).
@@ -566,25 +669,23 @@ async function initPasskeyUI() {
     passkeyAvailable = await isPlatformAuthenticatorAvailable();
 }
 
-methodTabPasskey.addEventListener("click", () => selectMethod("passkey"));
-methodTabPassword.addEventListener("click", () => selectMethod("password"));
-
-let pendingPasskeyAction = "setup"; // "setup" | "unlock"
-
-function activatePasskeyButton(action) {
-    pendingPasskeyAction = action;
-    passkeySetupButton.classList.toggle("is-active", action === "setup");
-    passkeyUseButton.classList.toggle("is-active", action === "unlock");
-    // Switch footer button to "Continue"
-    keySaveButton.hidden = false;
-    keySaveButton.disabled = false;
-    keySaveButton.textContent = "Continue";
-    keySaveButton.classList.add("encrypt-button");
-    keySaveButton.classList.remove("grey-button");
+function openPasskeyCredentialModal() {
+    resetPasskeyView();
+    if (passkeyModal) {
+        passkeyModal.hidden = false;
+    }
+    syncBodyScrollLock();
 }
 
-passkeyUseButton.addEventListener("click", () => activatePasskeyButton("unlock"));
-passkeySetupButton.addEventListener("click", () => activatePasskeyButton("setup"));
+function closePasskeyCredentialModal() {
+    if (passkeyModal) {
+        passkeyModal.hidden = true;
+    }
+    syncBodyScrollLock();
+}
+
+onOptional(passkeyUseButton, "click", runPasskeyUnlock);
+onOptional(passkeySetupButton, "click", runPasskeySetup);
 
 // Replace-key consent for password/secret-key entry: true to proceed, false to abort.
 // Consent for saving a password/secret key. Always asks for a session timeout
@@ -631,7 +732,8 @@ async function resolvePasskeyName() {
             confirmClass: "encrypt-button",
         });
         if (result === true) return existing;
-        // "Change name" - open edit, user re-clicks Continue when done.
+        // "Change name" - open edit; the user can start passkey setup again after saving.
+        closePasskeyCredentialModal();
         enterNameEdit();
         return null;
     }
@@ -645,7 +747,8 @@ async function resolvePasskeyName() {
         dismissValue: null,
     });
     if (result === null || result === false) return null; // cancel or dismiss - abort
-    // "Set a name" - open edit, user re-clicks Continue when done.
+    // "Set a name" - open edit; the user can start passkey setup again after saving.
+    closePasskeyCredentialModal();
     enterNameEdit();
     return null;
 }
@@ -658,7 +761,6 @@ async function runPasskeySetup() {
     }
     passkeyUseButton.disabled = true;
     passkeySetupButton.disabled = true;
-    keySaveButton.disabled = true;
     if (!(await confirmPasskeyReplace())) {
         resetPasskeyView();
         return;
@@ -670,7 +772,12 @@ async function runPasskeySetup() {
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Passkey set up. Your key is now derived from this passkey.", "success", 3500);
         resetPasskeyView();
-        wasSetup ? finishKeySetup() : closeKeyModal();
+        if (wasSetup) {
+            finishKeySetup();
+        } else {
+            closePasskeyCredentialModal();
+            closeKeyModal();
+        }
     } catch (err) {
         handlePasskeyError(err, "setup");
     }
@@ -679,7 +786,6 @@ async function runPasskeySetup() {
 async function runPasskeyUnlock() {
     passkeyUseButton.disabled = true;
     passkeySetupButton.disabled = true;
-    keySaveButton.disabled = true;
     if (!(await confirmPasskeyReplace())) {
         resetPasskeyView();
         return;
@@ -691,7 +797,12 @@ async function runPasskeyUnlock() {
         if (typeof refreshIdentity === "function") await refreshIdentity();
         showToast("Key derived from your passkey.", "success");
         resetPasskeyView();
-        wasSetup ? finishKeySetup() : closeKeyModal();
+        if (wasSetup) {
+            finishKeySetup();
+        } else {
+            closePasskeyCredentialModal();
+            closeKeyModal();
+        }
     } catch (err) {
         handlePasskeyError(err, "unlock");
     }
@@ -738,7 +849,7 @@ quantumSafeToggle.checked = isQuantumSafe();
 // Quantum-safe is a standalone derivation preference, independent of the key
 // setup above: the public key is always re-derived from the stored identity, so
 // toggling it re-derives the current key immediately (no "Save & apply" needed).
-quantumSafeToggle.addEventListener("change", async () => {
+onOptional(quantumSafeToggle, "change", async () => {
     quantumSafeToggle.disabled = true;
     try {
         setQuantumSafe(quantumSafeToggle.checked);
