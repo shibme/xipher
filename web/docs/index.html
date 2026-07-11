@@ -637,7 +637,10 @@ Content-Type: application/json</code></pre>
                                     default.</strong> A provider that issues the secret key necessarily knows it, and can
                                 therefore read everything sent to that user and impersonate them. Self-generated keys
                                 remain the default; the provider flow is only ever entered when the app is opened with an
-                                explicit <code>?provider=</code> parameter, and the user must confirm twice.</p>
+                                explicit <code>?provider=</code> parameter. External providers require two confirmations
+                                (trust before redirect, and again if a different key would be replaced on return);
+                                a provider on the <strong>same origin</strong> as the app skips the pre-redirect trust
+                                step and redirect countdown as first-party.</p>
                         </div>
                     </div>
                     <p>The flow is modeled on the OAuth 2.0 Authorization Code grant, repurposed to deliver a secret

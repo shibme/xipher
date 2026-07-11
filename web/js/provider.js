@@ -268,6 +268,9 @@ function askProviderConsent(opts) {
             providerModalInputHint.textContent = error || inputDefaultHint;
             providerModalInputHint.hidden = !(error || inputDefaultHint);
             providerModalInput.classList.toggle("text-error", !!error);
+            if (hasToggle && typeof opts.toggle.showWhen === "function") {
+                providerModalToggleRow.hidden = !opts.toggle.showWhen(readInput());
+            }
             syncConfirmValidity();
         };
         const syncConfirmValidity = () => {
@@ -297,8 +300,10 @@ function askProviderConsent(opts) {
         }
         if (hasInput) {
             providerModalInput.addEventListener("input", syncInputValidity);
+            syncInputValidity();
+        } else {
+            syncConfirmValidity();
         }
-        syncConfirmValidity();
 
         const cleanup = () => {
             providerModal.hidden = true;
@@ -404,6 +409,32 @@ function providerHostFromUrl(providerUrl) {
     }
 }
 
+// isSameOriginProvider is true when the provider URL shares the app's origin
+// (scheme + host + port). First-party providers skip external-trust prompts.
+function isSameOriginProvider(providerUrl) {
+    try {
+        return new URL(providerUrl).origin === window.location.origin;
+    } catch (e) {
+        return false;
+    }
+}
+
+// configuredSameOriginProviderUrl returns an absolute provider URL when the
+// deployment sets <meta name="xipher-same-origin-provider" content="/login">.
+// Self-hosters use this so Setup → Credential Provider can start without a
+// manual URL prompt. Absent or invalid meta => null.
+function configuredSameOriginProviderUrl() {
+    const meta = document.querySelector('meta[name="xipher-same-origin-provider"]');
+    if (!meta) {
+        return null;
+    }
+    const path = (meta.getAttribute("content") || "").trim();
+    if (!path.startsWith("/")) {
+        return null;
+    }
+    return window.location.origin + path;
+}
+
 // initiateProviderFlow runs when the app is opened with ?provider=<url>. When
 // forceEcc is true the request uses the compact X25519 key directly. When
 // autoReauth is true the flow was started silently (re-fetching an ephemeral or
@@ -425,13 +456,14 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth, priorP
     const providerUrl = resolved.url;
 
     const host = new URL(providerUrl).host;
+    const sameOrigin = isSameOriginProvider(providerUrl);
     const identity = getIdentity();
     const configuredProviderUrl = priorProviderUrl || (
         identity.managed && identity.provider !== "passkey" ? identity.provider : ""
     );
     const priorProviderHost = providerHostFromUrl(configuredProviderUrl);
     const sameConfiguredProvider = priorProviderHost === host;
-    if (sameConfiguredProvider && await hasXipherSession()) {
+    if (!sameOrigin && sameConfiguredProvider && await hasXipherSession()) {
         const ok = await askProviderConsent({
             title: "Session already exists",
             messageParts: [
@@ -451,7 +483,7 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth, priorP
         }
     }
 
-    if (!trustAlreadyConfirmed && !getTrustedProviderHosts().includes(host)) {
+    if (!sameOrigin && !trustAlreadyConfirmed && !getTrustedProviderHosts().includes(host)) {
         const result = await askProviderConsent({
             title: "Get a key from a credential provider?",
             message: `You'll be sent to ${host} to sign in. It will issue a xipher secret key for this browser. ` +
@@ -499,12 +531,15 @@ async function initiateProviderFlow(rawProviderUrl, forceEcc, autoReauth, priorP
             4000
         );
     }
-    // Hand off to the delayed-redirect overlay: it shows "Redirecting to <host>…"
-    // with a countdown plus Continue/Cancel actions, then navigates when the
-    // countdown elapses or Continue is clicked. If the user cancels, drop the
-    // pending exchange (its ephemeral secret would otherwise sit unused in
-    // sessionStorage) and return null so the caller falls through to the normal
-    // identity gate.
+    // Same-origin providers navigate immediately; external ones use the delayed-
+    // redirect overlay ("Redirecting to <host>…" with a countdown plus
+    // Continue/Cancel). If the user cancels, drop the pending exchange (its
+    // ephemeral secret would otherwise sit unused in sessionStorage) and return
+    // null so the caller falls through to the normal identity gate.
+    if (sameOrigin) {
+        window.location.replace(target);
+        return "redirecting";
+    }
     if (typeof redirectWithCancel === "function") {
         const outcome = await redirectWithCancel(
             target,

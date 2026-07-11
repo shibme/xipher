@@ -551,6 +551,14 @@ function providerInputError(value) {
 }
 
 async function openProviderCredentialModal() {
+    const configured = typeof configuredSameOriginProviderUrl === "function"
+        ? configuredSameOriginProviderUrl()
+        : null;
+    if (configured && isSameOriginProvider(configured)) {
+        await initiateProviderFlow(configured, false, false, null, true);
+        return;
+    }
+
     const result = await askProviderConsent({
         title: "Get a key from a credential provider?",
         message: "Enter a credential provider URL or host. You'll be sent there to sign in, and it will issue a Xipher secret key for this browser.",
@@ -566,6 +574,16 @@ async function openProviderCredentialModal() {
             label: "Remember this provider",
             note: "Skip this confirmation next time you use the same provider.",
             checked: false,
+            showWhen: (value) => {
+                if (!value.trim()) {
+                    return true;
+                }
+                const resolved = normalizeProviderUrl(value);
+                if (resolved.error) {
+                    return true;
+                }
+                return !isSameOriginProvider(resolved.url);
+            },
         },
     });
     if (!result || !result.confirmed) {
@@ -578,7 +596,7 @@ async function openProviderCredentialModal() {
     }
     const providerUrl = resolved.url;
     const host = new URL(providerUrl).host;
-    if (result.checked) {
+    if (result.checked && !isSameOriginProvider(providerUrl)) {
         addTrustedProviderHost(host);
     }
     await initiateProviderFlow(providerUrl, false, false, null, true);
