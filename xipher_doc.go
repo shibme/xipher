@@ -220,5 +220,10 @@ The package defines several specific error types for different failure modes:
 Xipher maintains backward compatibility for encrypted data. Newer versions can
 decrypt data encrypted with older versions, but older versions may not support
 features introduced in newer versions (like post-quantum cryptography).
+
+Note: versions before the XChaCha20-Poly1305 nonce-reuse fix reused one nonce
+across every chunk in a multi-chunk message, which let plaintext be recovered
+without the encryption key. That ciphertext still decrypts, but treat it as
+exposed and re-encrypt it when you can.
 */
 package xipher

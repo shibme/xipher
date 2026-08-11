@@ -65,6 +65,8 @@ Argon2id key derivation, Curve25519 / X25519 (with an optional quantum-safe hybr
 > **Note**: v1.19+ uses Go's native ML-KEM package for post-quantum crypto ([FIPS 203](https://csrc.nist.gov/pubs/fips/203/final) compliant). This breaks compatibility with previous Kyber implementations. Standard ECC encryption is unaffected.
 >
 > **Note**: Quantum-safe mode now defaults to a hybrid of X25519 and ML-KEM-1024 instead of pure ML-KEM, so security holds as long as either primitive is unbroken. Ciphertexts and public keys self-describe their algorithm, so data produced with the earlier pure ML-KEM mode still decrypts.
+>
+> **Note**: Fixed a nonce-reuse bug in the XChaCha20-Poly1305 stream cipher: every chunk in a message reused the same nonce, which let an attacker recover plaintext from ciphertexts larger than 64KB without the key. Every chunk now gets its own nonce. Ciphertexts already made with the old scheme still decrypt, but you should treat them as exposed and re-encrypt when you get a chance. See [security advisories](https://github.com/shibme/xipher/security/advisories) for details.
 
 ## Documentation
 

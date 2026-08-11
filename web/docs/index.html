@@ -1470,9 +1470,16 @@ KEX material   ECC   : 1-byte algo + 32-byte ephemeral public key
                Hybrid: 1-byte algo + 32-byte X25519 ephemeral + 1568-byte ML-KEM encapsulation
 chunk          64 KB ciphertext + 16-byte Poly1305 tag (last chunk shorter)
 encoded form   "XCT_" + Base32(binary)   # ~1.6× larger, text-safe</code></pre>
-                    <p>Every chunk shares the session nonce, which is safe because each encryption generates a fresh
-                        random nonce against a fresh key (ephemeral for asymmetric, freshly derived for password
-                        modes), and the 192-bit nonce space makes collisions infeasible.</p>
+                    <p>Each chunk gets its own AEAD nonce, built from the stored 24-byte field. The first 16
+                        bytes stay the same for the whole message (this also fixes XChaCha20's internal
+                        subkey), while the rest holds a chunk counter plus a flag for the final chunk. That
+                        gives every chunk its own nonce, and lets decryption catch a ciphertext whose chunks
+                        were truncated or reordered.</p>
+                    <p><strong>Note:</strong> older versions of this format reused one random nonce across
+                        every chunk in a message, which let plaintext be recovered from multi-chunk
+                        ciphertexts without the encryption key. Decryption still accepts ciphertext made that
+                        way for compatibility, but treat it as exposed and re-encrypt it when you can. Newly
+                        encrypted data always uses the fixed per-chunk nonce scheme described above.</p>
                 </section>
 
                 <section id="arch-analysis" class="docs-section">
