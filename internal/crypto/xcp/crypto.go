@@ -13,7 +13,7 @@ type Writer struct {
 	aead         cipher.AEAD
 	dst          io.Writer
 	buf          bytes.Buffer
-	noncePrefix  []byte
+	nonce        []byte
 	blockCounter uint64
 	zWriter      *zlib.Writer
 }
@@ -27,15 +27,15 @@ func (cipher *SymmetricCipher) NewEncryptingWriter(dst io.Writer, compress bool)
 	if _, err := dst.Write(nonce); err != nil {
 		return nil, err
 	}
-	return cipher.newWriter(nonce[:noncePrefixLength], dst, compress)
+	return cipher.newWriter(nonce, dst, compress)
 }
 
-func (cipher *SymmetricCipher) newWriter(noncePrefix []byte, dst io.Writer, compress bool) (*Writer, error) {
+func (cipher *SymmetricCipher) newWriter(nonce []byte, dst io.Writer, compress bool) (*Writer, error) {
 	ciphWriter := &Writer{
-		aead:        *cipher.aead,
-		dst:         dst,
-		buf:         bytes.Buffer{},
-		noncePrefix: noncePrefix,
+		aead:  *cipher.aead,
+		dst:   dst,
+		buf:   bytes.Buffer{},
+		nonce: nonce,
 	}
 	if compress {
 		if _, err := dst.Write([]byte{1}); err != nil {
@@ -68,19 +68,20 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 // flushFull seals and writes every full block currently buffered, but always
 // leaves one pending block behind. We can't tell if a block is the last one
-// until Close is called, so it must never be flushed early.
+// until Close is called, so it must never be flushed early. Reaching this loop
+// at all means the message spans more than one block.
 func (w *Writer) flushFull() error {
 	for w.buf.Len() > ptBlockSize {
-		if err := w.sealAndWrite(w.buf.Next(ptBlockSize), false); err != nil {
+		nonce := buildNonce(w.nonce[:noncePrefixLength], w.blockCounter, false)
+		if err := w.sealAndWrite(nonce, w.buf.Next(ptBlockSize)); err != nil {
 			return err
 		}
+		w.blockCounter++
 	}
 	return nil
 }
 
-func (w *Writer) sealAndWrite(block []byte, last bool) error {
-	nonce := buildNonce(w.noncePrefix, w.blockCounter, last)
-	w.blockCounter++
+func (w *Writer) sealAndWrite(nonce, block []byte) error {
 	ct := w.aead.Seal(nil, nonce, block, nil)
 	if _, err := w.dst.Write(ct); err != nil {
 		return fmt.Errorf("encryption failed: %w", err)
@@ -101,7 +102,22 @@ func (w *Writer) Close() error {
 	if err := w.flushFull(); err != nil {
 		return err
 	}
-	return w.sealAndWrite(w.buf.Next(ptBlockSize), true)
+	block := w.buf.Next(ptBlockSize)
+	// A message that fits in a single partial block is sealed with the stored
+	// nonce exactly as it sits on the wire, which is byte for byte what every
+	// version of this format has produced for such a message. That keeps data
+	// under one block readable by older releases, and there was never a
+	// nonce-reuse problem here: a single block means a single Seal call.
+	//
+	// Per-block framing isn't needed in this case either. There is no trailing
+	// block to drop, and shaving bytes off the only block fails authentication.
+	// Anything longer uses the per-block counter nonce, where a dropped or
+	// reordered block does need to be detectable.
+	nonce := w.nonce
+	if w.blockCounter > 0 || len(block) == ptBlockSize {
+		nonce = buildNonce(w.nonce[:noncePrefixLength], w.blockCounter, true)
+	}
+	return w.sealAndWrite(nonce, block)
 }
 
 // readFormat identifies which nonce scheme a ciphertext's blocks were sealed
@@ -110,10 +126,12 @@ type readFormat int
 
 const (
 	formatUnknown readFormat = iota
-	// formatFixedNonce is the old scheme: every block reuses the same stored
-	// nonce. Kept so ciphertext from older, vulnerable versions can still be read.
-	formatFixedNonce
-	// formatCounterNonce is the current scheme: prefix + block counter + last-block flag.
+	// formatStoredNonce means blocks are sealed with the stored nonce as-is. A
+	// single-block message is written this way on purpose, so it stays readable
+	// by older releases. Messages from before the nonce-reuse fix also land
+	// here, and those reused that one nonce across every block.
+	formatStoredNonce
+	// formatCounterNonce is the multi-block scheme: prefix + block counter + last-block flag.
 	formatCounterNonce
 )
 
@@ -122,7 +140,7 @@ type Reader struct {
 	src          io.Reader
 	buf          bytes.Buffer
 	noncePrefix  []byte
-	legacyNonce  []byte
+	storedNonce  []byte
 	blockCounter uint64
 	format       readFormat
 	finished     bool
@@ -143,7 +161,7 @@ func (cipher *SymmetricCipher) newReader(nonce []byte, src io.Reader) (io.Reader
 		src:         src,
 		buf:         bytes.Buffer{},
 		noncePrefix: nonce[:noncePrefixLength],
-		legacyNonce: nonce,
+		storedNonce: nonce,
 	}
 	compressFlag := make([]byte, 1)
 	if _, err := io.ReadFull(src, compressFlag); err != nil {
@@ -190,9 +208,9 @@ func (r *Reader) candidates(shortRead bool) []nonceCandidate {
 			onMatch: func() bool { r.blockCounter++; return true },
 		})
 		return cands
-	case formatFixedNonce:
+	case formatStoredNonce:
 		return []nonceCandidate{{
-			nonce:   r.legacyNonce,
+			nonce:   r.storedNonce,
 			onMatch: func() bool { return shortRead },
 		}}
 	default: // formatUnknown: only block 0 is ever decoded without a locked format.
@@ -215,9 +233,9 @@ func (r *Reader) candidates(shortRead bool) []nonceCandidate {
 				},
 			},
 			nonceCandidate{
-				nonce: r.legacyNonce,
+				nonce: r.storedNonce,
 				onMatch: func() bool {
-					r.format = formatFixedNonce
+					r.format = formatStoredNonce
 					return shortRead
 				},
 			},
@@ -258,9 +276,9 @@ func (r *Reader) Read(p []byte) (int, error) {
 	if err == io.EOF {
 		// A formatCounterNonce ciphertext always ends with a block flagged as
 		// last. Running out of input before we see one means blocks were
-		// dropped. The legacy format has no such flag, so for that (and for
-		// an empty legacy message with no blocks at all) running out of
-		// input just means we're done, same as before this fix.
+		// dropped. formatStoredNonce carries no such flag, so there (and for
+		// a pre-fix empty message with no blocks at all) running out of input
+		// just means we're done.
 		if r.format == formatCounterNonce && !r.finished {
 			return 0, fmt.Errorf("decryption failed: unexpected end of ciphertext")
 		}

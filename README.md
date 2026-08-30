@@ -66,7 +66,9 @@ Argon2id key derivation, Curve25519 / X25519 (with an optional quantum-safe hybr
 >
 > **Note**: Quantum-safe mode now defaults to a hybrid of X25519 and ML-KEM-1024 instead of pure ML-KEM, so security holds as long as either primitive is unbroken. Ciphertexts and public keys self-describe their algorithm, so data produced with the earlier pure ML-KEM mode still decrypts.
 >
-> **Note**: Fixed a nonce-reuse bug in the XChaCha20-Poly1305 stream cipher: every chunk in a message reused the same nonce, which let an attacker recover plaintext from ciphertexts larger than 64KB without the key. Every chunk now gets its own nonce. Ciphertexts already made with the old scheme still decrypt, but you should treat them as exposed and re-encrypt when you get a chance. See [security advisories](https://github.com/shibme/xipher/security/advisories) for details.
+> **Note**: Fixed a nonce-reuse bug in the XChaCha20-Poly1305 stream cipher: a message spanning more than one 64KB chunk reused the same nonce for every chunk, which let an attacker recover plaintext from such ciphertexts without the key. Every chunk now gets its own nonce. Data that fit in a single chunk (under 64KB) was never affected, since it involves a single encryption operation, and its format is unchanged — v1.33+ writes it exactly as earlier releases did, so it still decrypts with older versions of xipher and tools built on it. Multi-chunk ciphertexts from before the fix still decrypt, but treat them as exposed and re-encrypt when you get a chance. See [security advisories](https://github.com/shibme/xipher/security/advisories) for details.
+>
+> **Note**: v1.32.3 changed the chunk format for *all* payload sizes, including those under 64KB, which older releases cannot read. v1.33+ restores that compatibility for sub-chunk payloads while keeping the nonce fix. Ciphertexts written by v1.32.3 still decrypt.
 
 ## Documentation
 

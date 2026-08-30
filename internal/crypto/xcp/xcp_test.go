@@ -2,6 +2,7 @@ package xcp
 
 import (
 	"bytes"
+	"compress/zlib"
 	"crypto/rand"
 	"io"
 	"testing"
@@ -79,6 +80,69 @@ func legacyEncrypt(t *testing.T, cipher *SymmetricCipher, data []byte) []byte {
 		buf.Write(ct)
 	}
 	return buf.Bytes()
+}
+
+// legacyDecrypt reproduces how releases from before the per-block nonce scheme
+// decrypt: every block is opened with the stored nonce. It stands in for an
+// older xipher, or an older consumer such as slv, reading our output.
+func legacyDecrypt(t *testing.T, cipher *SymmetricCipher, ct []byte) []byte {
+	t.Helper()
+	if len(ct) < nonceLength+1 {
+		t.Fatalf("ciphertext too short: %d bytes", len(ct))
+	}
+	nonce, compressed, body := ct[:nonceLength], ct[nonceLength] == 1, ct[nonceLength+1:]
+	var plain bytes.Buffer
+	for len(body) > 0 {
+		n := len(body)
+		if n > ctBlockSize {
+			n = ctBlockSize
+		}
+		pt, err := (*cipher.aead).Open(nil, nonce, body[:n], nil)
+		if err != nil {
+			t.Fatalf("decryption by an older version failed: %v", err)
+		}
+		plain.Write(pt)
+		body = body[n:]
+	}
+	if !compressed {
+		return plain.Bytes()
+	}
+	zReader, err := zlib.NewReader(&plain)
+	if err != nil {
+		t.Fatalf("error creating zlib reader: %v", err)
+	}
+	out, err := io.ReadAll(zReader)
+	if err != nil {
+		t.Fatalf("error decompressing: %v", err)
+	}
+	return out
+}
+
+// counterNonceEncrypt reproduces the format shipped by the first nonce-reuse
+// fix, where every block including a lone one was sealed with
+// prefix+counter+flag instead of the stored nonce.
+func counterNonceEncrypt(t *testing.T, cipher *SymmetricCipher, data []byte) []byte {
+	t.Helper()
+	nonce := randomBytes(t, nonceLength)
+	var buf bytes.Buffer
+	buf.Write(nonce)
+	buf.WriteByte(0) // compress flag: uncompressed
+	var counter uint64
+	for {
+		n := len(data)
+		if n > ptBlockSize {
+			n = ptBlockSize
+		}
+		block, rest := data[:n], data[n:]
+		data = rest
+		last := len(rest) == 0
+		ct := (*cipher.aead).Seal(nil, buildNonce(nonce[:noncePrefixLength], counter, last), block, nil)
+		buf.Write(ct)
+		counter++
+		if last {
+			return buf.Bytes()
+		}
+	}
 }
 
 func TestNewInvalidKeyLength(t *testing.T) {
@@ -270,6 +334,79 @@ func TestReorderedBlocksFail(t *testing.T) {
 	}
 	if _, err := io.ReadAll(r); err == nil {
 		t.Fatal("expected error decrypting reordered ciphertext, got nil")
+	}
+}
+
+// TestSubBlockPayloadsReadableByOlderVersions is the compatibility guarantee
+// for the common case: a message that fits in a single partial block must come
+// out byte-identical to what older releases produced, so consumers pinned to an
+// older xipher can still decrypt freshly written data. Such a message was never
+// affected by the nonce-reuse bug, since one block means one Seal call.
+func TestSubBlockPayloadsReadableByOlderVersions(t *testing.T) {
+	cipher := newTestCipher(t)
+	sizes := []int{0, 1, 100, 4096, ptBlockSize - 1}
+	for _, compress := range []bool{false, true} {
+		for _, size := range sizes {
+			data := randomBytes(t, size)
+			if compress {
+				// Random data expands slightly under zlib and could spill past
+				// one block, so use compressible data to keep the message to a
+				// single block.
+				data = bytes.Repeat([]byte("xipher "), size/7+1)[:size]
+			}
+			ct := encryptOnly(t, cipher, data, compress)
+			if body := len(ct) - nonceLength - 1; body > ctBlockSize {
+				t.Fatalf("size=%d compress=%v: expected a single-block message, got %d bytes of blocks", size, compress, body)
+			}
+			out := legacyDecrypt(t, cipher, ct)
+			if !bytes.Equal(out, data) {
+				t.Errorf("size=%d compress=%v: an older version could not recover the plaintext", size, compress)
+			}
+		}
+	}
+}
+
+// TestMultiBlockTruncatedToFirstBlockFails makes sure the stored-nonce
+// single-block form doesn't open a truncation hole: a multi-block message never
+// seals its first block with the stored nonce, so dropping everything after
+// block 0 can't pass as a legitimate single-block message.
+func TestMultiBlockTruncatedToFirstBlockFails(t *testing.T) {
+	cipher := newTestCipher(t)
+	data := randomBytes(t, 3*ptBlockSize)
+	ct := encryptOnly(t, cipher, data, false)
+
+	truncated := ct[:nonceLength+1+ctBlockSize]
+
+	r, err := cipher.NewDecryptingReader(bytes.NewReader(truncated))
+	if err != nil {
+		t.Fatalf("error creating reader: %v", err)
+	}
+	if _, err := io.ReadAll(r); err == nil {
+		t.Fatal("expected error decrypting ciphertext truncated to its first block, got nil")
+	}
+}
+
+// TestCounterNonceCiphertextStillDecrypts checks that ciphertexts written by
+// the first nonce-reuse fix still decrypt, including single-block ones, which
+// that release sealed with a counter nonce rather than the stored nonce.
+func TestCounterNonceCiphertextStillDecrypts(t *testing.T) {
+	cipher := newTestCipher(t)
+	sizes := []int{0, 1, 100, ptBlockSize - 1, ptBlockSize, ptBlockSize + 1, 2 * ptBlockSize, 3*ptBlockSize + 123}
+	for _, size := range sizes {
+		data := randomBytes(t, size)
+		ct := counterNonceEncrypt(t, cipher, data)
+
+		r, err := cipher.NewDecryptingReader(bytes.NewReader(ct))
+		if err != nil {
+			t.Fatalf("size=%d: error creating reader: %v", size, err)
+		}
+		out, err := io.ReadAll(r)
+		if err != nil {
+			t.Fatalf("size=%d: error decrypting counter-nonce ciphertext: %v", size, err)
+		}
+		if !bytes.Equal(out, data) {
+			t.Errorf("size=%d: round-trip mismatch decrypting counter-nonce ciphertext", size)
+		}
 	}
 }
 

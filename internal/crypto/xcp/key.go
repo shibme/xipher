@@ -45,7 +45,9 @@ func New(key []byte) (*SymmetricCipher, error) {
 
 // buildNonce builds the per-block nonce from the message's random prefix, a
 // block counter, and a flag marking the final block. The prefix stays the
-// same for every block, so only the counter and flag change.
+// same for every block, so only the counter and flag change. This is used for
+// messages spanning more than one block; a message that fits in a single
+// partial block is sealed with the stored nonce as-is instead.
 func buildNonce(prefix []byte, counter uint64, last bool) []byte {
 	if counter >= 1<<(8*blockCounterLength) {
 		panic("xcp: block counter overflow")

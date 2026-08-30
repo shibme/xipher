@@ -224,6 +224,8 @@ features introduced in newer versions (like post-quantum cryptography).
 Note: versions before the XChaCha20-Poly1305 nonce-reuse fix reused one nonce
 across every chunk in a multi-chunk message, which let plaintext be recovered
 without the encryption key. That ciphertext still decrypts, but treat it as
-exposed and re-encrypt it when you can.
+exposed and re-encrypt it when you can. Data that fits in a single chunk (under
+64KB) was never affected and its format is unchanged, so newly written
+sub-chunk ciphertext remains readable by older releases.
 */
 package xipher
