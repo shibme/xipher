@@ -289,9 +289,9 @@ homebrew_casks:
         - zsh
         - fish
     custom_block: |
-      postflight_steps do
+      preflight_steps do
         on_macos do
-          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "xipher"]
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "xipher"], chdir: "."
         end
       end
     commit_author:
