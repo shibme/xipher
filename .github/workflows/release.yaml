@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version: 'stable'
     - name: Running Unit Tests
@@ -34,7 +34,7 @@ jobs:
     - name: Setting Xipher Version
       run: echo "XIPHER_VERSION=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
     - name: Checkout Code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Login to GitHub Container Registry
