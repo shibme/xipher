@@ -1,4 +1,4 @@
-name: Publish Xipher Web
+name: Publish Pages
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
 jobs:
 
   pages:
-    name: Deploy Xipher Web
+    name: Deploy Pages
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,7 +17,7 @@ jobs:
       group: "pages"
       cancel-in-progress: true
     steps:
-      - name: Download and extract Xipher Web
+      - name: Download web
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -25,7 +25,7 @@ jobs:
           unzip xipher-web.zip -d pages
       - name: Install oras
         uses: oras-project/setup-oras@v2
-      - name: Setup Helm
+      - name: Set up Helm
         uses: azure/setup-helm@v5
       - name: Login to GHCR
         uses: docker/login-action@v4

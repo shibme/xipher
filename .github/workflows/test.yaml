@@ -26,7 +26,7 @@ jobs:
       uses: actions/setup-go@v7
       with:
         go-version: 'stable'
-    - name: Running Unit Tests
+    - name: Run unit tests
       run: go test -v $(go list ./... | grep -v internal/wasm)
 
   build-test:
@@ -35,13 +35,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v7
-    - name: Login to GitHub Container Registry
+    - name: Login to GHCR
       uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Download llvm-mingw latest version
+    - name: Download llvm-mingw
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -49,7 +49,7 @@ jobs:
         gh release download --repo mstorsjo/llvm-mingw --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP"
         mkdir -p "$RUNNER_TEMP/llvm-mingw"
         tar -xf "$RUNNER_TEMP/$ASSET_NAME" --strip-components=1 -C "$RUNNER_TEMP/llvm-mingw"
-    - name: Testing Xipher Builds
+    - name: Build snapshot
       run: |
         docker run --rm \
         -w /workspace \
@@ -68,18 +68,18 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v7
-    - name: Setup Xipher
+    - name: Set up Xipher
       uses: ./
       with:
         version: ${{ matrix.version }}
-    - name: Capture Xipher Version Installed
+    - name: Record installed version
       run: |
         VERSION_INSTALLED=$(xipher --version | grep -m1 "Version" | awk '{print $NF}')
         if [[ ! "${VERSION_INSTALLED}" =~ ^v ]]; then
           VERSION_INSTALLED="v${VERSION_INSTALLED}"
         fi
         echo "XIPHER_VERSION_INSTALLED=${VERSION_INSTALLED}" >> $GITHUB_ENV
-    - name: Resolve Expected Version
+    - name: Resolve expected version
       run: |
         if [ "${{ matrix.version }}" = "latest" ]; then
           EXPECTED=$(gh release view --repo ${{ github.repository }} --json tagName -q '.tagName')
@@ -92,7 +92,7 @@ jobs:
         echo "XIPHER_VERSION_EXPECTED=${EXPECTED}" >> $GITHUB_ENV
       env:
         GH_TOKEN: ${{ github.token }}
-    - name: Verify Xipher Version
+    - name: Verify version
       shell: python
       run: |
         import sys, os

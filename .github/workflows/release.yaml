@@ -8,7 +8,7 @@ on:
 jobs:
 
   test:
-    name: Running Tests
+    name: Run Tests
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -19,37 +19,36 @@ jobs:
       uses: actions/setup-go@v7
       with:
         go-version: 'stable'
-    - name: Running Unit Tests
+    - name: Run unit tests
       run: go test -v .
 
-  release:
-    name: "Releasing Xipher: ${{ github.ref_name }}"
+  release-binaries:
+    name: Release Binaries
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: write
       packages: write
     steps:
-    - name: Setting Xipher Version
+    - name: Set Xipher version
       run: echo "XIPHER_VERSION=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
-    - name: Checkout Code
+    - name: Checkout
       uses: actions/checkout@v7
       with:
         fetch-depth: 0
-    - name: Login to GitHub Container Registry
+    - name: Login to GHCR
       uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Preparing Xipher Web assets
+    - name: Prepare web assets
       run: |
         mkdir -p .ignore
         cp -r web .ignore
         sed -i "s/xipher-cache/xipher-v${{ env.XIPHER_VERSION }}/g" .ignore/web/js/service-worker.js .ignore/web/js/xipher.js
         sed -i "s|<span class=\"xipher-version\">[^<]*</span>|<span class=\"xipher-version\">${{ env.XIPHER_VERSION }}</span>|g" .ignore/web/index.html .ignore/web/docs/index.html
-    - name: Download llvm-mingw latest version
+    - name: Download llvm-mingw
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -57,7 +56,7 @@ jobs:
         gh release download --repo mstorsjo/llvm-mingw --pattern "$ASSET_NAME" --dir "$RUNNER_TEMP"
         mkdir -p "$RUNNER_TEMP/llvm-mingw"
         tar -xf "$RUNNER_TEMP/$ASSET_NAME" --strip-components=1 -C "$RUNNER_TEMP/llvm-mingw"
-    - name: Copying wasm_exec.js to .ignore directory
+    - name: Copy wasm_exec.js
       run: |
         docker run --rm \
         -w /workspace \
@@ -66,7 +65,7 @@ jobs:
         --entrypoint sh \
         ghcr.io/goreleaser/goreleaser-cross:latest \
         -c "cp \$(go env GOROOT)/lib/wasm/wasm_exec.js .ignore"
-    - name: GoReleaser - Release Xipher
+    - name: Release binaries
       run: |
         docker run --rm \
         -w /workspace \
@@ -80,6 +79,48 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         HOMEBREW_SSH_KEY: ${{ secrets.HOMEBREW_SSH_KEY }}
+
+  major-version-tag:
+    name: Major Version Tag
+    needs: release-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: Update major tag
+      run: |
+        FULL_VER_TAG=${{ github.ref_name }}
+        MAJOR_VER_TAG=$(echo "$FULL_VER_TAG" | grep -oE '^v[0-9]+')
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+        git tag -f "$MAJOR_VER_TAG"
+        git push origin "$MAJOR_VER_TAG" --force
+
+  release-packages:
+    name: Release Packages
+    needs: release-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+    - name: Set Xipher version
+      run: echo "XIPHER_VERSION=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: Login to GHCR
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
     - name: Set up Docker Buildx
@@ -95,12 +136,25 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         role-session-name: XipherGitHubAction
         aws-region: us-east-1
-    - name: Login to Amazon ECR Public
+    - name: Login to ECR Public
       id: login-ecr-public
       uses: aws-actions/amazon-ecr-login@v2
       with:
         registry-type: public
-    - name: Build and push Docker image
+    - name: Download binaries
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        for arch in amd64 arm64; do
+          gh release download ${{ github.ref_name }} --repo ${{ github.repository }} \
+            --pattern "xipher_linux_${arch}.zip" --dir "$RUNNER_TEMP"
+          mkdir -p "dist/xipher-cli_linux_${arch}"
+          unzip -o "$RUNNER_TEMP/xipher_linux_${arch}.zip" xipher -d "dist/xipher-cli_linux_${arch}"
+          chmod +x "dist/xipher-cli_linux_${arch}/xipher"
+        done
+        ls -lh dist/xipher-cli_linux_*/xipher
+    - name: Release Container Images
       uses: docker/build-push-action@v7
       with:
         platforms: linux/amd64,linux/arm64
@@ -116,25 +170,17 @@ jobs:
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:latest
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:${{ env.XIPHER_VERSION }}
           ${{ steps.login-ecr-public.outputs.registry }}/${{ github.repository }}:v${{ env.XIPHER_VERSION }}
-    - name: Setup Helm
+    - name: Set up Helm
       uses: azure/setup-helm@v5
-    - name: Helm Release Charts
+    - name: Release Helm Charts
       run: |
         sed -i "s/0\.0\.0/${XIPHER_VERSION}/g" charts/xkms/Chart.yaml
         helm package ./charts/xkms --version ${{ env.XIPHER_VERSION }} --destination .
         helm push ./xkms-${{ env.XIPHER_VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
-    - name: Force Tagging Major Version
-      run: |
-        FULL_VER_TAG=${{ github.ref_name }}
-        MAJOR_VER_TAG=$(echo "$FULL_VER_TAG" | grep -oE '^v[0-9]+')
-        git config user.name "${{ github.actor }}"
-        git config user.email "${{ github.actor }}@users.noreply.github.com"
-        git tag -f "$MAJOR_VER_TAG"
-        git push origin "$MAJOR_VER_TAG" --force
 
-  pages:
-    name: Run GitHub Pages Workflow
-    needs: release
+  publish-pages:
+    name: Publish Pages
+    needs: release-packages
     permissions:
       contents: read
       pages: write
