@@ -1,0 +1,44 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://xipher.org/xkms/openapi.json",
+      "item": [
+        {
+          "href": "https://xipher.org/xkms/openapi.json",
+          "rel": "service-desc",
+          "type": "application/openapi+json",
+          "title": "XKMS OpenAPI 3.1 description"
+        },
+        {
+          "href": "https://xipher.org/docs.md#xkms-overview",
+          "rel": "service-doc",
+          "type": "text/markdown",
+          "title": "XKMS documentation (canonical Markdown)"
+        },
+        {
+          "href": "https://xipher.org/xkms/",
+          "rel": "service-doc",
+          "type": "text/html",
+          "title": "XKMS landing page"
+        }
+      ]
+    },
+    {
+      "anchor": "https://xipher.org/",
+      "item": [
+        {
+          "href": "https://xipher.org/llms.txt",
+          "rel": "service-doc",
+          "type": "text/plain",
+          "title": "Xipher documentation index for agents"
+        },
+        {
+          "href": "https://xipher.org/docs.md",
+          "rel": "service-doc",
+          "type": "text/markdown",
+          "title": "Xipher documentation (canonical Markdown)"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Xipher KMS (XKMS) is a self-hosted credential provider for Xipher. Get the OpenAPI description, run it with Helm, or read the documentation.">
+    <title>Xipher KMS (XKMS) · OpenAPI & self-hosting</title>
+    <link rel="icon" href="../assets/images/logo.svg" />
+    <link rel="alternate" type="text/markdown" href="https://xipher.org/docs.md" title="Xipher documentation (Markdown)">
+    <link rel="describedby" type="text/plain" href="https://xipher.org/llms.txt" title="LLM index">
+    <style>
+        :root { color-scheme: dark light; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #0b0e14;
+            color: #e6e6e6;
+            font: 16px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif;
+            padding: 2rem;
+        }
+        main { max-width: 44rem; }
+        img { width: 56px; height: 56px; }
+        h1 { font-size: 1.6rem; margin: 1rem 0 0.25rem; }
+        .sub { color: #9aa4b2; margin: 0 0 1.5rem; }
+        h2 { font-size: 1.05rem; margin: 2rem 0 0.5rem; }
+        p, li { color: #c7ced8; }
+        a { color: #4da3ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code { background: #161b24; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+    </style>
+</head>
+
+<body>
+    <main>
+        <img src="../assets/images/logo.svg" alt="Xipher logo">
+        <h1>Xipher KMS (XKMS)</h1>
+        <p class="sub">A self-hosted credential provider for Xipher: OIDC-authenticated, deterministic key derivation,
+            no key storage.</p>
+
+        <p>XKMS derives Xipher secret keys from verified OIDC identities with HKDF-SHA256 and serves entity public
+            keys over an unauthenticated <code>/xpk/</code> tree. It is a custodial model — the master seed can derive
+            any identity's key — so deploy it only where that trust is acceptable.</p>
+
+        <h2>Machine-readable</h2>
+        <ul>
+            <li><a href="/xkms/openapi.json">OpenAPI 3.1 description</a> (all routes, schemas, auth)</li>
+            <li><a href="/.well-known/api-catalog">API catalog</a> (RFC 9727 linkset)</li>
+            <li><a href="/docs.md#xkms-overview">Full XKMS documentation</a> (Markdown, canonical)</li>
+            <li><a href="https://xipher.org/xkms/xkms.example.yaml">Example configuration</a></li>
+        </ul>
+
+        <h2>Run it</h2>
+        <p><code>helm repo add xipher https://xipher.org/charts</code><br>
+            <code>helm install xkms xipher/xkms</code></p>
+        <p>Or run the built-in hidden subcommand: <code>xipher kms --config /path/to/xkms.yaml</code>.</p>
+
+        <p><a href="/docs/">← Back to the documentation</a></p>
+    </main>
+</body>
+
+</html>

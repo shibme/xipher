@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "skills": [
+    {
+      "name": "xipher",
+      "description": "Encrypt and decrypt text, files, and streams with the Xipher CLI, including password-derived public keys, published key URLs, and optional post-quantum mode.",
+      "version": "1.0.0",
+      "url": "https://xipher.org/skills/xipher/SKILL.md",
+      "mimeType": "text/markdown",
+      "license": "MIT",
+      "homepage": "https://xipher.org/",
+      "tags": ["encryption", "cryptography", "cli", "post-quantum"]
+    }
+  ]
+}

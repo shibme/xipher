@@ -1,0 +1,329 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Xipher KMS (XKMS)",
+    "version": "1.0.0",
+    "summary": "Self-hosted OIDC credential provider and public-key directory for Xipher.",
+    "description": "XKMS authenticates entities against OIDC identity providers, derives deterministic 64-byte Xipher seeds with HKDF-SHA256, and either returns credentials to services (direct JWT flow) or seals them to the browser's ephemeral public key (credential-provider flow).\n\nThis document describes the server software. XKMS is self-hosted: xipher.org does not run a public instance. The canonical documentation is https://xipher.org/docs.md#xkms-overview.\n\nThe credential endpoints accept an OIDC ID token in the header configured by `auth_header` (default `Authorization: Bearer <jwt>`). The `/xpk/` tree is unauthenticated by design and serves only public keys.",
+    "license": { "name": "MIT", "identifier": "MIT" },
+    "contact": { "url": "https://github.com/shibme/xipher/security/advisories" }
+  },
+  "servers": [
+    {
+      "url": "https://{host}",
+      "description": "Your XKMS deployment.",
+      "variables": {
+        "host": {
+          "default": "xkms.example.com",
+          "description": "Hostname of the XKMS server. The public-key path prefix is configurable via `pubkey_path` (default `/xpk/`)."
+        }
+      }
+    }
+  ],
+  "tags": [
+    { "name": "health", "description": "Liveness." },
+    { "name": "credential", "description": "Authenticated credential issuance." },
+    { "name": "public-key", "description": "Unauthenticated public-key directory." },
+    { "name": "browser-flow", "description": "Pages used by the credential-provider (OAuth-shaped) flow." }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Liveness probe",
+        "operationId": "getHealth",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The string `ok`.",
+            "content": { "text/plain": { "schema": { "type": "string", "examples": ["ok"] } } }
+          }
+        }
+      }
+    },
+    "/api/v1/credential/user": {
+      "post": {
+        "tags": ["credential"],
+        "summary": "Derive the caller's user credential",
+        "description": "The identity comes from the provider's configured `claims.user` claim. The JWT must validate against one of the configured providers.",
+        "operationId": "createUserCredential",
+        "security": [{ "oidcBearer": [] }],
+        "responses": {
+          "200": {
+            "description": "Credential for the authenticated user.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credential" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/credential/group/{name}": {
+      "post": {
+        "tags": ["credential"],
+        "summary": "Derive a group credential",
+        "description": "Succeeds only when the provider's configured `claims.group` claim contains `name`.",
+        "operationId": "createGroupCredential",
+        "security": [{ "oidcBearer": [] }],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Group name, as it appears in the token's group claim.",
+            "schema": { "type": "string", "examples": ["cloud-engineering"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credential for the group identity.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credential" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/credential/service": {
+      "post": {
+        "tags": ["credential"],
+        "summary": "Derive the caller's service credential",
+        "description": "The identity comes from the provider's configured `claims.service` claim (for example `sub` for a GitHub Actions OIDC token).",
+        "operationId": "createServiceCredential",
+        "security": [{ "oidcBearer": [] }],
+        "responses": {
+          "200": {
+            "description": "Credential for the service identity.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credential" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/xpk/{provider}/user/{id}/.well-known/xipher": {
+      "get": {
+        "tags": ["public-key"],
+        "summary": "Public key for a user identity",
+        "operationId": "getUserPublicKey",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/Provider" },
+          { "$ref": "#/components/parameters/EntityID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published key in the Xipher resolver format.",
+            "headers": {
+              "Access-Control-Allow-Origin": { "schema": { "type": "string", "const": "*" } }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublishedKey" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/xpk/{provider}/group/{id}/.well-known/xipher": {
+      "get": {
+        "tags": ["public-key"],
+        "summary": "Public key for a group identity",
+        "operationId": "getGroupPublicKey",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/Provider" },
+          { "$ref": "#/components/parameters/EntityID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published key in the Xipher resolver format.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublishedKey" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/xpk/{provider}/service/{id}/.well-known/xipher": {
+      "get": {
+        "tags": ["public-key"],
+        "summary": "Public key for a service identity",
+        "operationId": "getServicePublicKey",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/Provider" },
+          { "$ref": "#/components/parameters/EntityID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published key in the Xipher resolver format.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublishedKey" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/login": {
+      "get": {
+        "tags": ["browser-flow"],
+        "summary": "Start the OIDC code flow (provider entry point)",
+        "description": "The Xipher app redirects here with `xpk`, `state`, and `xcb`. With one provider configured the browser goes straight to the IdP; with several, a selector page is served. A bare `/` request redirects here, preserving these parameters.",
+        "operationId": "browserLogin",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/EphemeralPublicKey" },
+          { "$ref": "#/components/parameters/ProviderState" },
+          { "$ref": "#/components/parameters/CallbackURL" }
+        ],
+        "responses": {
+          "200": { "description": "Provider selector page (multiple providers).", "content": { "text/html": { "schema": { "type": "string" } } } },
+          "302": { "description": "Redirect to the identity provider." }
+        }
+      }
+    },
+    "/callback": {
+      "get": {
+        "tags": ["browser-flow"],
+        "summary": "OIDC redirect URI",
+        "description": "Exchanges the authorization code for an ID token, then redirects to `/consent` with the token in the URL fragment.",
+        "operationId": "browserCallback",
+        "security": [],
+        "responses": {
+          "302": { "description": "Redirect to `/consent#token=…`." }
+        }
+      }
+    },
+    "/consent": {
+      "get": {
+        "tags": ["browser-flow"],
+        "summary": "Identity selection page",
+        "description": "Lists the identities available in the token. On confirmation the page posts to the matching credential endpoint and the server seals the result to the ephemeral public key.",
+        "operationId": "browserConsent",
+        "security": [],
+        "responses": {
+          "200": { "description": "Consent/identity selector page.", "content": { "text/html": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/cancel": {
+      "get": {
+        "tags": ["browser-flow"],
+        "summary": "Abort an in-flight browser flow",
+        "description": "Consumes the state and redirects back to the Xipher app with `#xe=denied`.",
+        "operationId": "browserCancel",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/ProviderState" },
+          { "$ref": "#/components/parameters/CallbackURL" }
+        ],
+        "responses": {
+          "302": { "description": "Redirect to the app with an error fragment." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oidcBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "An OIDC ID token. The header name and scheme are configurable via `auth_header` in the XKMS config."
+      }
+    },
+    "parameters": {
+      "Provider": {
+        "name": "provider",
+        "in": "path",
+        "required": true,
+        "description": "Provider ID: the key of the `providers` map in the XKMS config.",
+        "schema": { "type": "string", "examples": ["corp-sso"] }
+      },
+      "EntityID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Entity identifier (email, group name, or service ID).",
+        "schema": { "type": "string", "examples": ["alice@example.com"] }
+      },
+      "EphemeralPublicKey": {
+        "name": "xpk",
+        "in": "query",
+        "required": true,
+        "description": "Ephemeral `XPK_…` public key to seal the credential to. Hybrid (post-quantum) or compact X25519.",
+        "schema": { "type": "string" }
+      },
+      "ProviderState": {
+        "name": "state",
+        "in": "query",
+        "required": false,
+        "description": "Opaque one-time state; echoed back unchanged.",
+        "schema": { "type": "string" }
+      },
+      "CallbackURL": {
+        "name": "xcb",
+        "in": "query",
+        "required": false,
+        "description": "Absolute Xipher app URL to redirect back to. Must match `xipher_urls` (scheme + host).",
+        "schema": { "type": "string", "format": "uri" }
+      }
+    },
+    "schemas": {
+      "Credential": {
+        "type": "object",
+        "description": "Derived credential material. `seed` and `key` are emitted according to `credential.seed` / `credential.key` in the config.",
+        "properties": {
+          "seed": {
+            "type": "string",
+            "description": "Standard base64 of the 64-byte derived seed. Omitted unless `credential.seed` is true.",
+            "contentEncoding": "base64"
+          },
+          "key": {
+            "type": "string",
+            "description": "`XSK_…` secret key derived from the seed. Omitted unless `credential.key` is true.",
+            "pattern": "^XSK_[A-Z2-7]{106}$"
+          },
+          "name": { "type": "string", "description": "Display name from the OIDC `name` claim, if present." },
+          "id": { "type": "string", "description": "Entity identifier taken from the configured claim." },
+          "type": { "type": "string", "enum": ["user", "group", "service"] },
+          "timeout": {
+            "type": "integer",
+            "description": "Credential lifetime in seconds, relayed to the Xipher app. 0 means ephemeral (tab-only).",
+            "minimum": 0,
+            "maximum": 604800
+          }
+        },
+        "required": ["id", "type", "timeout"]
+      },
+      "PublishedKey": {
+        "type": "object",
+        "description": "The Xipher published-key document.",
+        "properties": {
+          "name": { "type": "string", "description": "Display name, e.g. `User - alice@example.com`." },
+          "publicKey": { "type": "string", "description": "`XPK_…` public key." }
+        },
+        "required": ["publicKey"]
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid OIDC ID token.",
+        "content": { "text/plain": { "schema": { "type": "string", "examples": ["invalid token"] } } }
+      },
+      "Forbidden": {
+        "description": "Token does not carry the required claim or group membership.",
+        "content": { "text/plain": { "schema": { "type": "string", "examples": ["token has no user identity"] } } }
+      },
+      "BadRequest": {
+        "description": "Missing or malformed path parameter.",
+        "content": { "text/plain": { "schema": { "type": "string" } } }
+      },
+      "NotFound": {
+        "description": "Unknown provider ID.",
+        "content": { "text/plain": { "schema": { "type": "string", "examples": ["unknown provider"] } } }
+      }
+    }
+  }
+}

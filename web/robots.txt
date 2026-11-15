@@ -1,0 +1,11 @@
+# Xipher is free, open-source software (MIT) and is meant to be read, indexed,
+# quoted, and learned from. All crawlers, including AI training and AI search
+# crawlers, are welcome. No path is restricted.
+User-agent: *
+Allow: /
+
+# Cloudflare content signals: search indexing, AI input (RAG/grounding), and AI
+# training are all permitted.
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+
+Sitemap: https://xipher.org/sitemap.xml

@@ -23,6 +23,9 @@
     <meta name="description" content="Xipher documentation: guides and examples for the CLI, web app, Go library, WebAssembly module, and GitHub Action.">
     <link rel="icon" href="../assets/images/logo.svg" />
     <title>Xipher Docs · Guides & examples</title>
+    <link rel="alternate" type="text/markdown" href="https://xipher.org/docs.md"
+        title="Xipher documentation (Markdown)">
+    <link rel="describedby" type="text/plain" href="https://xipher.org/docs/llms.txt" title="LLM index for these docs">
     <link rel="stylesheet" href="../css/base.css">
     <link rel="stylesheet" href="docs.css">
 </head>
@@ -127,6 +130,7 @@
                     <a href="#selfhost" class="docs-nav-link">Self-hosting</a>
                     <a href="#security" class="docs-nav-link">Security</a>
                     <a href="#faq" class="docs-nav-link">FAQ</a>
+                    <a href="#agents" class="docs-nav-link">Agent resources</a>
                 </div>
                 <div class="docs-nav-group">
                     <p class="docs-nav-title">Architecture</p>
@@ -239,6 +243,15 @@
                                 produces larger keys and ciphertext.</p>
                         </div>
                     </div>
+
+                    <h3>Symmetric vs asymmetric</h3>
+                    <p>If you pass a secret key (<code>XSK_…</code>) or a password as the key, Xipher encrypts
+                        <strong>symmetrically</strong>: the same credential encrypts and decrypts. That is what the web
+                        app does when you encrypt something for yourself, and it is the faster mode.</p>
+                    <p>If you pass a public key (<code>XPK_…</code>), encryption is <strong>asymmetric</strong>: the sender
+                        needs only the public key, and only the holder of the matching secret key or password can
+                        decrypt. This is the mode to use when two different parties are involved. Only a public key can
+                        be handed to a sender - never a secret key or password.</p>
                 </section>
 
                 <!-- Quick start -->
@@ -333,12 +346,15 @@ cat backup.tar | xipher encrypt stream -k "XPK_..." > backup.tar.xipher</code></
                                 <tr><th>Flag</th><th>Short</th><th>Description</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><code>--key</code></td><td><code>-k</code></td><td>Public key, secret key, or password</td></tr>
+                                <tr><td><code>--key</code></td><td><code>-k</code></td><td>Public key, secret key, password, or a URL/domain serving a public key</td></tr>
                                 <tr><td><code>--text</code></td><td><code>-t</code></td><td>Text to encrypt (<code>-</code> reads stdin)</td></tr>
                                 <tr><td><code>--file</code></td><td><code>-f</code></td><td>Path to the input file</td></tr>
                                 <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file</td></tr>
+                                <tr><td><code>--fetch</code></td><td></td><td>Treat <code>--key</code> as a URL/domain and fetch the public key without prompting</td></tr>
                                 <tr><td><code>--compress</code></td><td></td><td>Compress data before encryption</td></tr>
                                 <tr><td><code>--xiphertext</code></td><td></td><td>Encode output as Xipher text</td></tr>
+                                <tr><td><code>--overwrite</code></td><td></td><td>Overwrite the output file if it exists (<code>file</code> only)</td></tr>
+                                <tr><td><code>--ignore-password-policy</code></td><td></td><td>Skip the password strength check</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -351,7 +367,7 @@ cat backup.tar | xipher encrypt stream -k "XPK_..." > backup.tar.xipher</code></
                     <pre class="code-block" data-lang="bash"><code># Decrypt text
 xipher decrypt text -c "XCT_..."
 
-# Decrypt a file (output path inferred by stripping .xipher)
+# Decrypt a file (the .xipher suffix is stripped for the output path)
 xipher decrypt file -f report.pdf.xipher
 
 # ...or set an explicit output path
@@ -367,11 +383,13 @@ cat backup.tar.xipher | xipher decrypt stream > backup.tar</code></pre>
                             <tbody>
                                 <tr><td><code>--ciphertext</code></td><td><code>-c</code></td><td>Ciphertext to decrypt (<code>text</code> only)</td></tr>
                                 <tr><td><code>--file</code></td><td><code>-f</code></td><td>Path to the encrypted input file</td></tr>
-                                <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file (inferred if omitted)</td></tr>
+                                <tr><td><code>--out</code></td><td><code>-o</code></td><td>Path to the output file (inferred only when the input ends in <code>.xipher</code>)</td></tr>
                                 <tr><td><code>--overwrite</code></td><td></td><td>Overwrite the output file if it exists</td></tr>
                             </tbody>
                         </table>
                     </div>
+                    <p>If the input file does not end in <code>.xipher</code> and you omit <code>--out</code>, there is no
+                        name to infer: pass <code>--out</code> explicitly.</p>
                 </section>
 
                 <section id="cli-webauth" class="docs-section">
@@ -607,7 +625,7 @@ Content-Type: application/json</code></pre>
                         ciphertext today to decrypt once a quantum computer can break classical ECC.</p>
                     <p>Because your public key is always re-derived from your stored identity, you can switch it on or off
                         at any time without changing your password or secret key; your shareable link updates instantly.
-                        The tradeoff is a larger public key and ciphertext (~1600 bytes vs ~32 bytes for the key-exchange
+                        The tradeoff is a larger public key and ciphertext (~1.6&nbsp;KB vs ~33 bytes for the key-exchange
                         portion). See the <a href="#arch-primitives">architecture</a> section for the full cryptographic
                         details.</p>
                 </section>
@@ -904,6 +922,11 @@ providers:
       user: email      # single string claim  →  one user identity
       group: groups    # array claim          →  one identity per group
       service: sub     # single string claim  →  one service identity
+    # Optional homepage identity-name input hints. Omit to use built-in examples.
+    placeholders:
+      user: alice@example.com
+      group: engineering-team
+      service: payment-api
 
   # Additional providers are optional. Each may expose different entity types.
   # github:
@@ -928,13 +951,20 @@ credential:
   key: true             # include the XSK_-prefixed key
   timeout: 604800       # seconds the browser keeps the credential; 0 = ephemeral
 
+# Browser sign-in page behavior (the selector shown when more than one
+# provider is configured).
+login:
+  redirect_delay: 3     # seconds of countdown before redirecting to the IdP; 0 = immediate
+  remember: true        # offer "remember my provider on this device"
+
 # Quantum-safe public keys served at /xpk/… endpoints (does not affect
 # the sealed-credential flow - that seals to the requester's own key).
 post_quantum: false
 
-# Xipher app URLs. default is optional: bare visits to https://xkms.example.com
-# redirect there with ?provider=https://xkms.example.com/login. default is also
-# allowed as a callback origin. allowed lists additional callback origins.
+# Xipher app URLs. default is optional only when allowed lists at least one
+# origin: bare visits to https://xkms.example.com then redirect there with
+# ?provider=https://xkms.example.com/login. default is also allowed as a
+# callback origin. allowed lists additional callback origins.
 xipher_urls:
   default: https://xipher.org
   allowed:
@@ -1007,16 +1037,18 @@ openssl rand -hex 96 > /run/secrets/xkms.seed</code></pre>
                     </div>
                     <p><strong>Response</strong> (direct service flow):</p>
                     <pre class="code-block" data-lang="json"><code>{
-  "seed": "&lt;base64 of 64-byte derived seed&gt;",  // if credential.type = seed or both
-  "key":  "XSK_...",                              // if credential.type = key or both
+  "seed": "&lt;base64 of 64-byte derived seed&gt;",  // if credential.seed is true
+  "key":  "XSK_...",                              // if credential.key is true
   "name": "Alice Example",
   "id":   "alice@example.com",
   "type": "user",
   "timeout": 604800
 }</code></pre>
                     <p>Key derivation uses <strong>HKDF-SHA256</strong> with the master seed as key material and
-                        <code>xkms:&lt;type&gt;:&lt;id&gt;</code> as the info string. The same identity always yields
-                        the same 64-byte seed, deterministically and without storage.</p>
+                        <code>xkms:&lt;provider&gt;:&lt;type&gt;:&lt;id&gt;</code> as the info string. The provider ID is
+                        included, so the same identity from two different providers derives two different seeds. The
+                        same <code>(provider, type, id)</code> always yields the same 64-byte seed, deterministically
+                        and without storage.</p>
                     <pre class="code-block" data-lang="bash"><code># Direct service auth example
 curl -X POST https://xkms.example.com/api/v1/credential/service \
   -H "Authorization: Bearer $OIDC_ID_TOKEN"</code></pre>
@@ -1409,6 +1441,28 @@ jobs:
                     </details>
                 </section>
 
+                <!-- AGENT RESOURCES -->
+                <section id="agents" class="docs-section">
+                    <h2>Agent resources</h2>
+                    <p>This page is also published as a single Markdown file, and every machine-oriented entry point
+                        points at that file. An agent that starts anywhere ends up in the same place.</p>
+                    <div class="docs-table-wrap">
+                        <table class="docs-table">
+                            <thead><tr><th>Resource</th><th>URL</th><th>Purpose</th></tr></thead>
+                            <tbody>
+                                <tr><td>Canonical documentation</td><td><code>/docs.md</code></td><td>This page as Markdown, with the same section anchors</td></tr>
+                                <tr><td>Agent index</td><td><code>/llms.txt</code></td><td>Curated index in the <code>llms.txt</code> format</td></tr>
+                                <tr><td>Operator guide</td><td><code>/AGENTS.md</code></td><td>Commands, safety rules, when (and when not) to recommend Xipher</td></tr>
+                                <tr><td>Agent skill</td><td><code>/skills/xipher/SKILL.md</code></td><td>Installable skill describing the CLI contract</td></tr>
+                                <tr><td>XKMS OpenAPI</td><td><code>/xkms/openapi.json</code></td><td>Machine-readable description of the XKMS routes and schemas</td></tr>
+                                <tr><td>API catalog</td><td><code>/.well-known/api-catalog</code></td><td>RFC 9727 linkset pointing at the spec and this documentation</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>HTML pages advertise their Markdown twin with <code>&lt;link rel="alternate" type="text/markdown"&gt;</code>
+                        and this index with <code>rel="describedby"</code>.</p>
+                </section>
+
                 <!-- ARCHITECTURE -->
                 <section id="arch-overview" class="docs-section">
                     <h2>Architecture</h2>
@@ -1448,8 +1502,8 @@ jobs:
                         <table class="docs-table">
                             <thead><tr><th>Mode</th><th>Classical</th><th>Quantum</th><th>Public key</th></tr></thead>
                             <tbody>
-                                <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>32 bytes</td></tr>
-                                <tr><td>Quantum-safe (X25519 + ML-KEM-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1600 bytes</td></tr>
+                                <tr><td>ECC (Curve25519)</td><td>~128-bit</td><td>none</td><td>33 bytes (1 + 32)</td></tr>
+                                <tr><td>Quantum-safe (X25519 + ML-KEM-1024)</td><td>~256-bit</td><td>~230-bit</td><td>1601 bytes (1 + 32 + 1568)</td></tr>
                             </tbody>
                         </table>
                     </div>

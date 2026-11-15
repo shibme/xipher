@@ -1,0 +1,11 @@
+# Canonical agent-facing documentation lives at /docs.md.
+# Everything below is an alias so agents that probe a conventional path land on
+# the same source of truth instead of the app shell.
+/llms-full.txt           /docs.md 302
+/docs/index.md           /docs.md 302
+/docs/index.html.md      /docs.md 302
+/agents.md               /AGENTS.md 302
+/openapi.json            /xkms/openapi.json 302
+
+# The example config is maintained next to the server code; do not duplicate it.
+/xkms/xkms.example.yaml  https://raw.githubusercontent.com/shibme/xipher/main/internal/kms/xkms.example.yaml 302

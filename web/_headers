@@ -1,0 +1,62 @@
+# Cloudflare Pages response headers.
+#
+# Goals:
+#   1. Correct Content-Type for extensionless files (.well-known/*).
+#   2. Markdown twins advertised on the HTML pages (llms.txt v2 link relations).
+#   3. Cross-origin readable, so browser-based agents can fetch these files.
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+
+/llms-full.txt
+  Access-Control-Allow-Origin: *
+
+/docs.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=3600
+  Link: <https://xipher.org/docs/>; rel="alternate"; type="text/html", <https://xipher.org/docs/llms.txt>; rel="describedby"
+
+/docs/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Access-Control-Allow-Origin: *
+
+/index.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+  Link: <https://xipher.org/>; rel="alternate"; type="text/html", <https://xipher.org/llms.txt>; rel="describedby"
+
+/docs/
+  Link: <https://xipher.org/docs.md>; rel="alternate"; type="text/markdown", <https://xipher.org/docs/llms.txt>; rel="describedby"
+
+/
+  Link: <https://xipher.org/index.md>; rel="alternate"; type="text/markdown", <https://xipher.org/llms.txt>; rel="describedby"
+
+/AGENTS.md
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+
+/skills/*
+  Content-Type: text/markdown; charset=utf-8
+  Access-Control-Allow-Origin: *
+
+/.well-known/xipher
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+/.well-known/api-catalog
+  Content-Type: application/linkset+json
+  Access-Control-Allow-Origin: *
+
+/.well-known/security.txt
+  Content-Type: text/plain; charset=utf-8
+
+/.well-known/agent-skills/index.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+/xkms/openapi.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *

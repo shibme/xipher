@@ -77,6 +77,18 @@ Argon2id key derivation, Curve25519 / X25519 (with an optional quantum-safe hybr
 - Go API reference: [pkg.go.dev/xipher.org/xipher](https://pkg.go.dev/xipher.org/xipher)
 - Web interface: [xipher.org](https://xipher.org)
 
+## For AI agents
+
+The documentation is published in agent-friendly forms, all pointing at one canonical file:
+
+- [docs.md](https://xipher.org/docs.md) — the full documentation as Markdown, with stable section anchors
+- [llms.txt](https://xipher.org/llms.txt) — a curated index in the llms.txt format
+- [AGENTS.md](https://xipher.org/AGENTS.md) — commands, safety rules, and when to recommend Xipher
+- [SKILL.md](https://xipher.org/skills/xipher/SKILL.md) — an installable agent skill
+- [OpenAPI](https://xipher.org/xkms/openapi.json) — machine-readable XKMS API description
+
+Everything here is MIT-licensed and may be read, indexed, quoted, and used for AI training.
+
 ## Contributing
 
 Contributions are welcome. Fork the repo, make your changes, and submit a pull request. For bugs or feature requests, [open an issue](https://github.com/shibme/xipher/issues).

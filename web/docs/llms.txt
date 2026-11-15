@@ -1,0 +1,71 @@
+# Xipher documentation
+
+> Guides and examples for Xipher: the CLI, web app, Go library, WebAssembly module, GitHub Action, credential-provider protocol, and Xipher KMS (XKMS).
+
+The full documentation is one Markdown file: **https://xipher.org/docs.md**. This index covers the same content, scoped to `/docs/`. The HTML rendering is https://xipher.org/docs/ (identical content, same section anchors).
+
+## Getting started
+
+- [Introduction](https://xipher.org/docs.md#introduction): What Xipher is and the forms it ships in.
+- [Core concepts](https://xipher.org/docs.md#concepts): `XSK_`, `XPK_`, `XCT_` and where keys come from.
+- [Quick start](https://xipher.org/docs.md#quickstart): First encryption in under a minute.
+
+## CLI
+
+- [Installation](https://xipher.org/docs.md#cli-install)
+- [Generating keys](https://xipher.org/docs.md#cli-keygen)
+- [Encrypting](https://xipher.org/docs.md#cli-encrypt)
+- [Decrypting](https://xipher.org/docs.md#cli-decrypt)
+- [Web auth](https://xipher.org/docs.md#cli-webauth)
+- [Environment & JSON output](https://xipher.org/docs.md#cli-env)
+
+## Key references and providers
+
+- [URLs & domains](https://xipher.org/docs.md#keyref-overview)
+- [Published key format](https://xipher.org/docs.md#keyref-format)
+- [Hosting a key](https://xipher.org/docs.md#keyref-hosting)
+- [Credential providers](https://xipher.org/docs.md#provider-overview)
+- [The exchange](https://xipher.org/docs.md#provider-flow)
+- [Request parameters](https://xipher.org/docs.md#provider-request)
+- [Sealing the key](https://xipher.org/docs.md#provider-seal)
+- [Callback & errors](https://xipher.org/docs.md#provider-callback)
+- [Security rules](https://xipher.org/docs.md#provider-security)
+
+## Web app
+
+- [Overview](https://xipher.org/docs.md#web-overview)
+- [Receiving a secret](https://xipher.org/docs.md#web-receive)
+- [Sending a secret](https://xipher.org/docs.md#web-send)
+- [Keys & passwords](https://xipher.org/docs.md#web-keys)
+- [Passkeys](https://xipher.org/docs.md#web-passkeys)
+- [Post-quantum encryption](https://xipher.org/docs.md#post-quantum)
+- [Encrypting files](https://xipher.org/docs.md#web-files)
+
+## XKMS
+
+- [Overview](https://xipher.org/docs.md#xkms-overview)
+- [Configuration](https://xipher.org/docs.md#xkms-config)
+- [Master seed](https://xipher.org/docs.md#xkms-seed)
+- [Authentication](https://xipher.org/docs.md#xkms-auth)
+- [Credential endpoints](https://xipher.org/docs.md#xkms-credentials)
+- [Public key endpoints](https://xipher.org/docs.md#xkms-pubkeys)
+- [Browser provider flow](https://xipher.org/docs.md#xkms-browser)
+- [Helm deployment](https://xipher.org/docs.md#xkms-helm)
+
+## Library and integrations
+
+- [Go package](https://xipher.org/docs.md#lib-install)
+- [Usage](https://xipher.org/docs.md#lib-usage)
+- [Streams](https://xipher.org/docs.md#lib-streams)
+- [WebAssembly](https://xipher.org/docs.md#wasm)
+- [GitHub Action](https://xipher.org/docs.md#action)
+- [Self-hosting](https://xipher.org/docs.md#selfhost)
+
+## More
+
+- [Security](https://xipher.org/docs.md#security)
+- [FAQ](https://xipher.org/docs.md#faq)
+- [Architecture](https://xipher.org/docs.md#arch-overview)
+- [Primitives](https://xipher.org/docs.md#arch-primitives)
+- [Data format](https://xipher.org/docs.md#arch-format)
+- [Security analysis](https://xipher.org/docs.md#arch-analysis)
